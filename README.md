@@ -37,20 +37,20 @@ graph TD
     classDef storage fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff;
 
     subgraph Clients["User Interfaces (Apps)"]
-        W[🌐 Web App<br/>React + Vite]:::client
-        D[💻 Desktop App<br/>Electron]:::client
+        W["🌐 Web App<br/>React + Vite"]:::client
+        D["💻 Desktop App<br/>Electron"]:::client
     end
 
     subgraph Core["Shared Packages (Monorepo)"]
-        UI[@financeos/ui<br/>Components]:::core
-        DB[@financeos/database<br/>Data Models]:::core
-        Auth[@financeos/auth<br/>Security]:::core
-        Shared[@financeos/shared<br/>Utils & Crypto]:::core
+        UI["@financeos/ui<br/>Components"]:::core
+        DB["@financeos/database<br/>Data Models"]:::core
+        Auth["@financeos/auth<br/>Security"]:::core
+        Shared["@financeos/shared<br/>Utils & Crypto"]:::core
     end
 
     subgraph LocalStorage["Local Machine File System"]
-        Config[(financeos_config.json<br/>App Preferences)]:::storage
-        Data[(financeos_data.json<br/>AES-256 Encrypted)]:::storage
+        Config[("financeos_config.json<br/>App Preferences")]:::storage
+        Data[("financeos_data.json<br/>AES-256 Encrypted")]:::storage
     end
 
     %% Client Dependencies
