@@ -27,6 +27,51 @@ MyFinanceOS is structured as a modern Monorepo with isolated packages and robust
 *   **Styling:** Modern, sleek glassmorphic UI elements
 *   **Database / Auth:** Custom local-first offline encrypted database
 
+## 🏗️ Architecture & Data Flow
+
+```mermaid
+graph TD
+    %% Define styles
+    classDef client fill:#0ea5e9,stroke:#0284c7,stroke-width:2px,color:#fff;
+    classDef core fill:#8b5cf6,stroke:#7c3aed,stroke-width:2px,color:#fff;
+    classDef storage fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff;
+
+    subgraph Clients["User Interfaces (Apps)"]
+        W[🌐 Web App<br/>React + Vite]:::client
+        D[💻 Desktop App<br/>Electron]:::client
+    end
+
+    subgraph Core["Shared Packages (Monorepo)"]
+        UI[@financeos/ui<br/>Components]:::core
+        DB[@financeos/database<br/>Data Models]:::core
+        Auth[@financeos/auth<br/>Security]:::core
+        Shared[@financeos/shared<br/>Utils & Crypto]:::core
+    end
+
+    subgraph LocalStorage["Local Machine File System"]
+        Config[(financeos_config.json<br/>App Preferences)]:::storage
+        Data[(financeos_data.json<br/>AES-256 Encrypted)]:::storage
+    end
+
+    %% Client Dependencies
+    W --> UI
+    W --> DB
+    W --> Auth
+    W --> Shared
+
+    D --> UI
+    D --> DB
+    D --> Auth
+    D --> Shared
+
+    %% Data Flow
+    W -.->|Read/Write API| Config
+    W -.->|Read/Write API| Data
+    
+    D -.->|Direct IPC| Config
+    D -.->|Direct IPC| Data
+```
+
 ## 🚀 Getting Started
 
 ### Prerequisites
