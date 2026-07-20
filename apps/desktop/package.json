@@ -1,0 +1,31 @@
+{
+  "name": "@financeos/desktop",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/main.js",
+  "scripts": {
+    "dev": "tsc && node ../../node_modules/electron/cli.js .",
+    "build": "tsc",
+    "package": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3",
+    "typescript": "^5.3.3"
+  },
+  "build": {
+    "appId": "com.myfinanceos.app",
+    "productName": "MyFinanceOS",
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "files": [
+      "dist/**/*",
+      "web-dist/**/*",
+      "package.json"
+    ]
+  }
+}

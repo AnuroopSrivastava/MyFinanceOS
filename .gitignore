@@ -1,0 +1,7 @@
+node_modules
+dist
+release
+web-dist
+.env
+financeos_data.json
+financeos_config.json
