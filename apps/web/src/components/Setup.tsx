@@ -61,19 +61,13 @@ export const Setup: React.FC<SetupProps> = ({ onSetupComplete }) => {
         boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)'
       }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{
-            width: '64px',
-            height: '64px',
+          <img src="/logo.png" alt="MyFinanceOS Logo" style={{
+            width: '72px',
+            height: '72px',
             borderRadius: '50%',
-            background: 'var(--accent-grad)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
             margin: '0 auto 1.25rem',
             boxShadow: '0 0 20px hsla(186, 100%, 50%, 0.3)'
-          }}>
-            <UserPlus size={32} color="#fff" />
-          </div>
+          }} />
           <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>Welcome to MyFinanceOS</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
             Set up your secure, offline-first personal & business vault

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="hsl(186, 100%, 45%)" />
+      <stop offset="100%" stop-color="hsl(203, 100%, 50%)" />
+    </linearGradient>
+    <linearGradient id="glassReflection" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
+    </linearGradient>
+  </defs>
+
+
+
+  <path d="M 256 80 C 256 80 380 100 420 120 C 420 280 390 380 256 460 C 122 380 92 280 92 120 C 132 100 256 80 256 80 Z" 
+        fill="hsla(224, 20%, 16%, 0.5)" 
+        stroke="hsla(186, 100%, 50%, 0.3)" 
+        stroke-width="8" />
+
+  <path d="M 256 80 C 256 80 380 100 420 120 C 420 280 390 380 256 460 C 122 380 92 280 92 120 C 132 100 256 80 256 80 Z" 
+        fill="url(#glassReflection)" />
+
+  <path d="M 160 320 L 224 240 L 288 280 L 368 176" 
+        fill="none" 
+        stroke="url(#accentGrad)" 
+        stroke-width="40" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" />
+
+  <path d="M 312 176 L 368 176 L 368 232" 
+        fill="none" 
+        stroke="url(#accentGrad)" 
+        stroke-width="40" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" />
+        
+  <circle cx="160" cy="320" r="16" fill="hsl(186, 100%, 45%)" />
+  <circle cx="224" cy="240" r="16" fill="hsl(194, 100%, 47%)" />
+  <circle cx="288" cy="280" r="16" fill="hsl(200, 100%, 49%)" />
+</svg>

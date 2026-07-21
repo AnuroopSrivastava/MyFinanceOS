@@ -72,19 +72,13 @@ export const Login: React.FC<LoginProps> = ({ onUnlock }) => {
         textAlign: 'center',
         boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)'
       }}>
-        <div style={{
-          width: '64px',
-          height: '64px',
+        <img src="/logo.png" alt="MyFinanceOS Logo" style={{
+          width: '72px',
+          height: '72px',
           borderRadius: '50%',
-          background: 'var(--accent-grad)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           margin: '0 auto 1.5rem',
           boxShadow: '0 0 20px hsla(186, 100%, 50%, 0.3)'
-        }}>
-          <Lock size={32} color="#fff" />
-        </div>
+        }} />
 
         <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem', fontFamily: 'var(--font-display)' }}>Welcome back to MyFinanceOS</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '2rem' }}>

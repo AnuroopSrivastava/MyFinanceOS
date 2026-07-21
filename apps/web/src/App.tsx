@@ -151,9 +151,7 @@ const App: React.FC = () => {
     return (
       <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center' }}>
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '2rem', minWidth: '300px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--accent-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <TrendingUp size={24} color="#fff" />
-          </div>
+          <img src="/logo.png" alt="MyFinanceOS Logo" style={{ width: '56px', height: '56px', borderRadius: '50%', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }} />
           <h3 style={{ fontSize: '1.2rem', margin: 0 }}>MyFinanceOS</h3>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>Synchronizing Secure Vault...</p>
         </div>
@@ -190,12 +188,7 @@ const App: React.FC = () => {
 
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingLeft: '0.5rem' }}>
-          <div style={{
-            width: '28px', height: '28px', borderRadius: '50%', background: 'var(--accent-grad)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-            <TrendingUp size={16} color="#fff" />
-          </div>
+          <img src="/logo.png" alt="MyFinanceOS Logo" style={{ width: '32px', height: '32px', borderRadius: '50%', boxShadow: '0 2px 10px rgba(0,0,0,0.3)' }} />
           <span style={{ fontSize: '1.15rem', fontWeight: 700, fontFamily: 'var(--font-display)' }}>MyFinanceOS</span>
         </div>
 
