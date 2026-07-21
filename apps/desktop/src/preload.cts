@@ -12,5 +12,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('save-config-backup', configPayload),
     
   loadConfigBackup: () => 
-    ipcRenderer.invoke('load-config-backup')
+    ipcRenderer.invoke('load-config-backup'),
+
+  onExternalChange: (callback: () => void) => {
+    ipcRenderer.on('db-external-change', callback);
+    // Return a cleanup function
+    return () => {
+      ipcRenderer.removeListener('db-external-change', callback);
+    };
+  }
 });

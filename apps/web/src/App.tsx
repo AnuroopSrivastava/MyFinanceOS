@@ -84,16 +84,27 @@ const App: React.FC = () => {
     // Apply saved theme variables on startup
     const theme = getSavedTheme();
     setTheme(theme);
-    
+
     // Bootstrap from filesystem to ensure cross-platform sync
     dbService.syncFromFilesystem().then(() => {
-        setIsInitialized(dbService.isInitialized());
-        setIsBooting(false);
+      setIsInitialized(dbService.isInitialized());
+      setIsBooting(false);
     }).catch(() => {
-        setIsInitialized(dbService.isInitialized());
-        setIsBooting(false);
+      setIsInitialized(dbService.isInitialized());
+      setIsBooting(false);
     });
   }, []);
+
+  useEffect(() => {
+    let cleanup = () => { };
+    if (isUnlocked) {
+      cleanup = dbService.listenForSync(() => {
+        setSyncTrigger(prev => prev + 1);
+        showToastAlert('Data Synced', 'Database updated in real-time from external mode.');
+      });
+    }
+    return () => cleanup();
+  }, [isUnlocked]);
 
   const handleUnlock = () => {
     setIsUnlocked(true);

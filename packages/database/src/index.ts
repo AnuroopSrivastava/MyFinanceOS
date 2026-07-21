@@ -36,6 +36,7 @@ class DatabaseService {
   private db: DatabaseSchema | null = null;
   private storageKey = 'financeos_db_encrypted';
   private configKey = 'financeos_auth_config';
+  private lastSavedPayload: string | null = null;
 
   // Check if system is initialized (i.e. pin config exists)
   public isInitialized(): boolean {
@@ -242,6 +243,7 @@ class DatabaseService {
       const rawJson = JSON.stringify(this.db);
       const { ciphertext, iv } = await encrypt(rawJson, key);
       const payload = `${iv}:${ciphertext}`;
+      this.lastSavedPayload = payload;
 
       if (typeof window !== 'undefined') {
         localStorage.setItem(this.storageKey, payload);
@@ -262,6 +264,82 @@ class DatabaseService {
       console.error('Failed to encrypt and save database', e);
     }
   }
+
+  // --- Real-Time Sync ---
+  public async syncDatabaseState(): Promise<void> {
+    if (!this.db || typeof window === 'undefined') return;
+    const win = window as any;
+    let encryptedString: string | null = null;
+    
+    try {
+      if (win.electronAPI && win.electronAPI.loadDbBackup) {
+        const res = await win.electronAPI.loadDbBackup();
+        if (res.success) encryptedString = res.payload;
+      } else {
+        const res = await fetch('/api/db');
+        if (res.ok) encryptedString = await res.text();
+      }
+    } catch (e) {
+      console.warn('Failed to fetch central db for sync', e);
+    }
+
+    if (encryptedString && encryptedString !== this.lastSavedPayload) {
+      this.lastSavedPayload = encryptedString;
+      localStorage.setItem(this.storageKey, encryptedString);
+      try {
+        const key = authSession.getActiveKey();
+        if (key) {
+          const parts = encryptedString.split(':');
+          if (parts.length === 2) {
+            const decryptedJson = await decrypt(parts[1], parts[0], key);
+            this.db = JSON.parse(decryptedJson);
+          } else {
+            this.db = JSON.parse(encryptedString);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to decrypt database during sync', e);
+      }
+    }
+  }
+
+  private isSyncing = false;
+
+  public listenForSync(callback: () => void): () => void {
+    if (typeof window === 'undefined') return () => {};
+    const win = window as any;
+    let cleanup = () => {};
+
+    const handleSync = async () => {
+      if (this.isSyncing) return;
+      this.isSyncing = true;
+      try {
+        await this.syncDatabaseState();
+        callback();
+      } finally {
+        this.isSyncing = false;
+      }
+    };
+
+    if (win.electronAPI && win.electronAPI.onExternalChange) {
+      cleanup = win.electronAPI.onExternalChange(() => {
+        handleSync();
+      });
+    } else {
+      const evtSource = new EventSource('/api/sync-stream');
+      evtSource.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.type === 'db_changed') handleSync();
+        } catch(err) {}
+      };
+      cleanup = () => {
+        evtSource.close();
+      };
+    }
+    return cleanup;
+  }
+
 
   // Lock database session
   public lock(): void {

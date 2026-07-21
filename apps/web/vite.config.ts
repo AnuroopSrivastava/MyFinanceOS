@@ -56,6 +56,28 @@ const localSyncPlugin = () => ({
         });
       }
     });
+    server.middlewares.use('/api/sync-stream', (req: any, res: any) => {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      // Add a simple heartbeat to keep connection alive
+      const heartbeat = setInterval(() => {
+        res.write(':\n\n');
+      }, 15000);
+
+      // Watch the data directory for changes
+      const watcher = fs.watch(dataDir, (eventType, filename) => {
+        if (filename === 'financeos_data.json') {
+          res.write(`data: ${JSON.stringify({ type: 'db_changed' })}\n\n`);
+        }
+      });
+
+      req.on('close', () => {
+        clearInterval(heartbeat);
+        watcher.close();
+      });
+    });
   }
 });
 

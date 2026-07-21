@@ -120,6 +120,19 @@ app.whenReady().then(() => {
 
   createWindow();
 
+  // Watch for external database changes
+  let watchDebounce: NodeJS.Timeout;
+  fs.watch(dataDir, (eventType, filename) => {
+    if (filename === 'financeos_data.json') {
+      clearTimeout(watchDebounce);
+      watchDebounce = setTimeout(() => {
+        BrowserWindow.getAllWindows().forEach(win => {
+          win.webContents.send('db-external-change');
+        });
+      }, 100); // debounce to avoid multiple triggers on single file save
+    }
+  });
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
