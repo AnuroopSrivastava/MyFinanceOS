@@ -12,16 +12,16 @@ test.describe('FinanceOS Onboarding & Auth', () => {
     // 3. Fill in setup details
     const nameInput = page.locator('input[placeholder*="Name" i]');
     const pinInput = page.locator('input[placeholder*="PIN" i]');
-    
+
     // In some cases the setup might ask for admin name and PIN
     // We try to fill whatever inputs are visible on the setup form
     if (await nameInput.isVisible()) {
       await nameInput.fill('Admin User');
     }
-    
+
     if (await pinInput.isVisible()) {
       await pinInput.fill('123456');
-      
+
       // If there's a confirm PIN
       const confirmInput = page.locator('input[placeholder*="Confirm" i]');
       if (await confirmInput.isVisible()) {
@@ -39,7 +39,7 @@ test.describe('FinanceOS Onboarding & Auth', () => {
     // Wait for either the Dashboard 'Net Worth' text or a Login prompt
     const dashboardText = page.locator('text=Net Worth');
     const loginText = page.locator('text=Enter PIN');
-    
+
     await Promise.race([
       expect(dashboardText).toBeVisible({ timeout: 10000 }),
       expect(loginText).toBeVisible({ timeout: 10000 })
