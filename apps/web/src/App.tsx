@@ -35,10 +35,6 @@ const App: React.FC = () => {
   const [customEnd, setCustomEnd] = useState('');
   const [activeProfileId, setActiveProfileId] = useState<string>('');
 
-  const [pendingProfileId, setPendingProfileId] = useState<string>('');
-  const [enteredPin, setEnteredPin] = useState<string>('');
-  const [pinError, setPinError] = useState<string>('');
-
   const [syncTrigger, setSyncTrigger] = useState(0);
   const [toast, setToast] = useState<{ show: boolean; title: string; message: string } | null>(null);
 
@@ -53,32 +49,10 @@ const App: React.FC = () => {
   const activeProfile = profiles.find(p => p.id === activeProfileId);
 
   const handleProfileSwitch = (targetId: string) => {
-    const targetProfile = profiles.find(p => p.id === targetId);
-    if (!targetProfile) return;
-
-    if (targetProfile.pin) {
-      setPendingProfileId(targetId);
-      setEnteredPin('');
-      setPinError('');
-    } else {
-      setActiveProfileId(targetId);
-    }
+    setActiveProfileId(targetId);
   };
 
-  const handleVerifyProfilePin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const targetProfile = profiles.find(p => p.id === pendingProfileId);
-    if (!targetProfile) return;
 
-    if (targetProfile.pin === enteredPin) {
-      setActiveProfileId(pendingProfileId);
-      setPendingProfileId('');
-      setEnteredPin('');
-      setPinError('');
-    } else {
-      setPinError('Incorrect passcode PIN. Please try again.');
-    }
-  };
 
   useEffect(() => {
     // Apply saved theme variables on startup
@@ -86,7 +60,7 @@ const App: React.FC = () => {
     setTheme(theme);
 
     // Bootstrap from filesystem to ensure cross-platform sync
-    dbService.syncFromFilesystem().then(() => {
+    dbService.syncDatabaseState().then(() => {
       setIsInitialized(dbService.isInitialized());
       setIsBooting(false);
     }).catch(() => {
@@ -395,53 +369,7 @@ const App: React.FC = () => {
 
       </div>
 
-      {/* Dialog: Profile Passcode Verification */}
-      {pendingProfileId && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)',
-          backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000
-        }}>
-          <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '360px', padding: '2rem', textAlign: 'center' }}>
-            <div style={{
-              width: '48px', height: '48px', borderRadius: '50%', background: 'var(--accent-grad)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem'
-            }}>
-              <Lock size={20} color="#fff" />
-            </div>
-            <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>Profile Passcode Required</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-              Enter the 4-digit PIN for <strong>{profiles.find(p => p.id === pendingProfileId)?.name}</strong>
-            </p>
-            <form onSubmit={handleVerifyProfilePin}>
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <input
-                  type="password"
-                  className="form-input"
-                  value={enteredPin}
-                  onChange={(e) => {
-                    if (/^\d*$/.test(e.target.value) && e.target.value.length <= 4) {
-                      setEnteredPin(e.target.value);
-                    }
-                  }}
-                  placeholder="••••"
-                  autoFocus
-                  style={{ textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.5rem' }}
-                  required
-                />
-              </div>
-              {pinError && (
-                <div style={{ color: 'var(--error)', fontSize: '0.8rem', marginBottom: '1rem' }}>
-                  {pinError}
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setPendingProfileId('')}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={enteredPin.length < 4}>Unlock Profile</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+
 
       {/* Toast Notification */}
       {toast && (

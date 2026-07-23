@@ -1,5 +1,5 @@
 import { authSession } from '@financeos/auth';
-import { encrypt, decrypt, generateSalt, hashPin } from '@financeos/shared';
+import { generateSalt } from '@financeos/shared';
 
 import {
   UserProfile, BankAccount, Transaction, Budget, FixedDeposit,
@@ -9,7 +9,6 @@ import {
   TDSSummary, InvestmentPlan
 } from '@financeos/shared';
 
-// Interface defining the encrypted structure stored on disk
 interface DatabaseSchema {
   settings: SystemSettings;
   profiles: UserProfile[];
@@ -34,283 +33,176 @@ interface DatabaseSchema {
 
 class DatabaseService {
   private db: DatabaseSchema | null = null;
-  private storageKey = 'financeos_db_encrypted';
-  private configKey = 'financeos_auth_config';
+  private storageKey = 'financeos_db_cache';
+  private driveFileId: string | null = null;
+  private isSyncing = false;
   private lastSavedPayload: string | null = null;
 
-  // Check if system is initialized (i.e. pin config exists)
   public isInitialized(): boolean {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(this.configKey) !== null;
-    }
-    return false;
+    return localStorage.getItem(this.storageKey) !== null || authSession.isAuthenticated();
   }
 
-  // Load auth config details (salt and verifier hash)
-  public getAuthConfig(): { salt: string; verifier: string } | null {
-    if (typeof window !== 'undefined') {
-      const data = localStorage.getItem(this.configKey);
-      if (data) return JSON.parse(data);
+  // Google Drive REST API utilities
+  private async fetchDriveFileId(): Promise<string | null> {
+    if (this.driveFileId) return this.driveFileId;
+    if (!authSession.isAuthenticated()) return null;
+    const token = authSession.getAccessToken();
+    const res = await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name="financeos_db.json"', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.files && data.files.length > 0) {
+      this.driveFileId = data.files[0].id;
+      return this.driveFileId;
     }
     return null;
   }
 
-  // Save auth config details (on setup)
-  public saveAuthConfig(salt: string, verifier: string): void {
-    if (typeof window !== 'undefined') {
-      const payload = JSON.stringify({ salt, verifier });
-      localStorage.setItem(this.configKey, payload);
+  private async fetchFromDrive(): Promise<string | null> {
+    const fileId = await this.fetchDriveFileId();
+    if (!fileId) return null;
+    const token = authSession.getAccessToken();
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) return null;
+    return await res.text();
+  }
+
+  private async pushToDrive(payload: string): Promise<void> {
+    if (!authSession.isAuthenticated()) return;
+    const token = authSession.getAccessToken();
+    const fileId = await this.fetchDriveFileId();
+    
+    if (fileId) {
+      // Update existing file
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: payload
+      });
+    } else {
+      // Create new file in appDataFolder
+      const metadata = {
+        name: 'financeos_db.json',
+        parents: ['appDataFolder']
+      };
       
-      const win = window as any;
-      if (win.electronAPI && win.electronAPI.saveConfigBackup) {
-          win.electronAPI.saveConfigBackup(payload).catch(console.warn);
-      } else {
-          fetch('/api/config', { method: 'POST', body: payload }).catch(console.warn);
-      }
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+      form.append('file', new Blob([payload], { type: 'application/json' }));
+      
+      const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form
+      });
+      const data = await res.json();
+      if (data.id) this.driveFileId = data.id;
     }
   }
 
-  // Synchronize configuration and database from the central filesystem to local storage
-  public async syncFromFilesystem(): Promise<void> {
-    if (typeof window === 'undefined') return;
-
-    try {
-      const win = window as any;
-      
-      // 1. Sync Config
-      let configPayload: string | null = null;
-      if (win.electronAPI && win.electronAPI.loadConfigBackup) {
-        const res = await win.electronAPI.loadConfigBackup();
-        if (res.success) configPayload = res.payload;
-      } else {
-        const res = await fetch('/api/config');
-        if (res.ok) configPayload = await res.text();
-      }
-
-      if (configPayload) {
-        localStorage.setItem(this.configKey, configPayload);
-      }
-
-      // 2. Sync DB
-      let dbPayload: string | null = null;
-      if (win.electronAPI && win.electronAPI.loadDbBackup) {
-        const res = await win.electronAPI.loadDbBackup();
-        if (res.success) dbPayload = res.payload;
-      } else {
-        const res = await fetch('/api/db');
-        if (res.ok) dbPayload = await res.text();
-      }
-
-      if (dbPayload) {
-        localStorage.setItem(this.storageKey, dbPayload);
-      }
-    } catch (e) {
-      console.warn('Failed to sync from filesystem', e);
-    }
-  }
-
-  // Core setup: creates first user profile and seeds mock data
-  public async initializeNewDb(pin: string, adminName: string): Promise<void> {
-    const { salt, verifier } = await authSession.setupPin(pin);
-    this.saveAuthConfig(salt, verifier);
-
-    // Create seed schema
+  public async initializeNewDb(adminName: string): Promise<void> {
     const adminId = 'p1';
     const settings: SystemSettings = {
       theme: 'glass-cyan',
       currency: 'INR',
       backupSchedule: 'weekly',
-      isCloudBackupEnabled: false
+      isCloudBackupEnabled: true
     };
-
     const profiles: UserProfile[] = [
       { id: adminId, name: adminName, role: 'Admin', relationship: 'Self', isNomineeProvided: true }
     ];
 
     this.db = {
-      settings,
-      profiles,
-      accounts: [],
-      transactions: [],
-      budgets: [],
-      fds: [],
-      stocks: [],
-      mutualfunds: [],
-      gold: [],
-      nps: [],
-      pf: [],
-      contacts: [],
-      inventory: [],
-      invoices: [],
-      register: [],
-      auditLogs: [
-        { id: 'log1', timestamp: new Date().toISOString(), userId: adminId, action: 'SETUP', details: 'Database initialized empty for user: ' + adminName }
-      ],
-      tdsRecords: []
+      settings, profiles, accounts: [], transactions: [], budgets: [], fds: [], stocks: [], mutualfunds: [], gold: [], nps: [], pf: [], contacts: [], inventory: [], invoices: [], register: [], auditLogs: [
+        { id: 'log1', timestamp: new Date().toISOString(), userId: adminId, action: 'SETUP', details: 'Database initialized for user: ' + adminName }
+      ], tdsRecords: []
     };
-
     await this.save();
   }
 
-  // Unlock and load database
-  public async unlock(pin: string): Promise<boolean> {
-    const config = this.getAuthConfig();
-    if (!config) return false;
-
-    const success = await authSession.login(pin, config.salt, config.verifier);
-    if (!success) return false;
-
-    // Ensure the config is pushed to the filesystem for cross-platform sync
-    if (typeof window !== 'undefined') {
-        const win = window as any;
-        const configStr = localStorage.getItem(this.configKey);
-        if (configStr) {
-            if (win.electronAPI && win.electronAPI.saveConfigBackup) {
-                win.electronAPI.saveConfigBackup(configStr).catch(console.warn);
-            } else {
-                fetch('/api/config', { method: 'POST', body: configStr }).catch(console.warn);
-            }
-        }
+  public async unlock(): Promise<boolean> {
+    if (!authSession.isAuthenticated()) return false;
+    
+    let dbPayload = null;
+    try {
+      dbPayload = await this.fetchFromDrive();
+    } catch (e) {
+      console.warn('Failed to fetch from Google Drive, falling back to local cache', e);
     }
 
-    // Load encrypted string
-    if (typeof window !== 'undefined') {
-      const win = window as any;
-      let encryptedString: string | null = null;
-      
+    if (!dbPayload) {
+      dbPayload = localStorage.getItem(this.storageKey);
+    }
+
+    if (dbPayload) {
+      localStorage.setItem(this.storageKey, dbPayload);
+      this.lastSavedPayload = dbPayload;
       try {
-        if (win.electronAPI && win.electronAPI.loadDbBackup) {
-          const res = await win.electronAPI.loadDbBackup();
-          if (res.success) {
-            encryptedString = res.payload;
-          }
-        } else {
-          const res = await fetch('/api/db');
-          if (res.ok) {
-            encryptedString = await res.text();
-          }
-        }
+        this.db = JSON.parse(dbPayload);
       } catch (e) {
-        console.warn('Failed to fetch central db', e);
+        console.error('Failed to parse database JSON', e);
+        return false;
       }
-
-      if (!encryptedString) {
-        encryptedString = localStorage.getItem(this.storageKey);
-      }
-
-      if (encryptedString) {
-        localStorage.setItem(this.storageKey, encryptedString);
-        try {
-          const key = authSession.getActiveKey();
-          const parts = encryptedString.split(':');
-          if (parts.length === 2) {
-            const decryptedJson = await decrypt(parts[1], parts[0], key);
-            this.db = JSON.parse(decryptedJson);
-          } else {
-            // Unencrypted fallback (first run debug)
-            this.db = JSON.parse(encryptedString);
-          }
-        } catch (e) {
-          console.error('Failed to decrypt database. Incorrect session key derivation.', e);
-          return false;
-        }
-      } else {
-        // Create blank DB if not present
-        await this.initializeNewDb(pin, 'Default User');
-      }
+    } else {
+      const profile = authSession.getUserProfile();
+      await this.initializeNewDb(profile?.name || 'Default User');
     }
 
-    // Ensure recurring transactions list is initialized
     if (this.db && !this.db.recurringTransactions) {
       this.db.recurringTransactions = [];
     }
 
-    // Process due recurring transactions automatically
     await this.processRecurringTransactions();
-
-    // Push the current local storage data to the filesystem as the authoritative source
     await this.save();
 
     this.logAction('LOGIN', 'User logged in and database unlocked successfully');
     return true;
   }
 
-  // Encrypt and persist database
   public async save(): Promise<void> {
     if (!this.db) return;
     try {
-      const key = authSession.getActiveKey();
-      const rawJson = JSON.stringify(this.db);
-      const { ciphertext, iv } = await encrypt(rawJson, key);
-      const payload = `${iv}:${ciphertext}`;
+      const payload = JSON.stringify(this.db);
       this.lastSavedPayload = payload;
-
+      
       if (typeof window !== 'undefined') {
         localStorage.setItem(this.storageKey, payload);
-
-        // Expose to native desktop Electron wrapper if window.electronAPI exists
-        const win = window as any;
-        if (win.electronAPI && win.electronAPI.saveDbBackup) {
-          await win.electronAPI.saveDbBackup(payload);
-        } else {
-          try {
-            await fetch('/api/db', { method: 'POST', body: payload });
-          } catch (e) {
-            console.warn('Failed to sync to local API backend');
-          }
+        if (authSession.isAuthenticated()) {
+           this.pushToDrive(payload).catch(console.error);
         }
       }
     } catch (e) {
-      console.error('Failed to encrypt and save database', e);
+      console.error('Failed to save database', e);
     }
   }
 
-  // --- Real-Time Sync ---
   public async syncDatabaseState(): Promise<void> {
-    if (!this.db || typeof window === 'undefined') return;
-    const win = window as any;
-    let encryptedString: string | null = null;
-    
+    if (!this.db || typeof window === 'undefined' || !authSession.isAuthenticated()) return;
+    let payload = null;
     try {
-      if (win.electronAPI && win.electronAPI.loadDbBackup) {
-        const res = await win.electronAPI.loadDbBackup();
-        if (res.success) encryptedString = res.payload;
-      } else {
-        const res = await fetch('/api/db');
-        if (res.ok) encryptedString = await res.text();
-      }
+      payload = await this.fetchFromDrive();
     } catch (e) {
       console.warn('Failed to fetch central db for sync', e);
     }
 
-    if (encryptedString && encryptedString !== this.lastSavedPayload) {
-      this.lastSavedPayload = encryptedString;
-      localStorage.setItem(this.storageKey, encryptedString);
+    if (payload && payload !== this.lastSavedPayload) {
+      this.lastSavedPayload = payload;
+      localStorage.setItem(this.storageKey, payload);
       try {
-        const key = authSession.getActiveKey();
-        if (key) {
-          const parts = encryptedString.split(':');
-          if (parts.length === 2) {
-            const decryptedJson = await decrypt(parts[1], parts[0], key);
-            this.db = JSON.parse(decryptedJson);
-          } else {
-            this.db = JSON.parse(encryptedString);
-          }
-        }
+        this.db = JSON.parse(payload);
       } catch (e) {
-        console.error('Failed to decrypt database during sync', e);
+        console.error('Failed to parse database during sync', e);
       }
     }
   }
 
-  private isSyncing = false;
-
   public listenForSync(callback: () => void): () => void {
     if (typeof window === 'undefined') return () => {};
-    const win = window as any;
-    let cleanup = () => {};
-
-    const handleSync = async () => {
+    // Poll every 30 seconds for cloud sync
+    const interval = setInterval(async () => {
       if (this.isSyncing) return;
       this.isSyncing = true;
       try {
@@ -319,32 +211,14 @@ class DatabaseService {
       } finally {
         this.isSyncing = false;
       }
-    };
-
-    if (win.electronAPI && win.electronAPI.onExternalChange) {
-      cleanup = win.electronAPI.onExternalChange(() => {
-        handleSync();
-      });
-    } else {
-      const evtSource = new EventSource('/api/sync-stream');
-      evtSource.onmessage = (e) => {
-        try {
-          const data = JSON.parse(e.data);
-          if (data.type === 'db_changed') handleSync();
-        } catch(err) { /* ignore */ }
-      };
-      cleanup = () => {
-        evtSource.close();
-      };
-    }
-    return cleanup;
+    }, 30000);
+    return () => clearInterval(interval);
   }
 
-
-  // Lock database session
   public lock(): void {
     authSession.logout();
     this.db = null;
+    this.driveFileId = null;
   }
 
   // Log action to audit logs

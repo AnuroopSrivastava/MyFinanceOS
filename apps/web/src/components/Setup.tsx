@@ -1,49 +1,45 @@
 import React, { useState } from 'react';
 import { dbService } from '@financeos/database';
-import { ShieldAlert, ArrowRight, UserPlus, KeyRound } from 'lucide-react';
+import { authSession } from '@financeos/auth';
+import { useGoogleLogin } from '@react-oauth/google';
+import { ShieldAlert, ArrowRight } from 'lucide-react';
 
 interface SetupProps {
   onSetupComplete: () => void;
 }
 
 export const Setup: React.FC<SetupProps> = ({ onSetupComplete }) => {
-  const [name, setName] = useState('');
-  const [pin, setPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!name.trim()) {
-      setError('Please enter your name');
-      return;
-    }
-    if (pin.length < 4) {
-      setError('PIN must be at least 4 digits');
-      return;
-    }
-    if (pin !== confirmPin) {
-      setError('Security PINs do not match');
-      return;
-    }
-
-    setIsLoading(true);
-    // Tiny timeout to show loading & make UI feel responsive
-    setTimeout(async () => {
+  const login = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      setError('');
       try {
-        await dbService.initializeNewDb(pin, name);
-        onSetupComplete();
+        const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+        });
+        const userInfo = await userInfoRes.json();
+        
+        authSession.login(tokenResponse.access_token, userInfo);
+        
+        const success = await dbService.unlock();
+        if (success) {
+          onSetupComplete();
+        } else {
+          setError('Failed to initialize database.');
+        }
       } catch (err) {
-        setError('Failed to initialize database.');
+        setError('Error authenticating with Google.');
         console.error(err);
       } finally {
         setIsLoading(false);
       }
-    }, 400);
-  };
+    },
+    onError: () => setError('Google Login Failed'),
+    scope: 'https://www.googleapis.com/auth/drive.appdata profile email',
+  });
 
   return (
     <div style={{
@@ -70,7 +66,7 @@ export const Setup: React.FC<SetupProps> = ({ onSetupComplete }) => {
           }} />
           <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>Welcome to MyFinanceOS</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            Set up your secure, offline-first personal & business vault
+            Set up your secure, cloud-synced personal & business vault
           </p>
         </div>
 
@@ -84,86 +80,33 @@ export const Setup: React.FC<SetupProps> = ({ onSetupComplete }) => {
         }}>
           <ShieldAlert size={28} color="var(--accent-1)" style={{ flexShrink: 0 }} />
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-            <strong>Offline Security:</strong> Your data never leaves this machine. We encrypt sensitive tables using AES-256-GCM. 
-            Write down your PIN safely; there is no cloud recovery option.
+            <strong>Cloud Security:</strong> Your data is stored exclusively in your own Google Drive using a hidden Application Data folder. We don't have access to it.
           </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label" htmlFor="fullName">Primary User (Owner/Admin Name)</label>
-            <input
-              id="fullName"
-              type="text"
-              className="form-input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Rajesh Sharma"
-              disabled={isLoading}
-              required
-            />
+        {error && (
+          <div style={{
+            color: 'var(--error)',
+            fontSize: '0.85rem',
+            marginBottom: '1.25rem',
+            background: 'var(--error-bg)',
+            padding: '0.5rem',
+            borderRadius: 'var(--radius-sm)'
+          }}>
+            {error}
           </div>
+        )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="form-group">
-              <label className="form-label" htmlFor="pin">Security PIN (4-6 digits)</label>
-              <input
-                id="pin"
-                type="password"
-                className="form-input"
-                value={pin}
-                onChange={(e) => {
-                  if (/^\d*$/.test(e.target.value) && e.target.value.length <= 6) {
-                    setPin(e.target.value);
-                  }
-                }}
-                placeholder="••••"
-                disabled={isLoading}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="confirmPin">Confirm Security PIN</label>
-              <input
-                id="confirmPin"
-                type="password"
-                className="form-input"
-                value={confirmPin}
-                onChange={(e) => {
-                  if (/^\d*$/.test(e.target.value) && e.target.value.length <= 6) {
-                    setConfirmPin(e.target.value);
-                  }
-                }}
-                placeholder="••••"
-                disabled={isLoading}
-                required
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div style={{
-              color: 'var(--error)',
-              fontSize: '0.85rem',
-              marginBottom: '1.25rem',
-              background: 'var(--error-bg)',
-              padding: '0.5rem',
-              borderRadius: 'var(--radius-sm)'
-            }}>
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="btn btn-primary"
-            style={{ width: '100%', padding: '0.8rem', fontSize: '1rem', marginTop: '0.5rem' }}
-            disabled={isLoading || !name || pin.length < 4}
-          >
-            {isLoading ? 'Encrypting & Seeding...' : 'Initialize System'}
-            {!isLoading && <ArrowRight size={18} />}
-          </button>
-        </form>
+        <button
+          onClick={() => login()}
+          type="button"
+          className="btn btn-primary"
+          style={{ width: '100%', padding: '0.8rem', fontSize: '1rem', marginTop: '0.5rem' }}
+          disabled={isLoading}
+        >
+          {isLoading ? 'Connecting & Syncing...' : 'Continue with Google'}
+          {!isLoading && <ArrowRight size={18} />}
+        </button>
       </div>
     </div>
   );

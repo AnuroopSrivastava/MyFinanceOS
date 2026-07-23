@@ -41,7 +41,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
   const [backupJson, setBackupJson] = useState('');
   const [importStatus, setImportStatus] = useState('');
 
-  const activeAuthConfig = useMemo(() => dbService.getAuthConfig(), []);
+
 
   const refreshData = () => {
     setProfiles(dbService.getProfiles());
@@ -351,28 +351,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
             ))}
           </div>
 
-          {/* Crypto stats */}
-          {activeAuthConfig && (
-            <div style={{
-              marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem',
-              fontSize: '0.72rem', color: 'var(--text-muted)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.25rem' }}>
-                <Shield size={12} color="var(--success)" />
-                <strong>Local PBKDF2 Salt:</strong>
-              </div>
-              <div style={{ fontFamily: 'monospace', background: 'rgba(0,0,0,0.2)', padding: '0.3rem', borderRadius: '3px', marginBottom: '0.5rem', wordBreak: 'break-all' }}>
-                {activeAuthConfig.salt}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.25rem' }}>
-                <Shield size={12} color="var(--success)" />
-                <strong>Verification hash verifier:</strong>
-              </div>
-              <div style={{ fontFamily: 'monospace', background: 'rgba(0,0,0,0.2)', padding: '0.3rem', borderRadius: '3px', wordBreak: 'break-all' }}>
-                {activeAuthConfig.verifier}
-              </div>
-            </div>
-          )}
+
         </div>
 
       </div>

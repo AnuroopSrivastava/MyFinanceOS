@@ -9,14 +9,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "lucide-react": "^0.344.0",
-    "recharts": "^2.12.2",
+    "@financeos/auth": "*",
+    "@financeos/database": "*",
     "@financeos/shared": "*",
     "@financeos/ui": "*",
-    "@financeos/auth": "*",
-    "@financeos/database": "*"
+    "@react-oauth/google": "^0.13.5",
+    "lucide-react": "^0.344.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^2.12.2"
   },
   "devDependencies": {
     "@types/react": "^18.2.56",

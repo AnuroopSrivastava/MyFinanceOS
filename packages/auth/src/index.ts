@@ -1,71 +1,30 @@
-import { hashPin, deriveKey, generateSalt } from '@financeos/shared';
-
 class AuthSessionManager {
-  private activeKey: CryptoKey | null = null;
-  private currentPin: string | null = null;
+  private accessToken: string | null = null;
+  private userProfile: any | null = null;
 
-  /**
-   * Initialize a new PIN on first startup.
-   * Returns the salt and double-hashed verifier to be stored in settings/DB.
-   */
-  public async setupPin(pin: string): Promise<{ salt: string; verifier: string }> {
-    const salt = generateSalt(16);
-    const verifier = await hashPin(pin, salt);
-    
-    // Derive and cache active key
-    this.activeKey = await deriveKey(pin, salt);
-    this.currentPin = pin;
-
-    return { salt, verifier };
+  public login(token: string, profile?: any): void {
+    this.accessToken = token;
+    if (profile) this.userProfile = profile;
   }
 
-  /**
-   * Authenticate the user with their PIN.
-   * Derives the key and matches the verifier hash.
-   */
-  public async login(pin: string, salt: string, storedVerifier: string): Promise<boolean> {
-    const calculatedVerifier = await hashPin(pin, salt);
-    if (calculatedVerifier === storedVerifier) {
-      this.activeKey = await deriveKey(pin, salt);
-      this.currentPin = pin;
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Clear the active session key from memory.
-   */
   public logout(): void {
-    this.activeKey = null;
-    this.currentPin = null;
+    this.accessToken = null;
+    this.userProfile = null;
   }
 
-  /**
-   * Verify if a valid session key is present.
-   */
   public isAuthenticated(): boolean {
-    return this.activeKey !== null;
+    return this.accessToken !== null;
   }
 
-  /**
-   * Get the active CryptoKey. Throws an error if the user is not authenticated.
-   */
-  public getActiveKey(): CryptoKey {
-    if (!this.activeKey) {
-      throw new Error('Unauthorized: Session is locked.');
+  public getAccessToken(): string {
+    if (!this.accessToken) {
+      throw new Error('Unauthorized: No Google access token available.');
     }
-    return this.activeKey;
+    return this.accessToken;
   }
-
-  /**
-   * Retrieve the current pin (for local vault or export needs)
-   */
-  public getCurrentPin(): string {
-    if (!this.currentPin) {
-      throw new Error('Unauthorized: Session is locked.');
-    }
-    return this.currentPin;
+  
+  public getUserProfile(): any {
+    return this.userProfile;
   }
 }
 
