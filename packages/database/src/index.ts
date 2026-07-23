@@ -331,7 +331,7 @@ class DatabaseService {
         try {
           const data = JSON.parse(e.data);
           if (data.type === 'db_changed') handleSync();
-        } catch(err) {}
+        } catch(err) { /* ignore */ }
       };
       cleanup = () => {
         evtSource.close();
