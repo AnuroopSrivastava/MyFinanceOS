@@ -3,7 +3,6 @@ import { dbService } from '@financeos/database';
 import { GlobalDateRange } from './utils/dateFilter.js';
 import { getSavedTheme, setTheme } from '@financeos/ui';
 import { Landing } from './components/Landing.js';
-import { Setup } from './components/Setup.js';
 import { DashboardView } from './components/DashboardView.js';
 import { LedgerView } from './components/LedgerView.js';
 import { InvestmentsView } from './components/InvestmentsView.js';
@@ -133,12 +132,9 @@ const App: React.FC = () => {
     );
   }
 
-  // 1. Setup view (First boot check)
-  if (!isInitialized) {
-    return <Setup onSetupComplete={handleSetupComplete} />;
-  }
+  // 1. Setup view (First boot check) - Removed, handled by Landing
 
-  // 2. Lock screen PIN entry
+  // 2. Lock screen PIN entry / First time login
   if (!isUnlocked) {
     return <Landing onUnlock={handleUnlock} />;
   }
