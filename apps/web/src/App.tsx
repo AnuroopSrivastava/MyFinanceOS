@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { dbService } from '@financeos/database';
 import { GlobalDateRange } from './utils/dateFilter.js';
 import { getSavedTheme, setTheme } from '@financeos/ui';
-import { Login } from './components/Login.js';
+import { Landing } from './components/Landing.js';
 import { Setup } from './components/Setup.js';
 import { DashboardView } from './components/DashboardView.js';
 import { LedgerView } from './components/LedgerView.js';
@@ -140,7 +140,7 @@ const App: React.FC = () => {
 
   // 2. Lock screen PIN entry
   if (!isUnlocked) {
-    return <Login onUnlock={handleUnlock} />;
+    return <Landing onUnlock={handleUnlock} />;
   }
 
   // 3. Main Unlocked Dashboard Workspace
