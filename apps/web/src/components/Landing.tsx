@@ -70,8 +70,8 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
           </h1>
         </div>
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <a href="/privacy.html" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.9rem' }}>Privacy</a>
-          <a href="/terms.html" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.9rem' }}>Terms</a>
+          <a href="https://myfinanceosweb.vercel.app/privacy.html" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.9rem' }}>Privacy</a>
+          <a href="https://myfinanceosweb.vercel.app/terms.html" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.9rem' }}>Terms</a>
           <button 
             onClick={() => login()}
             className="btn btn-secondary"
@@ -211,6 +211,26 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
             </div>
           ))}
         </div>
+
+        {/* Data Usage Transparency Section */}
+        <div style={{
+          marginTop: '4rem',
+          maxWidth: '800px',
+          padding: '2rem',
+          background: 'rgba(0, 180, 255, 0.05)',
+          border: '1px solid hsla(186, 100%, 50%, 0.2)',
+          borderRadius: '16px',
+          textAlign: 'left',
+          zIndex: 1
+        }}>
+          <h3 style={{ fontSize: '1.2rem', color: 'var(--text-primary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ShieldCheck size={20} color="var(--accent-1)" />
+            Data Usage Transparency
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6, margin: 0 }}>
+            <strong>Why we request Google Drive access:</strong> MyFinanceOS requests the restricted <code>drive.appdata</code> scope during login. This permission is used <strong>strictly</strong> to create, read, and update a hidden <code>financeos_db.json</code> file inside your Google Drive's hidden Application Data folder. This allows you to sync your financial data across devices without us ever seeing or storing it on our own servers. We cannot see or access your other Google Drive files.
+          </p>
+        </div>
       </main>
 
       {/* Footer */}
@@ -222,8 +242,8 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
         fontSize: '0.85rem'
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '1rem' }}>
-          <a href="/privacy.html" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Privacy Policy</a>
-          <a href="/terms.html" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Terms of Service</a>
+          <a href="https://myfinanceosweb.vercel.app/privacy.html" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Privacy Policy</a>
+          <a href="https://myfinanceosweb.vercel.app/terms.html" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Terms of Service</a>
         </div>
         © {new Date().getFullYear()} MyFinanceOS. All rights reserved.
       </footer>
