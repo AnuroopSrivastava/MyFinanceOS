@@ -14,7 +14,7 @@
     "build:web": "npm run build --workspace=apps/web",
     "build:desktop": "npm run build --workspace=apps/desktop",
     "build:packages": "npm run build --workspaces --if-present",
-    "build:libs": "npm run build --workspace=packages/auth --workspace=packages/database --workspace=packages/shared --workspace=packages/ui",
+    "build:libs": "npm run build --workspace=packages/shared --workspace=packages/auth --workspace=packages/database --workspace=packages/ui",
     "package": "npm run build --workspaces --if-present && node -e \"require('fs').cpSync('apps/web/dist', 'apps/desktop/web-dist', {recursive: true})\" && npm run package --workspace=apps/desktop",
     "install:all": "npm install",
     "test": "vitest run",
