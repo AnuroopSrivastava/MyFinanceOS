@@ -170,6 +170,12 @@ class DatabaseService {
       
       if (typeof window !== 'undefined') {
         localStorage.setItem(this.storageKey, payload);
+        
+        // Save local backup if running inside Electron
+        if ((window as any).electronAPI) {
+          (window as any).electronAPI.saveDbBackup(payload).catch(console.error);
+        }
+
         if (authSession.isAuthenticated()) {
            this.pushToDrive(payload).catch(console.error);
         }

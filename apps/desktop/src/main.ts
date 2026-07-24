@@ -1,19 +1,14 @@
-import { app, BrowserWindow, ipcMain, protocol, net } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import { fileURLToPath, pathToFileURL } from 'url';
-
-protocol.registerSchemesAsPrivileged([
-  { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, bypassCSP: true } }
-]);
+import * as http from 'http';
+import { fileURLToPath } from 'url';
+import * as os from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-import * as os from 'os';
-
 let mainWindow: BrowserWindow | null = null;
-
 const dataDir = path.join(os.homedir(), '.financeos');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
@@ -21,7 +16,54 @@ if (!fs.existsSync(dataDir)) {
 const backupFilePath = path.join(dataDir, 'financeos_data.json');
 const configFilePath = path.join(dataDir, 'financeos_config.json');
 
-function createWindow() {
+const PORT = 5174;
+
+function serveStatic(port: number, dir: string) {
+  return new Promise((resolve) => {
+    const server = http.createServer((req, res) => {
+      // Remove query strings
+      const rawUrl = req.url?.split('?')[0] || '/';
+      let filePath = path.join(dir, rawUrl === '/' ? 'index.html' : rawUrl);
+      
+      if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+        filePath = path.join(dir, 'index.html'); // SPA fallback
+      }
+      
+      const extname = String(path.extname(filePath)).toLowerCase();
+      const mimeTypes: { [key: string]: string } = {
+        '.html': 'text/html',
+        '.js': 'text/javascript',
+        '.css': 'text/css',
+        '.json': 'application/json',
+        '.png': 'image/png',
+        '.jpg': 'image/jpg',
+        '.svg': 'image/svg+xml',
+        '.woff': 'application/font-woff',
+        '.woff2': 'font/woff2',
+        '.ttf': 'application/font-ttf'
+      };
+
+      const contentType = mimeTypes[extname] || 'application/octet-stream';
+      fs.readFile(filePath, (error, content) => {
+        if (error) {
+          if (error.code === 'ENOENT') {
+            res.writeHead(404);
+            res.end('File not found', 'utf-8');
+          } else {
+            res.writeHead(500);
+            res.end('Server Error: ' + error.code, 'utf-8');
+          }
+        } else {
+          res.writeHead(200, { 'Content-Type': contentType });
+          res.end(content, 'utf-8');
+        }
+      });
+    });
+    server.listen(port, '127.0.0.1', () => resolve(server));
+  });
+}
+
+async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -35,8 +77,23 @@ function createWindow() {
     autoHideMenuBar: true
   });
 
-  // In development, load the Vite dev server URL
+  // Spoof User-Agent for Google Auth to work in Electron
+  const userAgent = mainWindow.webContents.userAgent;
+  mainWindow.webContents.userAgent = userAgent.replace(/Electron\/\S*\s/, "");
+  app.userAgentFallback = app.userAgentFallback.replace(/Electron\/\S*\s/, "");
+
+  // Handle popups (specifically for Google Sign-in)
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('https://accounts.google.com') || url.startsWith('https://myaccount.google.com')) {
+      return { action: 'allow' };
+    }
+    // Open other links in external browser
+    shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+  
   if (isDev) {
     const loadDevServer = () => {
       if (!mainWindow) return;
@@ -46,9 +103,10 @@ function createWindow() {
       });
     };
     loadDevServer();
-    // mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadURL('app://-/index.html');
+    // Serve static files over HTTP to satisfy Google OAuth origin rules
+    await serveStatic(PORT, path.join(__dirname, '../web-dist'));
+    mainWindow.loadURL(`http://localhost:${PORT}`);
   }
 
   mainWindow.on('closed', () => {
@@ -57,20 +115,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  protocol.handle('app', (request) => {
-    const urlObj = new URL(request.url);
-    const pathname = decodeURIComponent(urlObj.pathname);
-    let filePath = path.join(__dirname, '../web-dist', pathname);
-
-    // Fallback for Single Page Application (SPA) routing
-    if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-      filePath = path.join(__dirname, '../web-dist', 'index.html');
-    }
-
-    return net.fetch(pathToFileURL(filePath).toString());
-  });
-
-  // IPC Backup writes
+  // IPC Local Backup writes
   ipcMain.handle('save-db-backup', async (_, encryptedPayload: string) => {
     try {
       fs.writeFileSync(backupFilePath, encryptedPayload, 'utf8');
@@ -81,7 +126,7 @@ app.whenReady().then(() => {
     }
   });
 
-  // IPC Backup reads
+  // IPC Local Backup reads
   ipcMain.handle('load-db-backup', async () => {
     try {
       if (fs.existsSync(backupFilePath)) {
@@ -120,19 +165,6 @@ app.whenReady().then(() => {
   });
 
   createWindow();
-
-  // Watch for external database changes
-  let watchDebounce: NodeJS.Timeout;
-  fs.watch(dataDir, (eventType, filename) => {
-    if (filename === 'financeos_data.json') {
-      clearTimeout(watchDebounce);
-      watchDebounce = setTimeout(() => {
-        BrowserWindow.getAllWindows().forEach(win => {
-          win.webContents.send('db-external-change');
-        });
-      }, 100); // debounce to avoid multiple triggers on single file save
-    }
-  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
