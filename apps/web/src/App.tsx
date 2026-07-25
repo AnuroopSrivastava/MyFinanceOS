@@ -19,7 +19,7 @@ import { InvestmentPlanner } from './components/InvestmentPlanner/index.js';
 import {
   LayoutDashboard, Landmark, TrendingUp, Percent,
   Briefcase, Network, Sparkles, Settings, LogOut, Lock,
-  Users, Calendar, Target, ChevronDown
+  Users, Calendar, Target, ChevronDown, CloudUpload
 } from 'lucide-react';
 
 type ActivePage = 'dashboard' | 'ledger' | 'investments' | 'tax' | 'business' | 'sankey' | 'ai' | 'settings' | 'planner';
@@ -36,6 +36,7 @@ const App: React.FC = () => {
   const [activeProfileId, setActiveProfileId] = useState<string>('');
 
   const [syncTrigger, setSyncTrigger] = useState(0);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; title: string; message: string } | null>(null);
 
   const showToastAlert = (title: string, message: string) => {
@@ -52,7 +53,23 @@ const App: React.FC = () => {
     setActiveProfileId(targetId);
   };
 
+  useEffect(() => {
+    const cleanup = dbService.onUnsavedChangeStatus((status) => {
+      setHasUnsavedChanges(status);
+    });
+    return () => cleanup();
+  }, []);
 
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   useEffect(() => {
     // Apply saved theme variables on startup
@@ -273,6 +290,19 @@ const App: React.FC = () => {
           zIndex: 50
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {hasUnsavedChanges && (
+              <button
+                className="btn animate-fade-in"
+                onClick={() => {
+                  dbService.syncToCloud().then(() => showToastAlert('Cloud Sync', 'Saved to Google Drive'));
+                }}
+                style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', gap: '0.4rem', background: '#3b82f6', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center' }}
+              >
+                <CloudUpload size={14} />
+                <span>Save to Cloud</span>
+              </button>
+            )}
+
             {/* Global Date Filter */}
             <div style={{ position: 'relative' }}>
               <button

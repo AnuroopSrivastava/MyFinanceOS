@@ -37,6 +37,24 @@ class DatabaseService {
   private driveFileId: string | null = null;
   private isSyncing = false;
   private lastSavedPayload: string | null = null;
+  
+  public hasUnsavedChanges = false;
+  private unsavedChangesListeners: ((hasUnsaved: boolean) => void)[] = [];
+
+  public onUnsavedChangeStatus(callback: (hasUnsaved: boolean) => void): () => void {
+    this.unsavedChangesListeners.push(callback);
+    callback(this.hasUnsavedChanges);
+    return () => {
+      this.unsavedChangesListeners = this.unsavedChangesListeners.filter(cb => cb !== callback);
+    };
+  }
+
+  private setUnsavedChanges(status: boolean) {
+    if (this.hasUnsavedChanges !== status) {
+      this.hasUnsavedChanges = status;
+      this.unsavedChangesListeners.forEach(cb => cb(status));
+    }
+  }
 
   public isInitialized(): boolean {
     return localStorage.getItem(this.storageKey) !== null || authSession.isAuthenticated();
@@ -100,6 +118,15 @@ class DatabaseService {
       });
       const data = await res.json();
       if (data.id) this.driveFileId = data.id;
+    }
+    
+    // Clear unsaved changes flag on successful upload
+    this.setUnsavedChanges(false);
+  }
+
+  public async syncToCloud(): Promise<void> {
+    if (this.lastSavedPayload && authSession.isAuthenticated()) {
+      await this.pushToDrive(this.lastSavedPayload);
     }
   }
 
@@ -167,6 +194,7 @@ class DatabaseService {
     try {
       const payload = JSON.stringify(this.db);
       this.lastSavedPayload = payload;
+      this.setUnsavedChanges(true);
       
       if (typeof window !== 'undefined') {
         localStorage.setItem(this.storageKey, payload);
@@ -187,6 +215,9 @@ class DatabaseService {
 
   public async syncDatabaseState(): Promise<boolean> {
     if (!this.db || typeof window === 'undefined' || !authSession.isAuthenticated()) return false;
+    // Don't overwrite local data with cloud data if we have pending local unsaved changes
+    if (this.hasUnsavedChanges) return false;
+    
     let payload = null;
     try {
       payload = await this.fetchFromDrive();
