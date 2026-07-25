@@ -19,7 +19,7 @@ import { InvestmentPlanner } from './components/InvestmentPlanner/index.js';
 import {
   LayoutDashboard, Landmark, TrendingUp, Percent,
   Briefcase, Network, Sparkles, Settings, LogOut, Lock,
-  Users, Calendar, Target, ChevronDown, CloudUpload
+  Users, Calendar, Target, ChevronDown, UploadCloud
 } from 'lucide-react';
 
 type ActivePage = 'dashboard' | 'ledger' | 'investments' | 'tax' | 'business' | 'sankey' | 'ai' | 'settings' | 'planner';
@@ -298,7 +298,7 @@ const App: React.FC = () => {
                 }}
                 style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', gap: '0.4rem', background: '#3b82f6', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center' }}
               >
-                <CloudUpload size={14} />
+                <UploadCloud size={14} />
                 <span>Save to Cloud</span>
               </button>
             )}
