@@ -146,8 +146,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
             margin: '0 auto 3rem',
             lineHeight: 1.6
           }}>
-            A highly secure, private personal finance tracker that syncs 
-            directly to your own Google Drive. We don't store your data on our servers—you own everything.
+            <strong>Purpose of the Application:</strong> MyFinanceOS is a comprehensive personal finance tracker designed to help you manage your income, expenses, and investments. It acts as a highly secure, private operating system for your wealth that syncs directly to your own Google Drive. We don't store your data on our servers—you own everything.
           </p>
 
           {error && (
