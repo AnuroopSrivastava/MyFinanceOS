@@ -14,18 +14,18 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
   const [refresh, setRefresh] = useState(0);
 
   // Input parameters for comparison
-  const [grossSalary, setGrossSalary] = useState<number>(1800000);
-  const [ded80C, setDed80C] = useState<number>(150000); // Max 1.5L
-  const [ded80D, setDed80D] = useState<number>(25000);  // Health insurance
-  const [dedNps, setDedNps] = useState<number>(50000);  // 80CCD(1B) - Max 50k
+  const [grossSalary, setGrossSalary] = useState<number>(0);
+  const [ded80C, setDed80C] = useState<number>(0); // Max 1.5L
+  const [ded80D, setDed80D] = useState<number>(0);  // Health insurance
+  const [dedNps, setDedNps] = useState<number>(0);  // 80CCD(1B) - Max 50k
   const [dedHomeLoan, setDedHomeLoan] = useState<number>(0); // Sec 24B - Max 2L
   const [hraExempt, setHraExempt] = useState<number>(0);
 
   // Capital Gains parameters
   const [assetType, setAssetType] = useState<'Equity' | 'Debt' | 'Property'>('Equity');
-  const [buyValue, setBuyValue] = useState<number>(300000);
-  const [sellValue, setSellValue] = useState<number>(550000);
-  const [holdingMonths, setHoldingMonths] = useState<number>(18);
+  const [buyValue, setBuyValue] = useState<number>(0);
+  const [sellValue, setSellValue] = useState<number>(0);
+  const [holdingMonths, setHoldingMonths] = useState<number>(0);
   const [capGainsResult, setCapGainsResult] = useState<any>(null);
 
   // TDS Records State

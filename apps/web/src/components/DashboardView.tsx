@@ -217,12 +217,39 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
   }, [timelineFilter, netWorth, transactions]);
 
   // Cashflow compare monthly data
-  const cashflowData = [
-    { name: 'Apr', Income: 160000, Expense: 98000 },
-    { name: 'May', Income: 195000, Expense: 110000 },
-    { name: 'Jun', Income: 175000, Expense: 115000 },
-    { name: 'Jul', Income: monthlyIncome, Expense: monthlyExpense }
-  ];
+  const cashflowData = useMemo(() => {
+    const monthlyData: Record<string, { Income: number; Expense: number }> = {};
+    const now = new Date('2026-07-16');
+    const currentMonthStr = now.toISOString().slice(0, 7);
+    monthlyData[currentMonthStr] = { Income: 0, Expense: 0 };
+    
+    transactions.forEach(t => {
+      const monthPrefix = t.date.slice(0, 7);
+      if (!monthlyData[monthPrefix]) {
+        monthlyData[monthPrefix] = { Income: 0, Expense: 0 };
+      }
+      if (t.type === 'Income') {
+        monthlyData[monthPrefix].Income += t.amount;
+      } else if (t.type === 'Expense') {
+        monthlyData[monthPrefix].Expense += Math.abs(t.amount);
+      }
+    });
+
+    const monthsNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    return Object.entries(monthlyData)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .slice(-6)
+      .map(([monthPrefix, totals]) => {
+        const [year, month] = monthPrefix.split('-');
+        const monthName = monthsNames[parseInt(month, 10) - 1];
+        return {
+          name: monthName,
+          Income: totals.Income,
+          Expense: totals.Expense
+        };
+      }).filter(d => d.Income > 0 || d.Expense > 0);
+  }, [transactions]);
 
   // Nominee alerts check
   const nomineeAlerts = useMemo(() => {
