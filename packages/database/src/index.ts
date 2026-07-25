@@ -185,8 +185,8 @@ class DatabaseService {
     }
   }
 
-  public async syncDatabaseState(): Promise<void> {
-    if (!this.db || typeof window === 'undefined' || !authSession.isAuthenticated()) return;
+  public async syncDatabaseState(): Promise<boolean> {
+    if (!this.db || typeof window === 'undefined' || !authSession.isAuthenticated()) return false;
     let payload = null;
     try {
       payload = await this.fetchFromDrive();
@@ -195,14 +195,32 @@ class DatabaseService {
     }
 
     if (payload && payload !== this.lastSavedPayload) {
-      this.lastSavedPayload = payload;
-      localStorage.setItem(this.storageKey, payload);
       try {
-        this.db = JSON.parse(payload);
+        const remoteDb: DatabaseSchema = JSON.parse(payload);
+        
+        // Compare timestamps to avoid overwriting newer local data with stale cloud data
+        const localLatest = (this.db && this.db.auditLogs && this.db.auditLogs.length > 0) 
+          ? new Date(this.db.auditLogs[0].timestamp).getTime() 
+          : 0;
+        const remoteLatest = (remoteDb.auditLogs && remoteDb.auditLogs.length > 0) 
+          ? new Date(remoteDb.auditLogs[0].timestamp).getTime() 
+          : 0;
+        
+        if (remoteLatest > localLatest) {
+          this.lastSavedPayload = payload;
+          localStorage.setItem(this.storageKey, payload);
+          this.db = remoteDb;
+          return true; // We successfully updated the database from cloud
+        } else if (remoteLatest < localLatest) {
+          // If remote is older, our last push might have failed or hasn't propagated. 
+          // We can optionally trigger a re-save here, but updating lastSavedPayload 
+          // isn't strictly necessary as we want to keep trying to push the newer data.
+        }
       } catch (e) {
         console.error('Failed to parse database during sync', e);
       }
     }
+    return false; // No changes applied
   }
 
   public listenForSync(callback: () => void): () => void {
@@ -212,8 +230,10 @@ class DatabaseService {
       if (this.isSyncing) return;
       this.isSyncing = true;
       try {
-        await this.syncDatabaseState();
-        callback();
+        const didSync = await this.syncDatabaseState();
+        if (didSync) {
+          callback();
+        }
       } finally {
         this.isSyncing = false;
       }

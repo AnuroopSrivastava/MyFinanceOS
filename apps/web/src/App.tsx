@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { dbService } from '@financeos/database';
+import { authSession } from '@financeos/auth';
 import { GlobalDateRange } from './utils/dateFilter.js';
 import { getSavedTheme, setTheme } from '@financeos/ui';
 import { Landing } from './components/Landing.js';
@@ -60,8 +61,27 @@ const App: React.FC = () => {
 
     // Bootstrap from filesystem to ensure cross-platform sync
     dbService.syncDatabaseState().then(() => {
-      setIsInitialized(dbService.isInitialized());
-      setIsBooting(false);
+      if (authSession.isAuthenticated()) {
+        dbService.unlock().then((success) => {
+          if (success) {
+            setIsInitialized(true);
+            setIsUnlocked(true);
+            const profiles = dbService.getProfiles();
+            if (profiles.length > 0) {
+              setActiveProfileId(profiles[0].id);
+            }
+          } else {
+            setIsInitialized(dbService.isInitialized());
+          }
+          setIsBooting(false);
+        }).catch(() => {
+          setIsInitialized(dbService.isInitialized());
+          setIsBooting(false);
+        });
+      } else {
+        setIsInitialized(dbService.isInitialized());
+        setIsBooting(false);
+      }
     }).catch(() => {
       setIsInitialized(dbService.isInitialized());
       setIsBooting(false);
