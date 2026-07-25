@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Features - MyFinanceOS</title>
+    <style>
+        :root {
+            --bg: hsl(224, 71%, 4%);
+            --bg-card: hsl(224, 71%, 8%);
+            --text-main: hsl(210, 40%, 98%);
+            --text-muted: hsl(215, 20%, 65%);
+            --accent: hsl(186, 100%, 50%);
+            --border: hsla(215, 20%, 65%, 0.15);
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        nav {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+        }
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        nav a:hover {
+            color: var(--text-main);
+        }
+        header {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+        header h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #fff, var(--text-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4rem;
+        }
+        .feature-block {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 3rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            position: relative;
+        }
+        .feature-block:nth-child(even) {
+            grid-template-columns: 1fr 1fr;
+            direction: rtl;
+        }
+        .feature-block:nth-child(even) > * {
+            direction: ltr;
+        }
+        @media (max-width: 768px) {
+            .feature-block, .feature-block:nth-child(even) {
+                grid-template-columns: 1fr;
+                padding: 2rem;
+            }
+        }
+        
+        .content h2 {
+            font-size: 2rem;
+            color: var(--accent);
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+        .content p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+        .content ul {
+            list-style: none;
+            padding: 0;
+        }
+        .content ul li {
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .content ul li::before {
+            content: '✓';
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* Demo Container Styles */
+        .demo-container {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        /* Dashboard Animation */
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 15px;
+            height: 150px;
+        }
+        .bar {
+            width: 40px;
+            background: linear-gradient(0deg, var(--accent) 0%, #00ffcc 100%);
+            border-radius: 4px 4px 0 0;
+            animation: grow-bar 3s ease-in-out infinite alternate;
+        }
+        .bar:nth-child(1) { height: 20%; animation-delay: 0s; }
+        .bar:nth-child(2) { height: 50%; animation-delay: 0.2s; }
+        .bar:nth-child(3) { height: 80%; animation-delay: 0.4s; }
+        .bar:nth-child(4) { height: 40%; animation-delay: 0.6s; }
+        .bar:nth-child(5) { height: 100%; animation-delay: 0.8s; }
+        
+        @keyframes grow-bar {
+            0% { transform: scaleY(0.2); transform-origin: bottom; opacity: 0.5; }
+            100% { transform: scaleY(1); transform-origin: bottom; opacity: 1; }
+        }
+
+        /* Ledger Animation */
+        .ledger-list {
+            width: 80%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .ledger-row {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            animation: slide-in 4s infinite;
+            opacity: 0;
+            transform: translateX(50px);
+        }
+        .ledger-row:nth-child(1) { animation-delay: 0s; }
+        .ledger-row:nth-child(2) { animation-delay: 1.5s; }
+        .ledger-row:nth-child(3) { animation-delay: 3s; }
+        .amount { color: #00ffcc; font-weight: bold; }
+        .amount.neg { color: #ff4a4a; }
+
+        @keyframes slide-in {
+            0% { opacity: 0; transform: translateX(50px); }
+            20%, 80% { opacity: 1; transform: translateX(0); }
+            100% { opacity: 0; transform: translateX(-50px); }
+        }
+
+        /* Investments Animation: Diversification Matrix */
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 220px;
+        }
+        .matrix-cell {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 5px;
+            text-align: center;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            position: relative;
+            overflow: hidden;
+            animation: matrix-pulse 6s infinite alternate;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .matrix-cell span {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        .matrix-cell.cell-1 { border-color: var(--accent); color: var(--accent); animation-delay: 0s; }
+        .matrix-cell.cell-2 { border-color: #00ffcc; color: #00ffcc; animation-delay: 0.5s; }
+        .matrix-cell.cell-3 { border-color: #a855f7; color: #a855f7; animation-delay: 1s; }
+        .matrix-cell.cell-4 { border-color: #fbbf24; color: #fbbf24; animation-delay: 1.5s; }
+        .matrix-cell.cell-5 { border-color: #f43f5e; color: #f43f5e; animation-delay: 2s; }
+        .matrix-cell.cell-6 { border-color: #3b82f6; color: #3b82f6; animation-delay: 2.5s; }
+
+        @keyframes matrix-pulse {
+            0%, 40% { transform: scale(1); box-shadow: 0 0 0 transparent; opacity: 0.6; }
+            50% { transform: scale(1.08); box-shadow: inset 0 0 15px currentColor; opacity: 1; text-shadow: 0 0 8px currentColor; }
+            60%, 100% { transform: scale(1); box-shadow: 0 0 0 transparent; opacity: 0.6; }
+        }
+
+        /* Tax Engine Animation */
+        .tax-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
+            animation: float 4s ease-in-out infinite;
+        }
+        .tax-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--accent);
+            margin: 1rem 0;
+        }
+        .tax-number::after {
+            content: '₹0';
+            animation: count-up 3s ease-out infinite;
+        }
+
+        @keyframes count-up {
+            0% { content: '₹12,450'; opacity: 0.5; }
+            50% { content: '₹9,200'; }
+            100% { content: '₹4,100'; color: #00ffcc; text-shadow: 0 0 10px #00ffcc; }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Business Slabs Animation */
+        .slab-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            perspective: 1000px;
+            align-items: center;
+        }
+        .slab-layer {
+            padding: 12px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+            border-radius: 8px;
+            color: var(--text-main);
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-align: center;
+            transform: rotateX(25deg);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            animation: float-slab 4s ease-in-out infinite alternate;
+            backdrop-filter: blur(4px);
+        }
+        .slab-layer.tier-1 { border: 1px solid rgba(255,255,255,0.2); animation-delay: 0s; width: 130px; }
+        .slab-layer.tier-2 { border: 1px solid var(--accent); animation-delay: 0.3s; width: 160px; }
+        .slab-layer.tier-3 { border: 1px solid #00ffcc; animation-delay: 0.6s; width: 190px; }
+        
+        @keyframes float-slab {
+            0% { transform: rotateX(25deg) translateY(0) scale(1); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+            100% { transform: rotateX(10deg) translateY(-15px) scale(1.05); box-shadow: 0 20px 35px rgba(0,255,204,0.2); border-color: #00ffcc; color: #00ffcc; }
+        }
+
+        /* Sankey Animation */
+        .sankey-svg {
+            width: 100%;
+            height: 100%;
+        }
+        .sankey-line {
+            fill: none;
+            stroke: var(--accent);
+            stroke-width: 4;
+            stroke-dasharray: 200;
+            stroke-dashoffset: 200;
+            animation: flow 3s linear infinite;
+            opacity: 0.6;
+        }
+        .sankey-line:nth-child(2) { stroke: #00ffcc; animation-delay: -1s; }
+        .sankey-line:nth-child(3) { stroke: #ff4a4a; animation-delay: -2s; }
+
+        @keyframes flow {
+            to { stroke-dashoffset: 0; opacity: 1; }
+        }
+
+        /* Investment Animation */
+        .invest-graph {
+            width: 90%;
+            height: 70%;
+        }
+        .invest-axis {
+            fill: none;
+            stroke: var(--border);
+            stroke-width: 2;
+        }
+        .invest-curve {
+            fill: none;
+            stroke: var(--accent);
+            stroke-width: 4;
+            stroke-linecap: round;
+            stroke-dasharray: 400;
+            stroke-dashoffset: 400;
+            animation: draw-curve 4s ease-in-out infinite;
+            filter: drop-shadow(0 0 8px rgba(0,255,204,0.5));
+        }
+        @keyframes draw-curve {
+            0% { stroke-dashoffset: 400; }
+            50%, 100% { stroke-dashoffset: 0; }
+        }
+
+        /* AI Animation */
+        .chat-bubble {
+            background: var(--bg);
+            border: 1px solid var(--accent);
+            padding: 1rem 1.5rem;
+            border-radius: 1.5rem 1.5rem 1.5rem 0;
+            box-shadow: 0 10px 20px rgba(0,255,204,0.1);
+            animation: pop-in 2s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite alternate;
+        }
+        @keyframes pop-in {
+            0% { transform: scale(0.8) translateY(20px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        /* Settings Animation */
+        .gears-container {
+            position: relative;
+            width: 130px;
+            height: 130px;
+        }
+        .gear {
+            border-radius: 50%;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .gear-large {
+            width: 70px;
+            height: 70px;
+            border: 12px dashed var(--accent);
+            top: 10px;
+            left: 10px;
+            animation: spin-gear 8s linear infinite;
+        }
+        .gear-small {
+            width: 45px;
+            height: 45px;
+            border: 8px dashed var(--text-muted);
+            bottom: 15px;
+            right: 15px;
+            animation: spin-gear-reverse 6s linear infinite;
+        }
+        .gear::after {
+            content: '';
+            position: absolute;
+            background: var(--bg-card);
+            border: 4px solid var(--accent);
+            border-radius: 50%;
+        }
+        .gear-large::after { width: 28px; height: 28px; }
+        .gear-small::after { width: 18px; height: 18px; border-color: var(--text-muted); }
+
+        @keyframes spin-gear {
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes spin-gear-reverse {
+            100% { transform: rotate(-360deg); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <nav>
+        <a href="/">← Back to Home</a>
+    </nav>
+
+    <header>
+        <h1>How It Works</h1>
+        <p style="color: var(--text-muted); font-size: 1.2rem; max-width: 600px; margin: 0 auto;">
+            Dive deep into the core features of MyFinanceOS. See exactly how our powerful, local-first tools work together to give you complete control over your wealth.
+        </p>
+    </header>
+
+    <div class="container">
+
+        <!-- 1. Dashboard -->
+        <div class="feature-block">
+            <div class="content">
+                <h2>Command Center Dashboard</h2>
+                <p>Get an instant, high-level overview of your entire financial universe. Our intelligent dashboard aggregates data from all modules to give you actionable insights at a glance.</p>
+                <ul>
+                    <li>Real-time Net Worth calculation</li>
+                    <li>Interactive asset allocation charts</li>
+                    <li>30-day quick expense tracking</li>
+                    <li>Upcoming bill reminders</li>
+                </ul>
+            </div>
+            <div class="demo-container">
+                <div class="bar-chart">
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Banking & Ledger -->
+        <div class="feature-block">
+            <div class="content">
+                <h2>Banking & Core Ledger</h2>
+                <p>The heart of your financial OS. A powerful, double-entry capable ledger that tracks every rupee with absolute precision and military-grade encryption.</p>
+                <ul>
+                    <li>Multi-account syncing & tracking</li>
+                    <li>Automated categorization engine</li>
+                    <li>Advanced filtering and search</li>
+                    <li>Split transactions capabilities</li>
+                </ul>
+            </div>
+            <div class="demo-container">
+                <div class="ledger-list">
+                    <div class="ledger-row">
+                        <span>Salary Credit</span>
+                        <span class="amount">+ ₹85,000</span>
+                    </div>
+                    <div class="ledger-row">
+                        <span>Grocery Store</span>
+                        <span class="amount neg">- ₹2,400</span>
+                    </div>
+                    <div class="ledger-row">
+                        <span>Dividend Payout</span>
+                        <span class="amount">+ ₹1,200</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Investments -->
+        <div class="feature-block">
+            <div class="content">
+                <h2>Investments Portfolio</h2>
+                <p>Track all your equities, mutual funds, and crypto in one place. Monitor real-time updates and allocation breakdowns across your entire portfolio.</p>
+                <ul>
+                    <li>Consolidated asset tracking</li>
+                    <li>Current vs invested value visualization</li>
+                    <li>Diversification metrics</li>
+                    <li>Dividend tracking</li>
+                </ul>
+            </div>
+            <div class="demo-container">
+                <div class="matrix-grid">
+                    <div class="matrix-cell cell-1">Equities<br><span>45%</span></div>
+                    <div class="matrix-cell cell-2">Bonds<br><span>20%</span></div>
+                    <div class="matrix-cell cell-3">Crypto<br><span>10%</span></div>
+                    <div class="matrix-cell cell-4">Real Est.<br><span>15%</span></div>
+                    <div class="matrix-cell cell-5">Cash<br><span>5%</span></div>
+                    <div class="matrix-cell cell-6">Gold<br><span>5%</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Tax Engine -->
+        <div class="feature-block">
+            <div class="content">
+                <h2>Indian Tax Engine</h2>
+                <p>Stay ahead of tax season with real-time tax liability forecasting. Our engine automatically calculates your expected tax based on the latest Indian tax slabs (Old & New regime).</p>
+                <ul>
+                    <li>Real-time Old vs New Regime comparison</li>
+                    <li>80C, 80D, & standard deduction tracking</li>
+                    <li>Capital Gains tax estimates</li>
+                    <li>Advance tax payment reminders</li>
+                </ul>
+            </div>
+            <div class="demo-container">
+                <div class="tax-card">
+                    <div style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px;">Optimizing Tax Liability...</div>
+                    <div class="tax-number"></div>
+                    <div style="color: #00ffcc; font-size: 0.85rem;">Optimal Regime Detected</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Business Slabs -->
+        <div class="feature-block">
+            <div class="content">
+                <h2>Business Slabs</h2>
+                <p>Manage multiple business entities, track corporate tax slabs, and seamlessly categorize business versus personal expenses.</p>
+                <ul>
+                    <li>Multi-entity accounting</li>
+                    <li>Corporate tax tier tracking</li>
+                    <li>Expense separation</li>
+                    <li>Automated P&L generation</li>
+                </ul>
+            </div>
+            <div class="demo-container">
+                <div class="slab-container">
+                    <div class="slab-layer tier-1">Tier 1: Up to ₹5L</div>
+                    <div class="slab-layer tier-2">Tier 2: ₹5L - ₹10L</div>
+                    <div class="slab-layer tier-3">Tier 3: Above ₹10L</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Sankey Flow -->
+        <div class="feature-block">
+            <div class="content">
+                <h2>Sankey Cash Flow</h2>
+                <p>Visualize your money in motion. Sankey diagrams beautifully illustrate exactly how your income flows into different expense categories, investments, and savings.</p>
+                <ul>
+                    <li>Dynamic visual flow tracing</li>
+                    <li>Identify money leaks instantly</li>
+                    <li>Customizable node grouping</li>
+                    <li>Exportable high-res diagrams</li>
+                </ul>
+            </div>
+            <div class="demo-container">
+                <svg class="sankey-svg" viewBox="0 0 200 200" preserveAspectRatio="none">
+                    <path class="sankey-line" d="M 0,100 C 100,100 100,50 200,50" />
+                    <path class="sankey-line" d="M 0,100 C 100,100 100,150 200,150" />
+                    <path class="sankey-line" d="M 0,100 C 100,100 150,180 200,180" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- 7. Investment Planner -->
+        <div class="feature-block">
+            <div class="content">
+                <h2>Investment Planner</h2>
+                <p>Plot your path to financial independence (FIRE). Set long-term goals and let our compounding calculators show you exactly what it takes to reach them.</p>
+                <ul>
+                    <li>FIRE (Financial Independence) calculators</li>
+                    <li>Future value projections</li>
+                    <li>Dividend yield projections</li>
+                    <li>Goal-based timeline mapping</li>
+                </ul>
+            </div>
+            <div class="demo-container">
+                <svg class="invest-graph" viewBox="0 0 200 100" preserveAspectRatio="none">
+                    <path class="invest-axis" d="M 10 10 L 10 90 L 190 90" />
+                    <path class="invest-curve" d="M 10 90 Q 100 85, 140 50 T 190 10" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- 8. AI Assistant -->
+        <div class="feature-block">
+            <div class="content">
+                <h2>AI Financial Assistant</h2>
+                <p>Your personal wealth advisor, running securely. Ask questions about your spending habits, request deep-dive analyses, or get smart categorization suggestions.</p>
+                <ul>
+                    <li>Natural language query processing</li>
+                    <li>Automated anomaly detection</li>
+                    <li>Personalized saving insights</li>
+                    <li>Privacy-first local processing</li>
+                </ul>
+            </div>
+            <div class="demo-container">
+                <div class="chat-bubble">
+                    <strong style="color: var(--accent);">Finance AI:</strong><br>
+                    You saved 15% more on groceries this month compared to last! Keep it up. 🚀
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. Settings -->
+        <div class="feature-block">
+            <div class="content">
+                <h2>Advanced Settings</h2>
+                <p>Total control over your data. Configure local storage options, manage export formats, and customize your theme and preferences.</p>
+                <ul>
+                    <li>Google Drive sync configuration</li>
+                    <li>Complete JSON/CSV data export</li>
+                    <li>Theme customization</li>
+                    <li>Vault encryption management</li>
+                </ul>
+            </div>
+            <div class="demo-container">
+                <div class="gears-container">
+                    <div class="gear gear-large"></div>
+                    <div class="gear gear-small"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer style="text-align: center; padding: 4rem 2rem; border-top: 1px solid var(--border); margin-top: 4rem; color: var(--text-muted);">
+        <p>© 2026 MyFinanceOS. Built with privacy at its core.</p>
+    </footer>
+
+</body>
+</html>

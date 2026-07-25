@@ -266,7 +266,7 @@ const App: React.FC = () => {
               </button>
 
               {showDatePicker && (
-                <div className="glass-panel" style={{
+                <div className="glass-panel animate-fade-in" style={{
                   position: 'absolute',
                   top: '100%',
                   right: 0,
@@ -276,7 +276,10 @@ const App: React.FC = () => {
                   flexDirection: 'column',
                   gap: '0.2rem',
                   zIndex: 100,
-                  minWidth: '200px'
+                  minWidth: '200px',
+                  background: '#1a1b26',
+                  boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
+                  border: '1px solid rgba(255,255,255,0.1)'
                 }}>
                   {(() => {
                     let earliest = new Date();
