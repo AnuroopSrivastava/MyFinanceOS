@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { dbService } from '@financeos/database';
 import { InvestmentPlan, PortfolioCategory, SubInvestment } from '@financeos/shared';
 import { TopLevelInputs } from './TopLevelInputs.js';
@@ -18,8 +18,7 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
     investmentPercentage: 20,
     portfolio: []
   });
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState('');
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
     // Load existing plan for this profile
@@ -36,8 +35,25 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
         portfolio: []
       });
     }
-    setSaveMessage('');
   }, [activeProfileId]);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const timeout = setTimeout(() => {
+      if (plan.id) {
+        dbService.updateInvestmentPlan(plan.id, plan);
+      } else {
+        dbService.addInvestmentPlan(plan).then(newPlan => {
+          // Update id silently without triggering another save
+          setPlan(p => p.id === newPlan.id ? p : newPlan);
+        });
+      }
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [plan]);
 
   const handleSalaryChange = (salary: number) => {
     setPlan(p => ({ ...p, salary }));
@@ -58,25 +74,7 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
     }));
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    setSaveMessage('');
-    try {
-      if (plan.id) {
-        await dbService.updateInvestmentPlan(plan.id, plan);
-      } else {
-        const newPlan = await dbService.addInvestmentPlan(plan);
-        setPlan(newPlan);
-      }
-      setSaveMessage('Plan saved successfully!');
-      setTimeout(() => setSaveMessage(''), 3000);
-    } catch (err) {
-      console.error(err);
-      setSaveMessage('Failed to save plan.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  // Auto-saved by the useEffect above.
 
   const totalInvestmentAmount = (plan.salary * plan.investmentPercentage) / 100;
 
@@ -91,18 +89,6 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
             Map out your exact monthly investment goals and allocations.
           </p>
-        </div>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {saveMessage && (
-            <span style={{ color: saveMessage.includes('Failed') ? 'var(--error)' : 'var(--success)', fontSize: '0.9rem' }}>
-              {saveMessage}
-            </span>
-          )}
-          <button className="btn btn-primary" onClick={handleSave} disabled={isSaving}>
-            {isSaving ? <RefreshCw size={18} className="spin" /> : <Save size={18} />}
-            <span>Save Plan</span>
-          </button>
         </div>
       </div>
 
@@ -134,12 +120,7 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
         </div>
       )}
 
-      <style>{`
-        .spin {
-          animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-      `}</style>
+
     </div>
   );
 };

@@ -214,7 +214,13 @@ const App: React.FC = () => {
           ].map(page => (
             <button
               key={page.id}
-              onClick={() => setActivePage(page.id as ActivePage)}
+              onClick={() => {
+                if (hasUnsavedChanges && activePage !== page.id) {
+                  const confirmLeave = window.confirm('You have unsaved changes that are still syncing to the cloud. Are you sure you want to change pages?');
+                  if (!confirmLeave) return;
+                }
+                setActivePage(page.id as ActivePage);
+              }}
               className="btn btn-secondary"
               style={{
                 justifyContent: 'flex-start',
