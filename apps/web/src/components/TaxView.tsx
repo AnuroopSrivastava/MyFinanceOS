@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { dbService } from '@financeos/database';
-import { Calculator, Percent, ShieldCheck, FileText, AlertCircle, Edit2, Trash2, Plus, X } from 'lucide-react';
+import { Calculator, Percent, ShieldCheck, FileText, AlertCircle, Edit2, Trash2, Plus, X, Download, Calendar, Clock } from 'lucide-react';
 import { TDSSummary } from '@financeos/shared';
 import { formatRupee } from '../utils/currency.js';
 import { CurrencyInput } from './ui/CurrencyInput.js';
+import { exportToCSV } from '../utils/exportCsv.js';
 
 interface TaxViewProps {
   activeProfileId: string;
@@ -232,13 +233,47 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
 
 
 
+  // Total TDS already deducted
+  const totalTdsDeducted = tdsRecords.reduce((sum, r) => sum + (r.taxDeducted || 0), 0);
+  const optimalTaxAmount = taxCalculations.optimal === 'Old Regime' ? taxCalculations.totalTaxOld : taxCalculations.totalTaxNew;
+  const netAdvanceTaxLiability = Math.max(0, optimalTaxAmount - totalTdsDeducted);
+
+  const handleExportTaxReport = () => {
+    const reportData = [
+      { Parameter: 'Gross Annual Income', Value: formatRupee(grossSalary) },
+      { Parameter: 'Old Regime Taxable Income', Value: formatRupee(taxCalculations.taxableOld) },
+      { Parameter: 'New Regime Taxable Income', Value: formatRupee(taxCalculations.taxableNew) },
+      { Parameter: 'Total Tax (Old Regime incl Cess)', Value: formatRupee(taxCalculations.totalTaxOld) },
+      { Parameter: 'Total Tax (New Regime incl Cess)', Value: formatRupee(taxCalculations.totalTaxNew) },
+      { Parameter: 'Recommended Optimal Regime', Value: taxCalculations.optimal },
+      { Parameter: 'Total TDS Already Deducted', Value: formatRupee(totalTdsDeducted) },
+      { Parameter: 'Net Advance Tax Payable', Value: formatRupee(netAdvanceTaxLiability) }
+    ];
+
+    exportToCSV('india_tax_summary', [
+      { label: 'Tax Parameter', key: 'Parameter' },
+      { label: 'Amount / Details', key: 'Value' }
+    ], reportData);
+  };
+
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       
       {/* Page Title */}
-      <div>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>India Tax Planner (FY 2026-27 / AY 2027-28)</h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Side-by-side slabs engine, capital gains calculators, and TDS loggers</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>India Tax Planner (FY 2026-27 / AY 2027-28)</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Side-by-side slabs engine, capital gains calculators, and TDS loggers</p>
+        </div>
+
+        <button
+          className="btn btn-secondary"
+          onClick={handleExportTaxReport}
+          style={{ padding: '0.45rem 0.8rem', fontSize: '0.8rem', gap: '0.4rem', display: 'flex', alignItems: 'center' }}
+        >
+          <Download size={14} />
+          <span>Export Tax Report CSV</span>
+        </button>
       </div>
 
       {/* Grid: Left - Regime Compare Form, Right - Result Dashboard */}
@@ -396,59 +431,97 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
           )}
         </div>
 
-        {/* TDS Summary Log */}
-        <div className="glass-panel" style={{ padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <FileText size={18} color="var(--accent-2)" /> TDS Summary (Form 26AS Reconciliation)
-            </h3>
-            <button className="btn btn-primary" style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }} onClick={() => openTdsModal()}>
-              <Plus size={14} /> Add TDS
-            </button>
-          </div>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-            Tax Deducted at Source records reconciled from AIS logs.
-          </p>
+      {/* Advance Tax Quarterly Tracker */}
+      <div className="glass-panel" style={{ padding: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+          <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}>
+            <Calendar size={18} color="var(--accent-1)" /> Advance Tax Quarterly Schedule (Sec 208)
+          </h3>
+          <span style={{ fontSize: '0.8rem', color: netAdvanceTaxLiability > 10000 ? 'var(--error)' : 'var(--success)', fontWeight: 600 }}>
+            {netAdvanceTaxLiability > 10000 ? `⚠️ Net Liability: ${formatRupee(netAdvanceTaxLiability)}` : '✓ Below ₹10k threshold'}
+          </span>
+        </div>
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+          Mandatory quarterly payment schedule for taxpayers with net annual liability &gt; ₹10,000 to avoid Sec 234B/234C interest penalties.
+        </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {tdsRecords.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                No TDS records found. Add manual entries or upload Form 26AS JSON.
-              </div>
-            ) : tdsRecords.map((r) => (
-              <div key={r.id} style={{
-                padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border-color)', fontSize: '0.85rem', position: 'relative'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
-                  <span>{r.deductorName}</span>
-                  <span style={{ color: 'var(--error)' }}>{formatRupee(r.taxDeducted)}</span>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          {[
+            { q: 'Q1 (By Jun 15)', targetPct: 15, date: '15th June' },
+            { q: 'Q2 (By Sep 15)', targetPct: 45, date: '15th September' },
+            { q: 'Q3 (By Dec 15)', targetPct: 75, date: '15th December' },
+            { q: 'Q4 (By Mar 15)', targetPct: 100, date: '15th March' }
+          ].map(q => {
+            const installmentAmount = Math.round((netAdvanceTaxLiability * q.targetPct) / 100);
+            return (
+              <div key={q.q} className="glass-card" style={{ padding: '1rem', borderLeft: '3px solid var(--accent-1)' }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{q.q}</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0.3rem 0', color: 'var(--text-primary)' }}>
+                  {formatRupee(installmentAmount)}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.25rem', paddingRight: '3rem' }}>
-                  <span>TAN: {r.tanOfDeductor}</span>
-                  <span>Gross Paid: {formatRupee(r.amountPaid)}</span>
-                </div>
-                
-                {/* Actions */}
-                <div style={{ position: 'absolute', right: '0.5rem', bottom: '0.5rem', display: 'flex', gap: '0.4rem' }}>
-                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }} onClick={() => openTdsModal(r)}>
-                    <Edit2 size={13} />
-                  </button>
-                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)' }} onClick={() => deleteTdsRecord(r.id)}>
-                    <Trash2 size={13} />
-                  </button>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                  <Clock size={12} />
+                  <span>Cumulative {q.targetPct}% due by {q.date}</span>
                 </div>
               </div>
-            ))}
-            
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed var(--border-color)',
-              padding: '0.75rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem'
-            }} onClick={() => alert('AIS/26AS JSON parse capability loaded successfully.')}>
-              + Upload AIS / Form 26AS JSON
+            );
+          })}
+        </div>
+      </div>
+
+      {/* TDS Summary Log */}
+      <div className="glass-panel" style={{ padding: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <FileText size={18} color="var(--accent-2)" /> TDS Summary (Form 26AS Reconciliation)
+          </h3>
+          <button className="btn btn-primary" style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }} onClick={() => openTdsModal()}>
+            <Plus size={14} /> Add TDS
+          </button>
+        </div>
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+          Tax Deducted at Source records reconciled from AIS logs.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {tdsRecords.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+              No TDS records found. Add manual entries or upload Form 26AS JSON.
             </div>
+          ) : tdsRecords.map((r) => (
+            <div key={r.id} style={{
+              padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border-color)', fontSize: '0.85rem', position: 'relative'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+                <span>{r.deductorName}</span>
+                <span style={{ color: 'var(--error)' }}>{formatRupee(r.taxDeducted)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.25rem', paddingRight: '3rem' }}>
+                <span>TAN: {r.tanOfDeductor}</span>
+                <span>Gross Paid: {formatRupee(r.amountPaid)}</span>
+              </div>
+              
+              {/* Actions */}
+              <div style={{ position: 'absolute', right: '0.5rem', bottom: '0.5rem', display: 'flex', gap: '0.4rem' }}>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }} onClick={() => openTdsModal(r)}>
+                  <Edit2 size={13} />
+                </button>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)' }} onClick={() => deleteTdsRecord(r.id)}>
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+          ))}
+          
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed var(--border-color)',
+            padding: '0.75rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem'
+          }} onClick={() => alert('AIS/26AS JSON parse capability loaded successfully.')}>
+            + Upload AIS / Form 26AS JSON
           </div>
         </div>
+      </div>
 
       </div>
 

@@ -7,10 +7,11 @@ import {
 } from '@financeos/shared';
 import {
   Printer, Coins, ShoppingBag, Eye, Trash2, Edit2,
-  FileText, Archive, BarChart2, Plus
+  FileText, Archive, BarChart2, Plus, Download
 } from 'lucide-react';
 import { formatRupee } from '../utils/currency.js';
 import { CurrencyInput } from './ui/CurrencyInput.js';
+import { exportToCSV } from '../utils/exportCsv.js';
 
 interface BusinessViewProps {
   dateRange: GlobalDateRange;
@@ -458,11 +459,44 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
       {/* Title */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Corporate & Bookkeeping Engine</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>GST Billing, purchase/sales journals, FIFO stock sheets, and financial statements</p>
         </div>
+
+        <button
+          className="btn btn-secondary"
+          onClick={() => {
+            if (activeSubTab === 'gst') {
+              exportToCSV('gstr_register', [
+                { label: 'Date', key: 'date' },
+                { label: 'Register Type', key: 'type' },
+                { label: 'Ref / Inv No', key: 'refNumber' },
+                { label: 'Party Name', key: 'partyName' },
+                { label: 'Taxable Amount', key: 'taxableAmount' },
+                { label: 'CGST', key: 'cgst' },
+                { label: 'SGST', key: 'sgst' },
+                { label: 'IGST', key: 'igst' },
+                { label: 'Total Amount', key: 'totalAmount' }
+              ], register);
+            } else {
+              exportToCSV('business_invoices', [
+                { label: 'Invoice No', key: 'invoiceNumber' },
+                { label: 'Date', key: 'date' },
+                { label: 'Customer', key: 'customerName' },
+                { label: 'GSTIN', key: 'customerGSTIN' },
+                { label: 'Subtotal', key: 'subtotal' },
+                { label: 'Grand Total', key: 'grandTotal' },
+                { label: 'Status', key: 'status' }
+              ], invoices);
+            }
+          }}
+          style={{ padding: '0.45rem 0.8rem', fontSize: '0.8rem', gap: '0.4rem', display: 'flex', alignItems: 'center' }}
+        >
+          <Download size={14} />
+          <span>Export {activeSubTab === 'gst' ? 'GSTR Register' : 'Invoices'} CSV</span>
+        </button>
       </div>
 
       {/* Sub tabs */}

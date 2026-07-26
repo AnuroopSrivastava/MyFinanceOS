@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { formatRupee } from '../utils/currency.js';
 import { CurrencyInput } from './ui/CurrencyInput.js';
+import { exportToCSV } from '../utils/exportCsv.js';
 
 interface ParsedTx {
   id: string;
@@ -636,16 +637,34 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
       <div className="glass-panel" style={{ padding: '1.25rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Ledger Journal Log</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
-            <Search size={16} style={{ position: 'absolute', left: '10px', color: 'var(--text-muted)' }} />
-            <input
-              type="text"
-              className="form-input"
-              style={{ paddingLeft: '2.2rem', width: '220px', padding: '0.45rem 2.2rem' }}
-              placeholder="Search description/tag..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <Search size={16} style={{ position: 'absolute', left: '10px', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                className="form-input"
+                style={{ paddingLeft: '2.2rem', width: '200px', padding: '0.45rem 2.2rem' }}
+                placeholder="Search description/tag..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                exportToCSV('ledger_transactions', [
+                  { label: 'Date', key: 'date' },
+                  { label: 'Description', key: 'description' },
+                  { label: 'Category', key: 'category' },
+                  { label: 'Type', key: 'type' },
+                  { label: 'Amount (INR)', key: 'amount' }
+                ], filteredTxs);
+              }}
+              style={{ padding: '0.45rem 0.8rem', fontSize: '0.8rem', gap: '0.4rem', display: 'flex', alignItems: 'center' }}
+            >
+              <Download size={14} />
+              <span>Export CSV</span>
+            </button>
           </div>
         </div>
 

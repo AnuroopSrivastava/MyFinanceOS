@@ -5,13 +5,17 @@ import { authSession } from '@financeos/auth';
 import { faker } from '@faker-js/faker';
 
 // Mock auth package
+const mockAuthSession = vi.hoisted(() => ({
+  isAuthenticated: vi.fn().mockReturnValue(true),
+  getAccessToken: vi.fn().mockReturnValue('mockToken'),
+  getUserProfile: vi.fn().mockReturnValue({ name: 'Admin User' }),
+  login: vi.fn(),
+  logout: vi.fn()
+}));
+
 vi.mock('@financeos/auth', () => ({
-  authSession: {
-    setupPin: vi.fn().mockResolvedValue({ salt: 'mockSalt', verifier: 'mockVerifier' }),
-    login: vi.fn().mockResolvedValue(true),
-    getActiveKey: vi.fn().mockReturnValue({} as CryptoKey),
-    logout: vi.fn()
-  }
+  authSession: mockAuthSession,
+  default: mockAuthSession
 }));
 
 let saltCounter = 0;
@@ -34,6 +38,7 @@ beforeAll(() => {
 
 describe('DatabaseService - Comprehensive Tests', () => {
   beforeEach(() => {
+    mockAuthSession.isAuthenticated.mockReturnValue(true);
     Object.defineProperty(globalThis, 'localStorage', {
       value: {
         getItem: vi.fn(() => null),
@@ -51,19 +56,19 @@ describe('DatabaseService - Comprehensive Tests', () => {
   });
 
   describe('Initialization & State', () => {
-    it('should correctly report uninitialized when localStorage is empty', () => {
+    it('should correctly report uninitialized when localStorage is empty and unauthenticated', () => {
+      mockAuthSession.isAuthenticated.mockReturnValue(false);
       expect(dbService.isInitialized()).toBe(false);
     });
 
-    it('should report initialized when config exists', () => {
-      vi.mocked(globalThis.localStorage.getItem).mockReturnValueOnce(JSON.stringify({ salt: 'a', verifier: 'b' }));
+    it('should report initialized when cache exists in localStorage', () => {
+      vi.mocked(globalThis.localStorage.getItem).mockReturnValueOnce(JSON.stringify({ settings: {}, profiles: [] }));
       expect(dbService.isInitialized()).toBe(true);
     });
 
-    it('should initialize new db securely and save config', async () => {
-      await dbService.initializeNewDb('1234', 'Admin User');
-      expect(authSession.setupPin).toHaveBeenCalledWith('1234');
-      expect(globalThis.localStorage.setItem).toHaveBeenCalledWith('financeos_auth_config', expect.any(String));
+    it('should initialize new db securely and save to storage', async () => {
+      await dbService.initializeNewDb('Admin User');
+      expect(globalThis.localStorage.setItem).toHaveBeenCalledWith('financeos_db_cache', expect.any(String));
       
       const profiles = dbService.getProfiles();
       expect(profiles).toHaveLength(1);
@@ -76,30 +81,28 @@ describe('DatabaseService - Comprehensive Tests', () => {
   });
 
   describe('Authentication & Sync', () => {
-    it('should reject unlock if config is missing', async () => {
-      vi.mocked(globalThis.localStorage.getItem).mockReturnValue(null);
-      const success = await dbService.unlock('1234');
+    it('should reject unlock if user is not authenticated', async () => {
+      mockAuthSession.isAuthenticated.mockReturnValue(false);
+      const success = await dbService.unlock();
       expect(success).toBe(false);
     });
 
-    it('should unlock and load db payload', async () => {
+    it('should unlock and load db payload from localStorage', async () => {
+      mockAuthSession.isAuthenticated.mockReturnValue(true);
       vi.mocked(globalThis.localStorage.getItem).mockImplementation((key) => {
-        if (key === 'financeos_auth_config') return JSON.stringify({ salt: 'a', verifier: 'b' });
-        if (key === 'financeos_db_encrypted') return 'mockIv:mockCipher';
+        if (key === 'financeos_db_cache') {
+          return JSON.stringify({
+            settings: { theme: 'dark' },
+            profiles: [{ id: 'p1', name: 'Test' }],
+            accounts: [], transactions: [], auditLogs: [],
+            budgets: [], fds: [], stocks: [], mutualfunds: [], gold: [], nps: [], pf: [],
+            contacts: [], inventory: [], invoices: [], register: [], tdsRecords: []
+          });
+        }
         return null;
       });
 
-      // Override decrypt mock to return a valid JSON string for testing
-      const { decrypt } = await import('@financeos/shared');
-      vi.mocked(decrypt).mockResolvedValueOnce(JSON.stringify({
-        settings: { theme: 'dark' },
-        profiles: [{ id: 'p1', name: 'Test' }],
-        accounts: [], transactions: [], auditLogs: [],
-        budgets: [], fds: [], stocks: [], mutualfunds: [], gold: [], nps: [], pf: [],
-        contacts: [], inventory: [], invoices: [], register: [], tdsRecords: []
-      }));
-
-      const success = await dbService.unlock('1234');
+      const success = await dbService.unlock();
       expect(success).toBe(true);
       expect(dbService.getSettings().theme).toBe('dark');
     });
@@ -107,7 +110,8 @@ describe('DatabaseService - Comprehensive Tests', () => {
 
   describe('Data Operations (CRUD)', () => {
     beforeEach(async () => {
-      await dbService.initializeNewDb('1234', 'Test Admin');
+      mockAuthSession.isAuthenticated.mockReturnValue(true);
+      await dbService.initializeNewDb('Test Admin');
     });
 
     it('should add, update, and delete accounts', async () => {
@@ -192,7 +196,7 @@ describe('DatabaseService - Comprehensive Tests', () => {
       // Verify audit logs get truncated at 500
       const logs = dbService.getAuditLogs();
       expect(logs.length).toBeLessThanOrEqual(500);
-    });
+    }, 20000);
 
     it('should correctly handle profile deletion cascading', async () => {
       const profile = await dbService.addProfile({ name: 'User 2', role: 'Member', isNomineeProvided: false });

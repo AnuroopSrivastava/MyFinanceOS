@@ -2,7 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { dbService } from '@financeos/database';
 import { authSession } from '@financeos/auth';
 import { useGoogleLogin } from '@react-oauth/google';
-import { ShieldCheck, ArrowRight, Database, Network, PieChart, Lock, MessageSquare } from 'lucide-react';
+import {
+  ShieldCheck, ArrowRight, Database, Network, PieChart, Lock, MessageSquare,
+  LayoutDashboard, Receipt, Calculator, Building2, GitFork, Target, Bot, Settings
+} from 'lucide-react';
 
 interface LandingProps {
   onUnlock: () => void;
@@ -118,8 +121,193 @@ const FaqItem = ({ question, answer }: { question: string, answer: string }) => 
         </p>
       </div>
     </div>
-  )
-}
+  );
+};
+
+const FEATURE_BLOCKS = [
+  {
+    id: 'dashboard',
+    icon: <LayoutDashboard size={24} />,
+    title: 'Command Center Dashboard',
+    desc: 'Get an instant, high-level overview of your entire financial universe. Our intelligent dashboard aggregates data from all modules to give you actionable insights at a glance.',
+    bullets: [
+      'Real-time Net Worth calculation',
+      'Interactive asset allocation charts',
+      '30-day quick expense tracking',
+      'Upcoming bill reminders'
+    ],
+    demo: (
+      <div className="bar-chart">
+        <div className="bar"></div>
+        <div className="bar"></div>
+        <div className="bar"></div>
+        <div className="bar"></div>
+        <div className="bar"></div>
+      </div>
+    )
+  },
+  {
+    id: 'ledger',
+    icon: <Receipt size={24} />,
+    title: 'Banking & Core Ledger',
+    desc: 'The heart of your financial OS. A powerful, double-entry capable ledger that tracks every rupee with absolute precision and military-grade encryption.',
+    bullets: [
+      'Multi-account syncing & tracking',
+      'Automated categorization engine',
+      'Advanced filtering and search',
+      'Split transactions capabilities'
+    ],
+    demo: (
+      <div className="ledger-list">
+        <div className="ledger-row">
+          <span>Salary Credit</span>
+          <span className="amount-pos">+ ₹85,000</span>
+        </div>
+        <div className="ledger-row">
+          <span>Grocery Store</span>
+          <span className="amount-neg">- ₹2,400</span>
+        </div>
+        <div className="ledger-row">
+          <span>Dividend Payout</span>
+          <span className="amount-pos">+ ₹1,200</span>
+        </div>
+      </div>
+    )
+  },
+  {
+    id: 'investments',
+    icon: <PieChart size={24} />,
+    title: 'Investments Portfolio',
+    desc: 'Track all your equities, mutual funds, and crypto in one place. Monitor real-time updates and allocation breakdowns across your entire portfolio.',
+    bullets: [
+      'Consolidated asset tracking',
+      'Current vs invested value visualization',
+      'Diversification metrics',
+      'Dividend tracking'
+    ],
+    demo: (
+      <div className="matrix-grid">
+        <div className="matrix-cell cell-1">Equities<br /><span>45%</span></div>
+        <div className="matrix-cell cell-2">Bonds<br /><span>20%</span></div>
+        <div className="matrix-cell cell-3">Crypto<br /><span>10%</span></div>
+        <div className="matrix-cell cell-4">Real Est.<br /><span>15%</span></div>
+        <div className="matrix-cell cell-5">Cash<br /><span>5%</span></div>
+        <div className="matrix-cell cell-6">Gold<br /><span>5%</span></div>
+      </div>
+    )
+  },
+  {
+    id: 'tax',
+    icon: <Calculator size={24} />,
+    title: 'Indian Tax Engine',
+    desc: 'Stay ahead of tax season with real-time tax liability forecasting. Our engine automatically calculates your expected tax based on the latest Indian tax slabs (Old & New regime).',
+    bullets: [
+      'Real-time Old vs New Regime comparison',
+      '80C, 80D, & standard deduction tracking',
+      'Capital Gains tax estimates',
+      'Advance tax payment reminders'
+    ],
+    demo: (
+      <div className="tax-card">
+        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '2px' }}>Optimizing Tax Liability...</div>
+        <div className="tax-number"></div>
+        <div style={{ color: '#00ffcc', fontSize: '0.85rem', fontWeight: 600 }}>Optimal Regime Detected</div>
+      </div>
+    )
+  },
+  {
+    id: 'business',
+    icon: <Building2 size={24} />,
+    title: 'Business Slabs',
+    desc: 'Manage multiple business entities, track corporate tax slabs, and seamlessly categorize business versus personal expenses.',
+    bullets: [
+      'Multi-entity accounting',
+      'Corporate tax tier tracking',
+      'Expense separation',
+      'Automated P&L generation'
+    ],
+    demo: (
+      <div className="slab-container">
+        <div className="slab-layer tier-1">Tier 1: Up to ₹5L</div>
+        <div className="slab-layer tier-2">Tier 2: ₹5L - ₹10L</div>
+        <div className="slab-layer tier-3">Tier 3: Above ₹10L</div>
+      </div>
+    )
+  },
+  {
+    id: 'sankey',
+    icon: <GitFork size={24} />,
+    title: 'Sankey Cash Flow',
+    desc: 'Visualize your money in motion. Sankey diagrams beautifully illustrate exactly how your income flows into different expense categories, investments, and savings.',
+    bullets: [
+      'Dynamic visual flow tracing',
+      'Identify money leaks instantly',
+      'Customizable node grouping',
+      'Exportable high-res diagrams'
+    ],
+    demo: (
+      <svg className="sankey-svg" viewBox="0 0 200 200" preserveAspectRatio="none">
+        <path className="sankey-line" d="M 0,100 C 100,100 100,50 200,50" />
+        <path className="sankey-line" d="M 0,100 C 100,100 100,150 200,150" />
+        <path className="sankey-line" d="M 0,100 C 100,100 150,180 200,180" />
+      </svg>
+    )
+  },
+  {
+    id: 'planner',
+    icon: <Target size={24} />,
+    title: 'Investment Planner',
+    desc: 'Plot your path to financial independence (FIRE). Set long-term goals and let our compounding calculators show you exactly what it takes to reach them.',
+    bullets: [
+      'FIRE (Financial Independence) calculators',
+      'Future value projections',
+      'Dividend yield projections',
+      'Goal-based timeline mapping'
+    ],
+    demo: (
+      <svg className="invest-graph" viewBox="0 0 200 100" preserveAspectRatio="none">
+        <path className="invest-axis" d="M 10 10 L 10 90 L 190 90" />
+        <path className="invest-curve" d="M 10 90 Q 100 85, 140 50 T 190 10" />
+      </svg>
+    )
+  },
+  {
+    id: 'ai',
+    icon: <Bot size={24} />,
+    title: 'AI Financial Assistant',
+    desc: 'Your personal wealth advisor, running securely. Ask questions about your spending habits, request deep-dive analyses, or get smart categorization suggestions.',
+    bullets: [
+      'Natural language query processing',
+      'Automated anomaly detection',
+      'Personalized saving insights',
+      'Privacy-first local processing'
+    ],
+    demo: (
+      <div className="chat-bubble">
+        <strong style={{ color: 'var(--accent-1)' }}>Finance AI:</strong><br />
+        <span style={{ fontSize: '0.9rem' }}>You saved 15% more on groceries this month compared to last! Keep it up. 🚀</span>
+      </div>
+    )
+  },
+  {
+    id: 'settings',
+    icon: <Settings size={24} />,
+    title: 'Advanced Settings',
+    desc: 'Total control over your data. Configure local storage options, manage export formats, and customize your theme and preferences.',
+    bullets: [
+      'Google Drive sync configuration',
+      'Complete JSON/CSV data export',
+      'Theme customization',
+      'Vault encryption management'
+    ],
+    demo: (
+      <div className="gears-container">
+        <div className="gear gear-large"></div>
+        <div className="gear gear-small"></div>
+      </div>
+    )
+  }
+];
 
 export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
   const [error, setError] = useState('');
@@ -133,8 +321,6 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
     if (!feedbackText.trim()) return;
     setIsSendingFeedback(true);
     try {
-      // Using Web3Forms for free, backendless email forwarding.
-      // NOTE: Replace 'YOUR_ACCESS_KEY_HERE' with a free access key from https://web3forms.com
       const response = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
         headers: {
@@ -213,6 +399,11 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
     duration: Math.random() * 20 + 15, delay: Math.random() * -20,
   }));
 
+  const scrollToHowItWorks = (e: React.MouseEvent) => {
+    e.preventDefault();
+    document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <div style={{
       minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)',
@@ -266,7 +457,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
           </h1>
         </div>
         <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-          <a href="/about.html" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.9rem', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-secondary)'}>About</a>
+          <a href="#how-it-works" onClick={scrollToHowItWorks} style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.9rem', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-secondary)'}>How It Works</a>
           <a href="/privacy.html" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.9rem', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-secondary)'}>Privacy</a>
           <a href="/terms.html" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.9rem', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-secondary)'}>Terms</a>
           <button onClick={() => login()} className="btn btn-secondary" style={{ padding: '0.5rem 1.5rem', fontSize: '0.9rem', borderRadius: '2rem' }} disabled={isLoading}>
@@ -345,7 +536,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
           </button>
         </Reveal>
 
-        {/* Feature Grid */}
+        {/* Feature Grid Highlights */}
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', maxWidth: '1100px', width: '100%', marginTop: '6rem', position: 'relative', zIndex: 1
         }}>
@@ -365,6 +556,82 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
             </TiltCard>
           ))}
         </div>
+
+        {/* Comprehensive How It Works & Core Features Section (Merged from About Page) */}
+        <section id="how-it-works" style={{ width: '100%', maxWidth: '1200px', margin: '8rem auto 0', textAlign: 'left', position: 'relative', zIndex: 1 }}>
+          <Reveal delay={0.1}>
+            <div style={{ textAlign: 'center', marginBottom: '5rem' }}>
+              <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', fontWeight: 800, fontFamily: 'var(--font-display)', marginBottom: '1.25rem', color: 'var(--text-primary)' }}>
+                How It Works
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '1.15rem', maxWidth: '650px', margin: '0 auto', lineHeight: 1.7 }}>
+                Dive deep into the core features of MyFinanceOS. See exactly how our powerful, local-first tools work together to give you complete control over your wealth.
+              </p>
+            </div>
+          </Reveal>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
+            {FEATURE_BLOCKS.map((block, i) => (
+              <Reveal key={block.id} delay={0.1}>
+                <div className="glass-panel feature-block-card" style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                  gap: '3.5rem',
+                  alignItems: 'center',
+                  padding: '3rem',
+                  borderRadius: '1.5rem',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  background: 'linear-gradient(180deg, hsla(224, 20%, 14%, 0.4) 0%, hsla(224, 20%, 8%, 0.7) 100%)',
+                  border: '1px solid var(--border-color)',
+                  boxShadow: 'var(--shadow-md)',
+                  transition: 'box-shadow 0.3s ease, border-color 0.3s ease'
+                }}
+                  onMouseOver={e => {
+                    e.currentTarget.style.boxShadow = 'var(--shadow-glow)';
+                    e.currentTarget.style.borderColor = 'var(--accent-1)';
+                  }}
+                  onMouseOut={e => {
+                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                  }}
+                >
+                  <div style={{ order: i % 2 === 0 ? 1 : 2, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{
+                        background: 'var(--bg-secondary)', width: '48px', height: '48px', borderRadius: '12px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-1)',
+                        border: '1px solid var(--border-color)', flexShrink: 0
+                      }}>
+                        {block.icon}
+                      </div>
+                      <h3 style={{ fontSize: '1.8rem', color: 'var(--accent-1)', margin: 0, fontWeight: 700, fontFamily: 'var(--font-display)' }}>
+                        {block.title}
+                      </h3>
+                    </div>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.7, margin: 0 }}>
+                      {block.desc}
+                    </p>
+                    <ul style={{ listStyle: 'none', padding: 0, margin: '0.5rem 0 0 0', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                      {block.bullets.map((bullet, idx) => (
+                        <li key={idx} style={{ color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.98rem' }}>
+                          <span style={{ color: 'var(--accent-1)', fontWeight: 'bold', fontSize: '1.1rem' }}>✓</span>
+                          {bullet}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div style={{ order: i % 2 === 0 ? 2 : 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <div className="demo-container">
+                      {block.demo}
+                    </div>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </section>
 
         {/* Data Usage Transparency Section */}
         <Reveal style={{ display: 'flex', justifyContent: 'center' }}>
@@ -470,7 +737,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
         position: 'relative', zIndex: 10, marginTop: '4rem'
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '1rem' }}>
-          <a href="/about.html" style={{ color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>About Us</a>
+          <a href="#how-it-works" onClick={scrollToHowItWorks} style={{ color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>How It Works</a>
           <a href="/privacy.html" style={{ color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>Privacy Policy</a>
           <a href="/terms.html" style={{ color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>Terms of Service</a>
         </div>
@@ -506,6 +773,282 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
           0% { left: -100%; }
           20% { left: 200%; }
           100% { left: 200%; }
+        }
+
+        /* Feature Block Demos CSS */
+        .demo-container {
+          background: rgba(0, 0, 0, 0.3);
+          border: 1px solid var(--border-color);
+          border-radius: 1rem;
+          width: 100%;
+          max-width: 450px;
+          height: 280px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+          overflow: hidden;
+        }
+
+        /* Dashboard Animation */
+        .bar-chart {
+          display: flex;
+          align-items: flex-end;
+          gap: 15px;
+          height: 150px;
+        }
+        .bar {
+          width: 36px;
+          background: linear-gradient(0deg, var(--accent-1) 0%, #00ffcc 100%);
+          border-radius: 4px 4px 0 0;
+          animation: grow-bar 3s ease-in-out infinite alternate;
+        }
+        .bar:nth-child(1) { height: 20%; animation-delay: 0s; }
+        .bar:nth-child(2) { height: 50%; animation-delay: 0.2s; }
+        .bar:nth-child(3) { height: 80%; animation-delay: 0.4s; }
+        .bar:nth-child(4) { height: 40%; animation-delay: 0.6s; }
+        .bar:nth-child(5) { height: 100%; animation-delay: 0.8s; }
+
+        @keyframes grow-bar {
+          0% { transform: scaleY(0.2); transform-origin: bottom; opacity: 0.5; }
+          100% { transform: scaleY(1); transform-origin: bottom; opacity: 1; }
+        }
+
+        /* Ledger Animation */
+        .ledger-list {
+          width: 85%;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .ledger-row {
+          background: rgba(255,255,255,0.05);
+          padding: 14px 18px;
+          border-radius: 8px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          animation: slide-in 4s infinite;
+          opacity: 0;
+          transform: translateX(50px);
+          font-size: 0.95rem;
+        }
+        .ledger-row:nth-child(1) { animation-delay: 0s; }
+        .ledger-row:nth-child(2) { animation-delay: 1.5s; }
+        .ledger-row:nth-child(3) { animation-delay: 3s; }
+        .amount-pos { color: #00ffcc; font-weight: bold; }
+        .amount-neg { color: #ff4a4a; font-weight: bold; }
+
+        @keyframes slide-in {
+          0% { opacity: 0; transform: translateX(50px); }
+          20%, 80% { opacity: 1; transform: translateX(0); }
+          100% { opacity: 0; transform: translateX(-50px); }
+        }
+
+        /* Investments Animation: Diversification Matrix */
+        .matrix-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 10px;
+          width: 240px;
+        }
+        .matrix-cell {
+          background: rgba(255,255,255,0.02);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          padding: 12px 5px;
+          text-align: center;
+          font-size: 0.7rem;
+          color: var(--text-secondary);
+          position: relative;
+          overflow: hidden;
+          animation: matrix-pulse 6s infinite alternate;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .matrix-cell span {
+          font-size: 1rem;
+          font-weight: 700;
+        }
+        .matrix-cell.cell-1 { border-color: var(--accent-1); color: var(--accent-1); animation-delay: 0s; }
+        .matrix-cell.cell-2 { border-color: #00ffcc; color: #00ffcc; animation-delay: 0.5s; }
+        .matrix-cell.cell-3 { border-color: #a855f7; color: #a855f7; animation-delay: 1s; }
+        .matrix-cell.cell-4 { border-color: #fbbf24; color: #fbbf24; animation-delay: 1.5s; }
+        .matrix-cell.cell-5 { border-color: #f43f5e; color: #f43f5e; animation-delay: 2s; }
+        .matrix-cell.cell-6 { border-color: #3b82f6; color: #3b82f6; animation-delay: 2.5s; }
+
+        @keyframes matrix-pulse {
+          0%, 40% { transform: scale(1); box-shadow: 0 0 0 transparent; opacity: 0.6; }
+          50% { transform: scale(1.08); box-shadow: inset 0 0 15px currentColor; opacity: 1; text-shadow: 0 0 8px currentColor; }
+          60%, 100% { transform: scale(1); box-shadow: 0 0 0 transparent; opacity: 0.6; }
+        }
+
+        /* Tax Engine Animation */
+        .tax-card {
+          background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
+          padding: 2rem;
+          border-radius: 1rem;
+          text-align: center;
+          border: 1px solid rgba(255,255,255,0.2);
+          animation: float 4s ease-in-out infinite;
+        }
+        .tax-number {
+          font-size: 2.5rem;
+          font-weight: bold;
+          color: var(--accent-1);
+          margin: 1rem 0;
+        }
+        .tax-number::after {
+          content: '₹0';
+          animation: count-up 3s ease-out infinite;
+        }
+
+        @keyframes count-up {
+          0% { content: '₹12,450'; opacity: 0.5; }
+          50% { content: '₹9,200'; }
+          100% { content: '₹4,100'; color: #00ffcc; text-shadow: 0 0 10px #00ffcc; }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+
+        /* Business Slabs Animation */
+        .slab-container {
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+          perspective: 1000px;
+          align-items: center;
+        }
+        .slab-layer {
+          padding: 12px;
+          background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+          border-radius: 8px;
+          color: var(--text-primary);
+          font-size: 0.85rem;
+          font-weight: 500;
+          text-align: center;
+          transform: rotateX(25deg);
+          box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+          animation: float-slab 4s ease-in-out infinite alternate;
+          backdrop-filter: blur(4px);
+        }
+        .slab-layer.tier-1 { border: 1px solid rgba(255,255,255,0.2); animation-delay: 0s; width: 140px; }
+        .slab-layer.tier-2 { border: 1px solid var(--accent-1); animation-delay: 0.3s; width: 170px; }
+        .slab-layer.tier-3 { border: 1px solid #00ffcc; animation-delay: 0.6s; width: 200px; }
+
+        @keyframes float-slab {
+          0% { transform: rotateX(25deg) translateY(0) scale(1); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+          100% { transform: rotateX(10deg) translateY(-15px) scale(1.05); box-shadow: 0 20px 35px rgba(0,255,204,0.2); border-color: #00ffcc; color: #00ffcc; }
+        }
+
+        /* Sankey Animation */
+        .sankey-svg {
+          width: 100%;
+          height: 100%;
+        }
+        .sankey-line {
+          fill: none;
+          stroke: var(--accent-1);
+          stroke-width: 4;
+          stroke-dasharray: 200;
+          stroke-dashoffset: 200;
+          animation: flow 3s linear infinite;
+          opacity: 0.6;
+        }
+        .sankey-line:nth-child(2) { stroke: #00ffcc; animation-delay: -1s; }
+        .sankey-line:nth-child(3) { stroke: #ff4a4a; animation-delay: -2s; }
+
+        @keyframes flow {
+          to { stroke-dashoffset: 0; opacity: 1; }
+        }
+
+        /* Investment Animation */
+        .invest-graph {
+          width: 90%;
+          height: 70%;
+        }
+        .invest-axis {
+          fill: none;
+          stroke: var(--border-color);
+          stroke-width: 2;
+        }
+        .invest-curve {
+          fill: none;
+          stroke: var(--accent-1);
+          stroke-width: 4;
+          stroke-linecap: round;
+          stroke-dasharray: 400;
+          stroke-dashoffset: 400;
+          animation: draw-curve 4s ease-in-out infinite;
+          filter: drop-shadow(0 0 8px rgba(0,255,204,0.5));
+        }
+        @keyframes draw-curve {
+          0% { stroke-dashoffset: 400; }
+          50%, 100% { stroke-dashoffset: 0; }
+        }
+
+        /* AI Animation */
+        .chat-bubble {
+          background: var(--bg-primary);
+          border: 1px solid var(--accent-1);
+          padding: 1rem 1.5rem;
+          border-radius: 1.5rem 1.5rem 1.5rem 0;
+          box-shadow: 0 10px 20px rgba(0,255,204,0.1);
+          animation: pop-in 2s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite alternate;
+        }
+        @keyframes pop-in {
+          0% { transform: scale(0.8) translateY(20px); opacity: 0; }
+          100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        /* Settings Animation */
+        .gears-container {
+          position: relative;
+          width: 130px;
+          height: 130px;
+        }
+        .gear {
+          border-radius: 50%;
+          position: absolute;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .gear-large {
+          width: 70px;
+          height: 70px;
+          border: 12px dashed var(--accent-1);
+          top: 10px;
+          left: 10px;
+          animation: spin-gear 8s linear infinite;
+        }
+        .gear-small {
+          width: 45px;
+          height: 45px;
+          border: 8px dashed var(--text-secondary);
+          bottom: 15px;
+          right: 15px;
+          animation: spin-gear-reverse 6s linear infinite;
+        }
+        .gear::after {
+          content: '';
+          position: absolute;
+          background: var(--bg-secondary);
+          border: 4px solid var(--accent-1);
+          border-radius: 50%;
+        }
+        .gear-large::after { width: 28px; height: 28px; }
+        .gear-small::after { width: 18px; height: 18px; border-color: var(--text-secondary); }
+
+        @keyframes spin-gear {
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes spin-gear-reverse {
+          100% { transform: rotate(-360deg); }
         }
       `}</style>
     </div>

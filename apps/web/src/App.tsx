@@ -14,12 +14,10 @@ import { AIChatView } from './components/AIChatView.js';
 import { SettingsView } from './components/SettingsView.js';
 import { InvestmentPlanner } from './components/InvestmentPlanner/index.js';
 
-
-
 import {
   LayoutDashboard, Landmark, TrendingUp, Percent,
   Briefcase, Network, Sparkles, Settings, LogOut, Lock,
-  Users, Calendar, Target, ChevronDown, UploadCloud
+  Users, Calendar, Target, ChevronDown, UploadCloud, Menu, X
 } from 'lucide-react';
 
 type ActivePage = 'dashboard' | 'ledger' | 'investments' | 'tax' | 'business' | 'sankey' | 'ai' | 'settings' | 'planner';
@@ -34,6 +32,7 @@ const App: React.FC = () => {
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [activeProfileId, setActiveProfileId] = useState<string>('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [syncTrigger, setSyncTrigger] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -43,8 +42,6 @@ const App: React.FC = () => {
     setToast({ show: true, title, message });
     setTimeout(() => setToast(null), 5000);
   };
-
-
 
   const profiles = dbService.isInitialized() && isUnlocked ? dbService.getProfiles() : [];
   const activeProfile = profiles.find(p => p.id === activeProfileId);
@@ -120,13 +117,8 @@ const App: React.FC = () => {
     setIsUnlocked(true);
     const profiles = dbService.getProfiles();
     if (profiles.length > 0) {
-      setActiveProfileId(profiles[0].id); // Default to admin profile id
+      setActiveProfileId(profiles[0].id);
     }
-  };
-
-  const handleSetupComplete = () => {
-    setIsInitialized(true);
-    handleUnlock();
   };
 
   const handleLock = () => {
@@ -169,18 +161,28 @@ const App: React.FC = () => {
     );
   }
 
-  // 1. Setup view (First boot check) - Removed, handled by Landing
-
-  // 2. Lock screen PIN entry / First time login
+  // 1. Lock screen / Landing
   if (!isUnlocked) {
     return <Landing onUnlock={handleUnlock} />;
   }
 
-  // 3. Main Unlocked Dashboard Workspace
+  // 2. Main Unlocked Dashboard Workspace
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', position: 'relative' }}>
 
-      <aside className="glass-panel responsive-sidebar" style={{
+      {/* Mobile Drawer Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          onClick={() => setIsMobileMenuOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+            zIndex: 999
+          }} 
+        />
+      )}
+
+      {/* Sidebar Navigation */}
+      <aside className={`glass-panel responsive-sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`} style={{
         width: '240px',
         padding: '1.5rem 1rem',
         margin: '0.75rem',
@@ -193,10 +195,17 @@ const App: React.FC = () => {
         flexShrink: 0
       }}>
 
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingLeft: '0.5rem' }}>
-          <img src="/logo.png" alt="MyFinanceOS Logo" style={{ width: '32px', height: '32px', borderRadius: '50%', boxShadow: '0 2px 10px rgba(0,0,0,0.3)' }} />
-          <span style={{ fontSize: '1.15rem', fontWeight: 700, fontFamily: 'var(--font-display)' }}>MyFinanceOS</span>
+        {/* Logo & Mobile Close Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <img src="/logo.png" alt="MyFinanceOS Logo" style={{ width: '32px', height: '32px', borderRadius: '50%', boxShadow: '0 2px 10px rgba(0,0,0,0.3)' }} />
+            <span style={{ fontSize: '1.15rem', fontWeight: 700, fontFamily: 'var(--font-display)' }}>MyFinanceOS</span>
+          </div>
+          {isMobileMenuOpen && (
+            <button onClick={() => setIsMobileMenuOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+              <X size={20} />
+            </button>
+          )}
         </div>
 
         {/* Links list */}
@@ -209,7 +218,7 @@ const App: React.FC = () => {
             { id: 'business', label: 'Business Slabs', icon: <Briefcase size={18} /> },
             { id: 'sankey', label: 'Sankey Flow', icon: <Network size={18} /> },
             { id: 'planner', label: 'Investment Planner', icon: <Target size={18} /> },
-            { id: 'ai', label: 'AI Assistent', icon: <Sparkles size={18} /> },
+            { id: 'ai', label: 'AI Assistant', icon: <Sparkles size={18} /> },
             { id: 'settings', label: 'Settings', icon: <Settings size={18} /> }
           ].map(page => (
             <button
@@ -220,6 +229,7 @@ const App: React.FC = () => {
                   if (!confirmLeave) return;
                 }
                 setActivePage(page.id as ActivePage);
+                setIsMobileMenuOpen(false);
               }}
               className="btn btn-secondary"
               style={{
@@ -288,13 +298,27 @@ const App: React.FC = () => {
           marginBottom: 0,
           padding: '0.75rem 1.5rem',
           display: 'flex',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
           alignItems: 'center',
           borderRadius: '0px var(--radius-md) 0px 0px',
           borderLeft: 'none',
           overflow: 'visible',
           zIndex: 50
         }}>
+          {/* Mobile Hamburger Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              className="btn btn-secondary mobile-menu-btn"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              style={{ padding: '0.4rem 0.6rem', border: '1px solid var(--border-color)' }}
+            >
+              <Menu size={18} />
+            </button>
+            <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              {activePage.charAt(0).toUpperCase() + activePage.slice(1)}
+            </span>
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             {hasUnsavedChanges && (
               <button
@@ -358,7 +382,6 @@ const App: React.FC = () => {
                     return options.map(opt => {
                       const range = opt.getRange();
                       let isDisabled = false;
-                      // If the range ends before the earliest data, disable it
                       if (range.endDate) {
                         const end = new Date(range.endDate);
                         if (end < earliest) isDisabled = true;
@@ -423,8 +446,6 @@ const App: React.FC = () => {
         </main>
 
       </div>
-
-
 
       {/* Toast Notification */}
       {toast && (

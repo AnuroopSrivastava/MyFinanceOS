@@ -9,7 +9,7 @@ export const filterByDateRange = <T>(
   dateRange: GlobalDateRange, 
   dateExtractor: (item: T) => string
 ): T[] => {
-  if (!dateRange.startDate && !dateRange.endDate) {
+  if (!dateRange || (!dateRange.startDate && !dateRange.endDate)) {
     return items; // All Time
   }
 

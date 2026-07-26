@@ -2,9 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { dbService } from '@financeos/database';
 import { setTheme, AppTheme } from '@financeos/ui';
 import { UserProfile, AuditLog, SystemSettings } from '@financeos/shared';
-import { 
-  Settings, Users, Shield, Download, Upload, Clipboard, 
-  Trash2, Plus, Sliders 
+import {
+  Settings, Users, Shield, Download, Upload, Clipboard,
+  Trash2, Plus, Sliders, Sparkles
 } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -111,7 +111,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
 
     if (confirm(`Are you sure you want to delete profile "${profile.name}"? This will irreversibly delete ALL their personal finance data (accounts, transactions, investments, budgets).`)) {
       await dbService.deleteProfile(profileId);
-      
+
       if (activeProfileId === profileId) {
         const remaining = dbService.getProfiles();
         if (remaining.length > 0) {
@@ -150,6 +150,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
     }
   };
 
+  const handleSeedDemoData = async () => {
+    if (confirm('Seed sample demo data (bank accounts, transactions, stocks, MFs, FDs, and budgets)?')) {
+      await dbService.seedSampleData(activeProfileId);
+      refreshData();
+      alert('Sample demo data seeded successfully! All charts, FIRE tools, and tax engines are ready.');
+      window.location.reload();
+    }
+  };
+
   // Backups: Import database JSON
   const handleImportBackup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,7 +178,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      
+
       {/* Page Header */}
       <div>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>System Settings & Security</h2>
@@ -178,16 +187,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
 
       {/* Grid: Left - Custom Theme & Backup, Right - Profiles */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.25rem' }} className="responsive-stack">
-        
+
         {/* Themes and Backup */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          
+
           {/* Theme customizer */}
           <div className="glass-panel" style={{ padding: '1.25rem' }}>
             <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <Sliders size={18} color="var(--accent-1)" /> System Interface & Slabs Theme
             </h3>
-            
+
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               {[
                 { id: 'glass-cyan', label: 'Neon Cyan (Default)', color: '#06b6d4' },
@@ -253,12 +262,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
               <Download size={18} color="var(--accent-2)" /> Local Data Backup Vault
             </h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              Generate complete offline file copies of your ledgers and profile accounts.
+              Generate complete offline file copies of your ledgers or populate sample data for testing.
             </p>
 
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <button className="btn btn-secondary" style={{ flex: 1 }} onClick={handleExportBackup}>
                 <Download size={16} /> Download Backup (.json)
+              </button>
+              <button className="btn btn-primary" style={{ flex: 1, background: 'var(--accent-grad)', color: '#fff', border: 'none' }} onClick={handleSeedDemoData}>
+                <Sparkles size={16} /> Populate Demo Data
               </button>
             </div>
 
@@ -325,7 +337,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                       <span style={{ fontSize: '0.75rem', color: 'var(--error)', fontWeight: 600 }}>⚠️ No Nominee</span>
                     )}
                   </div>
-                  <button 
+                  <button
                     onClick={() => {
                       setEditingProfile(p);
                       setEditProfName(p.name);
@@ -333,14 +345,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                       setEditProfRel(p.relationship || 'Other');
                       setEditProfNominee(p.isNomineeProvided);
                       setEditProfPin(p.pin || '');
-                    }} 
+                    }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
                     title="Edit Profile"
                   >
                     <Sliders size={14} />
                   </button>
-                  <button 
-                    onClick={() => handleDeleteProfile(p.id)} 
+                  <button
+                    onClick={() => handleDeleteProfile(p.id)}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)' }}
                     title="Delete Profile"
                   >
@@ -392,16 +404,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
               </div>
               <div className="form-group">
                 <label className="form-label">Profile passcode PIN (Optional 4 digits)</label>
-                <input 
-                  type="password" 
-                  className="form-input" 
-                  value={newProfPin} 
+                <input
+                  type="password"
+                  className="form-input"
+                  value={newProfPin}
                   onChange={(e) => {
                     if (/^\d*$/.test(e.target.value) && e.target.value.length <= 4) {
                       setNewProfPin(e.target.value);
                     }
-                  }} 
-                  placeholder="••••" 
+                  }}
+                  placeholder="••••"
                 />
               </div>
               <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '1rem 0' }}>
@@ -450,16 +462,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
               </div>
               <div className="form-group">
                 <label className="form-label">Profile passcode PIN (Optional 4 digits)</label>
-                <input 
-                  type="password" 
-                  className="form-input" 
-                  value={editProfPin} 
+                <input
+                  type="password"
+                  className="form-input"
+                  value={editProfPin}
                   onChange={(e) => {
                     if (/^\d*$/.test(e.target.value) && e.target.value.length <= 4) {
                       setEditProfPin(e.target.value);
                     }
-                  }} 
-                  placeholder="••••" 
+                  }}
+                  placeholder="••••"
                 />
               </div>
               <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '1rem 0' }}>

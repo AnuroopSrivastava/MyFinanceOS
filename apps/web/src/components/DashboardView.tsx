@@ -97,6 +97,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
 
   const netWorth = totalAssets - totalLiabilities;
 
+  // Budgets & Spending Alerts
+  const budgets = useMemo(() => dbService.getBudgets().filter(b => b.profileId === activeProfileId), [activeProfileId]);
+  const currentMonthStr = new Date().toISOString().substring(0, 7);
+  const budgetAlerts = useMemo(() => {
+    return budgets.map(b => {
+      const spent = rawTransactions
+        .filter(t => t.type === 'Expense' && t.category === b.category && t.date.startsWith(currentMonthStr))
+        .reduce((sum, t) => sum + t.amount, 0);
+      const pct = Math.round((spent / b.limitAmount) * 100);
+      return { ...b, spent, pct };
+    }).sort((a, b) => b.pct - a.pct);
+  }, [budgets, rawTransactions, currentMonthStr]);
+
   // Monthly flows (Income vs Expense in current July 2026 month)
   const monthlyIncome = useMemo(() => {
     return transactions
@@ -364,6 +377,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
           </div>
         </div>
 
+        {/* Budget Gauges */}
+        {budgetAlerts.slice(0, 3).map((b, idx) => (
+          <div key={idx} className="glass-panel" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{b.category}</span>
+              <span style={{ fontSize: '0.8rem', color: b.pct > 90 ? 'var(--error)' : 'var(--text-secondary)' }}>
+                {b.pct}%
+              </span>
+            </div>
+            <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ width: `${Math.min(b.pct, 100)}%`, height: '100%', background: b.pct > 90 ? 'var(--error)' : 'var(--accent-2)' }} />
+            </div>
+          </div>
+        ))}
+
         {/* Smart Insights Card */}
         <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
@@ -518,7 +546,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               
-              {/* Nominee alert */}
+              {/* Category Budget Alerts */}
+              {budgetAlerts.filter(b => b.pct > 80).map(b => (
+                <div key={b.id} style={{
+                  display: 'flex', gap: '0.5rem', background: b.pct >= 100 ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
+                  border: `1px solid ${b.pct >= 100 ? 'var(--error)' : 'var(--warning)'}`,
+                  padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem',
+                  color: b.pct >= 100 ? 'var(--error)' : 'var(--warning)'
+                }}>
+                  <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+                  <div>
+                    <strong>Budget Alert ({b.category}):</strong> Spending reached {b.pct}% of monthly limit ({formatRupee(b.spent)} / {formatRupee(b.limitAmount)}).
+                  </div>
+                </div>
+              ))}
               {nomineeAlerts.length > 0 ? (
                 <div style={{
                   display: 'flex', gap: '0.5rem', background: 'var(--warning-bg)', border: '1px solid var(--warning)',
