@@ -4,9 +4,9 @@ import { describe, it, expect, vi, beforeAll } from 'vitest';
 
 beforeAll(() => {
   globalThis.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
+    observe() { }
+    unobserve() { }
+    disconnect() { }
   };
 });
 import { DashboardView } from './DashboardView';
@@ -25,18 +25,20 @@ vi.mock('@financeos/database', () => ({
     getFDs: () => [],
     getGold: () => [],
     getPF: () => [],
-    getNPS: () => []
+    getNPS: () => [],
+    getGoals: () => []
   }
 }));
 
 describe('DashboardView', () => {
   it('renders Net Worth header correctly', () => {
-    // Provide a dummy profileId
-    render(<DashboardView activeProfileId="p1" dateRange="1y" />);
-    
+    // Provide a dummy profileId and GlobalDateRange object
+    const mockDateRange = { startDate: null, endDate: null, label: 'All Time' };
+    render(<DashboardView activeProfileId="p1" dateRange={mockDateRange} />);
+
     // Check for the net worth text (case-insensitive)
     expect(screen.getAllByText(/net worth/i).length).toBeGreaterThan(0);
-    
+
     // Check if a balance is rendered
     expect(screen.getAllByText(/₹[0-9.,]+/i).length).toBeGreaterThan(0);
   });

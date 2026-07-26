@@ -295,4 +295,18 @@ export interface InvestmentPlan {
   portfolio: PortfolioCategory[];
 }
 
+// Goal Tracker Models
+export interface SavingsGoal {
+  id: string;
+  profileId: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  deadline: string; // YYYY-MM-DD
+  linkedAccountId?: string;
+  icon: string; // emoji
+  color: string; // hex
+  createdAt: string; // ISO
+}
+
 export * from './crypto.js';

@@ -4,8 +4,11 @@ import { BankAccount, Transaction, AccountType, RecurringTransaction } from '@fi
 import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
 import {
   Plus, Upload, Download, Landmark, Search, Trash2, CreditCard,
-  HelpCircle, AlertCircle, RefreshCw, Edit2
+  HelpCircle, AlertCircle, RefreshCw, Edit2, Tag, Filter, PieChart as PieIcon, ArrowUpRight
 } from 'lucide-react';
+import {
+  ResponsiveContainer, PieChart, Pie, Cell, Tooltip
+} from 'recharts';
 import { formatRupee } from '../utils/currency.js';
 import { CurrencyInput } from './ui/CurrencyInput.js';
 import { exportToCSV } from '../utils/exportCsv.js';
@@ -270,13 +273,74 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
   const [csvContent, setCsvContent] = useState('');
   const [importStatus, setImportStatus] = useState('');
 
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedTag, setSelectedTag] = useState<string>('All');
+
+  // Available tags in transactions
+  const availableTags = useMemo(() => {
+    const set = new Set<string>();
+    transactions.forEach(t => { if (t.tag) set.add(t.tag); });
+    return Array.from(set);
+  }, [transactions]);
+
+  // Available categories in transactions
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>();
+    transactions.forEach(t => { if (t.category) set.add(t.category); });
+    return Array.from(set);
+  }, [transactions]);
+
   // Filtered transactions
   const filteredTxs = useMemo(() => {
-    return transactions.filter(t =>
-      t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.category.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [transactions, searchQuery]);
+    const dateFiltered = filterByDateRange(transactions, dateRange, t => t.date);
+    return dateFiltered.filter(t => {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = !q ||
+        t.description.toLowerCase().includes(q) ||
+        t.category.toLowerCase().includes(q) ||
+        (t.tag && t.tag.toLowerCase().includes(q)) ||
+        t.amount.toString().includes(q);
+
+      const matchesCat = selectedCategory === 'All' || t.category === selectedCategory;
+      const matchesTag = selectedTag === 'All' || t.tag === selectedTag;
+
+      return matchesSearch && matchesCat && matchesTag;
+    });
+  }, [transactions, dateRange, searchQuery, selectedCategory, selectedTag]);
+
+  // Category analytics for spending donut chart
+  const categoryAnalytics = useMemo(() => {
+    const dateFiltered = filterByDateRange(transactions, dateRange, t => t.date);
+    const catMap: Record<string, number> = {};
+    let totalExpense = 0;
+    dateFiltered.forEach(t => {
+      if (t.type === 'Expense') {
+        catMap[t.category] = (catMap[t.category] || 0) + Math.abs(t.amount);
+        totalExpense += Math.abs(t.amount);
+      }
+    });
+
+    const colors = ['#06b6d4', '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#ef4444', '#14b8a6'];
+    const data = Object.entries(catMap)
+      .map(([name, value], idx) => ({
+        name,
+        value,
+        color: colors[idx % colors.length],
+        pct: totalExpense > 0 ? ((value / totalExpense) * 100).toFixed(1) : '0'
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    return { data, totalExpense };
+  }, [transactions, dateRange]);
+
+  // Top 5 spends
+  const topSpends = useMemo(() => {
+    const dateFiltered = filterByDateRange(transactions, dateRange, t => t.date);
+    return dateFiltered
+      .filter(t => t.type === 'Expense')
+      .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
+      .slice(0, 5);
+  }, [transactions, dateRange]);
 
   const refreshData = () => {
     setAccounts(dbService.getAccounts().filter(a => a.profileId === activeProfileId));
@@ -633,18 +697,97 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
 
       </div>
 
+      {/* Category Analytics & Top Spends Panel */}
+      {categoryAnalytics.data.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="responsive-stack">
+          {/* Donut chart */}
+          <div className="glass-panel" style={{ padding: '1.25rem' }}>
+            <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <PieIcon size={16} color="var(--accent-2)" /> Expense Distribution by Category
+            </h4>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap' }}>
+              <div style={{ width: '140px', height: '140px' }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie data={categoryAnalytics.data} cx="50%" cy="50%" innerRadius={42} outerRadius={65} paddingAngle={2} dataKey="value">
+                      {categoryAnalytics.data.map((entry, i) => (
+                        <Cell key={i} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v: any) => formatRupee(v)} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.75rem', maxWidth: '200px' }}>
+                {categoryAnalytics.data.slice(0, 5).map((cat, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: cat.color }} />
+                      <span style={{ color: 'var(--text-secondary)' }}>{cat.name}</span>
+                    </div>
+                    <span style={{ fontWeight: 600 }}>{cat.pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Top 5 Spends */}
+          <div className="glass-panel" style={{ padding: '1.25rem' }}>
+            <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <ArrowUpRight size={16} color="var(--error)" /> Highest Single Spends
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              {topSpends.map(t => (
+                <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem' }}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{t.description}</div>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{t.date} • {t.category}</span>
+                  </div>
+                  <span style={{ fontWeight: 700, color: 'var(--error)' }}>{formatRupee(t.amount)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Journal Transactions Table */}
       <div className="glass-panel" style={{ padding: '1.25rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Ledger Journal Log</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {/* Category Filter */}
+            <select
+              className="form-input"
+              value={selectedCategory}
+              onChange={e => setSelectedCategory(e.target.value)}
+              style={{ fontSize: '0.8rem', padding: '0.4rem 0.6rem', width: 'auto' }}
+            >
+              <option value="All">All Categories</option>
+              {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+
+            {/* Tag Filter */}
+            {availableTags.length > 0 && (
+              <select
+                className="form-input"
+                value={selectedTag}
+                onChange={e => setSelectedTag(e.target.value)}
+                style={{ fontSize: '0.8rem', padding: '0.4rem 0.6rem', width: 'auto' }}
+              >
+                <option value="All">All Tags</option>
+                {availableTags.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            )}
+
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <Search size={16} style={{ position: 'absolute', left: '10px', color: 'var(--text-muted)' }} />
               <input
                 type="text"
                 className="form-input"
-                style={{ paddingLeft: '2.2rem', width: '200px', padding: '0.45rem 2.2rem' }}
-                placeholder="Search description/tag..."
+                style={{ paddingLeft: '2.2rem', width: '180px', padding: '0.45rem 2.2rem' }}
+                placeholder="Search ledger..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />

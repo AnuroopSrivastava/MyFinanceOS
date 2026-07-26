@@ -5,14 +5,15 @@ import { TopLevelInputs } from './TopLevelInputs.js';
 import { PortfolioDistribution } from './PortfolioDistribution.js';
 import { SubCategoryDistribution } from './SubCategoryDistribution.js';
 import { FireSipCalculator } from './FireSipCalculator.js';
-import { Flame, PieChart } from 'lucide-react';
+import { EMICalculator } from '../EMICalculator.js';
+import { Flame, PieChart, Calculator } from 'lucide-react';
 
 interface InvestmentPlannerProps {
   activeProfileId: string;
 }
 
 export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProfileId }) => {
-  const [activeTab, setActiveTab] = useState<'allocator' | 'fire'>('allocator');
+  const [activeTab, setActiveTab] = useState<'allocator' | 'fire' | 'emi'>('allocator');
   const [plan, setPlan] = useState<InvestmentPlan>({
     id: '',
     profileId: activeProfileId,
@@ -142,6 +143,24 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
             <Flame size={16} />
             <span>FIRE & SIP Goal Lab</span>
           </button>
+          <button
+            className="btn"
+            onClick={() => setActiveTab('emi')}
+            style={{
+              padding: '0.45rem 0.9rem',
+              fontSize: '0.85rem',
+              borderRadius: 'var(--radius-sm)',
+              border: 'none',
+              background: activeTab === 'emi' ? 'var(--accent-grad)' : 'transparent',
+              color: activeTab === 'emi' ? '#fff' : 'var(--text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem'
+            }}
+          >
+            <Calculator size={16} />
+            <span>EMI Calculator</span>
+          </button>
         </div>
       </div>
 
@@ -175,11 +194,13 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
             </div>
           )}
         </>
-      ) : (
+      ) : activeTab === 'fire' ? (
         <FireSipCalculator
           currentMonthlyExpense={currentMonthExpenses}
           currentLiquidNetWorth={currentLiquidNetWorth}
         />
+      ) : (
+        <EMICalculator activeProfileId={activeProfileId} />
       )}
 
     </div>

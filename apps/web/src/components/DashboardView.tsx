@@ -11,6 +11,7 @@ import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, 
   XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell 
 } from 'recharts';
+import { GoalTracker } from './GoalTracker.js';
 
 const calculateFdAccruedValue = (fd: FixedDeposit): number => {
   const now = new Date('2026-07-16'); // App's active date context
@@ -318,6 +319,97 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
     return insights.slice(0, 2); // Max 2 insights
   }, [savingsRate, totalAssets, bankBalances, monthlyExpense, monthlyIncome]);
 
+  // Financial Health Score (0-100)
+  const healthScore = useMemo(() => {
+    let score = 0;
+    const breakdown: { label: string; points: number; max: number; tip: string }[] = [];
+
+    // 1. Savings Rate (0-25 pts)
+    const srPts = Math.min(25, Math.round(savingsRate * 0.625));
+    breakdown.push({ label: 'Savings Rate', points: srPts, max: 25, tip: savingsRate < 20 ? 'Target 30%+ monthly savings' : 'Great savings discipline!' });
+    score += srPts;
+
+    // 2. Debt-to-Asset Ratio (0-20 pts)
+    const debtRatio = totalAssets > 0 ? totalLiabilities / totalAssets : 0;
+    const daPts = debtRatio === 0 ? 20 : debtRatio < 0.2 ? 18 : debtRatio < 0.4 ? 14 : debtRatio < 0.6 ? 8 : 3;
+    breakdown.push({ label: 'Debt-to-Asset', points: daPts, max: 20, tip: debtRatio > 0.4 ? 'Focus on reducing liabilities' : 'Healthy debt levels' });
+    score += daPts;
+
+    // 3. Emergency Fund (0-20 pts) — 6+ months = full score
+    const emergencyMonths = monthlyExpense > 0 ? bankBalances / monthlyExpense : 0;
+    const efPts = Math.min(20, Math.round((emergencyMonths / 6) * 20));
+    breakdown.push({ label: 'Emergency Fund', points: efPts, max: 20, tip: emergencyMonths < 3 ? 'Build 6 months of expenses in liquid savings' : `${emergencyMonths.toFixed(1)} months covered` });
+    score += efPts;
+
+    // 4. Investment Diversification (0-15 pts)
+    const hasStocks = stockValue > 0 ? 1 : 0;
+    const hasMf = mfValue > 0 ? 1 : 0;
+    const hasGold = goldValue > 0 ? 1 : 0;
+    const hasRetirement = (npsValue + pfValue) > 0 ? 1 : 0;
+    const hasFd = fdValue > 0 ? 1 : 0;
+    const diversityCount = hasStocks + hasMf + hasGold + hasRetirement + hasFd;
+    const divPts = Math.min(15, diversityCount * 3);
+    breakdown.push({ label: 'Diversification', points: divPts, max: 15, tip: diversityCount < 3 ? 'Spread across equity, debt, and gold' : `${diversityCount} asset classes` });
+    score += divPts;
+
+    // 5. Nominee Coverage (0-10 pts)
+    const totalHoldings = stocks.length + mfs.length + accounts.filter(a => a.accountType !== 'CreditCard').length;
+    const withNominee = stocks.filter(s => s.nomineeName).length + mfs.filter(m => m.nomineeName).length + accounts.filter(a => a.accountType !== 'CreditCard' && a.nomineeName).length;
+    const nomPct = totalHoldings > 0 ? withNominee / totalHoldings : 1;
+    const nomPts = Math.round(nomPct * 10);
+    breakdown.push({ label: 'Nominee Coverage', points: nomPts, max: 10, tip: nomPct < 1 ? 'Update nominees for all holdings' : 'All nominees set!' });
+    score += nomPts;
+
+    // 6. Budget Adherence (0-10 pts)
+    const overBudgets = budgetAlerts.filter(b => b.pct > 100).length;
+    const budPts = budgetAlerts.length === 0 ? 7 : overBudgets === 0 ? 10 : Math.max(0, 10 - overBudgets * 3);
+    breakdown.push({ label: 'Budget Discipline', points: budPts, max: 10, tip: overBudgets > 0 ? `${overBudgets} categories over budget` : 'Within all budgets' });
+    score += budPts;
+
+    return { score: Math.min(100, score), breakdown };
+  }, [savingsRate, totalAssets, totalLiabilities, bankBalances, monthlyExpense, stockValue, mfValue, goldValue, npsValue, pfValue, fdValue, stocks, mfs, accounts, budgetAlerts]);
+
+  const [showHealthBreakdown, setShowHealthBreakdown] = useState(false);
+
+  // Health Score SVG arc
+  const HealthGauge: React.FC<{ score: number }> = ({ score }) => {
+    const size = 100;
+    const cx = size / 2, cy = size / 2;
+    const radius = 40;
+    const startAngle = -210;
+    const endAngle = 30;
+    const totalAngle = endAngle - startAngle; // 240 degrees
+    const progressAngle = startAngle + (score / 100) * totalAngle;
+
+    const polarToCart = (angleDeg: number, r: number) => ({
+      x: cx + r * Math.cos((angleDeg * Math.PI) / 180),
+      y: cy + r * Math.sin((angleDeg * Math.PI) / 180)
+    });
+
+    const bgStart = polarToCart(startAngle, radius);
+    const bgEnd = polarToCart(endAngle, radius);
+    const progEnd = polarToCart(progressAngle, radius);
+
+    const scoreFill = score >= 70 ? 'var(--success)' : score >= 40 ? 'var(--warning)' : 'var(--error)';
+    const label = score >= 70 ? 'Excellent' : score >= 40 ? 'Fair' : 'Needs Work';
+
+    return (
+      <svg width={size} height={size * 0.7} viewBox={`0 0 ${size} ${size * 0.75}`}>
+        {/* Background arc */}
+        <path d={`M ${bgStart.x} ${bgStart.y} A ${radius} ${radius} 0 1 1 ${bgEnd.x} ${bgEnd.y}`}
+          fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" strokeLinecap="round" />
+        {/* Progress arc */}
+        {score > 0 && (
+          <path d={`M ${bgStart.x} ${bgStart.y} A ${radius} ${radius} 0 ${(score / 100) * totalAngle > 180 ? 1 : 0} 1 ${progEnd.x} ${progEnd.y}`}
+            fill="none" stroke={scoreFill} strokeWidth="8" strokeLinecap="round"
+            style={{ transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }} />
+        )}
+        <text x={cx} y={cy - 4} textAnchor="middle" fill="#fff" fontSize="18" fontWeight="700">{score}</text>
+        <text x={cx} y={cy + 12} textAnchor="middle" fill={scoreFill} fontSize="8" fontWeight="600">{label}</text>
+      </svg>
+    );
+  };
+
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       
@@ -406,6 +498,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Financial Health Score */}
+        <div className="glass-panel" style={{ padding: '1.25rem', cursor: 'pointer', position: 'relative', overflow: 'hidden' }} onClick={() => setShowHealthBreakdown(!showHealthBreakdown)}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 550 }}>HEALTH SCORE</span>
+            <ShieldCheck size={20} color={healthScore.score >= 70 ? 'var(--success)' : healthScore.score >= 40 ? 'var(--warning)' : 'var(--error)'} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <HealthGauge score={healthScore.score} />
+          </div>
+          {showHealthBreakdown && (
+            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem' }}>
+              {healthScore.breakdown.map((b, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>{b.label}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <div style={{ width: '40px', height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div style={{ width: `${(b.points / b.max) * 100}%`, height: '100%', background: b.points >= b.max * 0.7 ? 'var(--success)' : 'var(--warning)', transition: 'width 0.5s' }} />
+                    </div>
+                    <span style={{ fontWeight: 600, minWidth: '28px', textAlign: 'right' }}>{b.points}/{b.max}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px', background: healthScore.score >= 70 ? 'var(--success)' : healthScore.score >= 40 ? 'var(--warning)' : 'var(--error)' }} />
         </div>
 
       </div>
@@ -649,6 +768,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
         </div>
 
       </div>
+
+      {/* Goals Section (embedded) */}
+      <GoalTracker activeProfileId={activeProfileId} />
 
     </div>
   );

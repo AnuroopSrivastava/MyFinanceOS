@@ -6,7 +6,7 @@ import {
   StockHolding, MutualFundHolding, GoldHolding, NPSHolding,
   ProvidentFundHolding, VendorCustomer, InventoryItem, BusinessInvoice,
   BusinessRegisterEntry, AuditLog, SystemSettings, RecurringTransaction,
-  TDSSummary, InvestmentPlan
+  TDSSummary, InvestmentPlan, SavingsGoal
 } from '@financeos/shared';
 
 interface DatabaseSchema {
@@ -29,6 +29,7 @@ interface DatabaseSchema {
   recurringTransactions?: RecurringTransaction[];
   tdsRecords?: TDSSummary[];
   investmentPlans?: InvestmentPlan[];
+  goals?: SavingsGoal[];
 }
 
 class DatabaseService {
@@ -966,6 +967,42 @@ class DatabaseService {
     await this.save();
   }
 
+
+  // Savings Goals
+  public getGoals(): SavingsGoal[] {
+    const db = this.db;
+    if (!db) throw new Error('Database is locked');
+    if (!db.goals) db.goals = [];
+    return db.goals;
+  }
+
+  public async addGoal(goal: Omit<SavingsGoal, 'id' | 'createdAt'>): Promise<SavingsGoal> {
+    const db = this.db;
+    if (!db) throw new Error('Database is locked');
+    if (!db.goals) db.goals = [];
+    const newGoal: SavingsGoal = { ...goal, id: 'goal_' + generateSalt(6), createdAt: new Date().toISOString() };
+    db.goals.push(newGoal);
+    this.logAction('GOAL_ADD', `Added savings goal: ${goal.name}`);
+    await this.save();
+    return newGoal;
+  }
+
+  public async updateGoal(id: string, updates: Partial<SavingsGoal>): Promise<void> {
+    const db = this.db;
+    if (!db) throw new Error('Database is locked');
+    if (!db.goals) db.goals = [];
+    db.goals = db.goals.map(g => g.id === id ? { ...g, ...updates } : g);
+    await this.save();
+  }
+
+  public async deleteGoal(id: string): Promise<void> {
+    const db = this.db;
+    if (!db) throw new Error('Database is locked');
+    if (!db.goals) return;
+    db.goals = db.goals.filter(g => g.id !== id);
+    this.logAction('GOAL_DELETE', `Deleted savings goal ID: ${id}`);
+    await this.save();
+  }
 
   // Helper to calculate stepped-up amount based on anniversaries
   private getStepUpAmount(baseAmount: number, startDateStr: string, currentDateStr: string, stepUpPct: number): number {

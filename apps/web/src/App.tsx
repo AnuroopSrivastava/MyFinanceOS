@@ -13,6 +13,7 @@ import { SankeyView } from './components/SankeyView.js';
 import { AIChatView } from './components/AIChatView.js';
 import { SettingsView } from './components/SettingsView.js';
 import { InvestmentPlanner } from './components/InvestmentPlanner/index.js';
+import { CommandPalette } from './components/CommandPalette.js';
 
 import {
   LayoutDashboard, Landmark, TrendingUp, Percent,
@@ -33,6 +34,7 @@ const App: React.FC = () => {
   const [customEnd, setCustomEnd] = useState('');
   const [activeProfileId, setActiveProfileId] = useState<string>('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   const [syncTrigger, setSyncTrigger] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -67,6 +69,18 @@ const App: React.FC = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
+
+  // Ctrl+K command palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     // Apply saved theme variables on startup
@@ -463,6 +477,29 @@ const App: React.FC = () => {
           <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0 }}>{toast.message}</p>
         </div>
       )}
+
+      {/* Command Palette (Ctrl+K) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onNavigate={(page) => {
+          setActivePage(page as ActivePage);
+          setIsCommandPaletteOpen(false);
+        }}
+        onAction={(action) => {
+          if (action === 'lock') handleLock();
+          else if (action === 'export') {
+            const raw = dbService.getRawDb();
+            const blob = new Blob([raw], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `financeos_backup_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }
+          setIsCommandPaletteOpen(false);
+        }}
+      />
 
       <style>{`
         @keyframes slideIn {
