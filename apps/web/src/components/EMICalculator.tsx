@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { dbService } from '@financeos/database';
 import { formatRupee } from '../utils/currency.js';
 import { exportToCSV } from '../utils/exportCsv.js';
 import { Calculator, Download, IndianRupee, Clock, PieChart as PieIcon } from 'lucide-react';
@@ -19,32 +18,17 @@ interface AmortRow {
 }
 
 export const EMICalculator: React.FC<EMICalculatorProps> = ({ activeProfileId }) => {
-  // Auto-populate from existing Loan accounts
-  const loanAccounts = useMemo(() =>
-    dbService.getAccounts().filter(a => a.profileId === activeProfileId && a.accountType === 'Loan'),
-    [activeProfileId]
-  );
-
   const [principal, setPrincipal] = useState(0);
   const [rate, setRate] = useState(0);
   const [tenureYears, setTenureYears] = useState(0);
   const [prepayment, setPrepayment] = useState(0);
   const [prepaymentMonth, setPrepaymentMonth] = useState(12);
-  const [selectedLoan, setSelectedLoan] = useState('');
-
-  const handleLoanSelect = (loanId: string) => {
-    setSelectedLoan(loanId);
-    const loan = loanAccounts.find(a => a.id === loanId);
-    if (loan) {
-      setPrincipal(Math.abs(loan.balance));
-      if (loan.interestRate) setRate(loan.interestRate);
-    }
-  };
 
   const tenureMonths = tenureYears * 12;
   const monthlyRate = rate / 12 / 100;
 
   const emi = useMemo(() => {
+    if (tenureMonths === 0) return 0;
     if (monthlyRate === 0) return principal / tenureMonths;
     return (principal * monthlyRate * Math.pow(1 + monthlyRate, tenureMonths)) /
       (Math.pow(1 + monthlyRate, tenureMonths) - 1);
@@ -126,29 +110,6 @@ export const EMICalculator: React.FC<EMICalculatorProps> = ({ activeProfileId })
         <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Calculator size={18} color="var(--accent-1)" /> EMI & Loan Amortization Calculator
         </h3>
-
-        {loanAccounts.length > 0 && (
-          <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'rgba(59,130,246,0.08)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(59,130,246,0.2)' }}>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Auto-populate from existing loan:</span>
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
-              {loanAccounts.map(loan => (
-                <button
-                  key={loan.id}
-                  className="btn btn-secondary"
-                  onClick={() => handleLoanSelect(loan.id)}
-                  style={{
-                    padding: '0.3rem 0.7rem', fontSize: '0.78rem',
-                    background: selectedLoan === loan.id ? 'var(--accent-grad)' : 'transparent',
-                    color: selectedLoan === loan.id ? '#fff' : 'var(--text-secondary)',
-                    border: '1px solid var(--border-color)'
-                  }}
-                >
-                  {loan.name} ({formatRupee(Math.abs(loan.balance))})
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
           {/* Principal Slider */}

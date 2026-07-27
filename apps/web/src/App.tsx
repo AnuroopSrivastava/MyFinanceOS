@@ -186,12 +186,13 @@ const App: React.FC = () => {
 
       {/* Mobile Drawer Overlay */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           onClick={() => setIsMobileMenuOpen(false)}
+          className="responsive-sidebar-overlay"
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
             zIndex: 999
-          }} 
+          }}
         />
       )}
 
@@ -312,6 +313,8 @@ const App: React.FC = () => {
           marginBottom: 0,
           padding: '0.75rem 1.5rem',
           display: 'flex',
+          flexWrap: 'wrap',
+          gap: '1rem',
           justifyContent: 'space-between',
           alignItems: 'center',
           borderRadius: '0px var(--radius-md) 0px 0px',
@@ -333,7 +336,7 @@ const App: React.FC = () => {
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div className="responsive-flex-wrap" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem' }}>
             {hasUnsavedChanges && (
               <button
                 className="btn animate-fade-in"
@@ -428,7 +431,7 @@ const App: React.FC = () => {
 
                   <div style={{ borderTop: '1px solid var(--border-color)', margin: '0.5rem 0', paddingTop: '0.5rem' }}>
                     <div style={{ padding: '0 0.5rem', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Custom Range</div>
-                    <div style={{ display: 'flex', gap: '0.4rem', padding: '0 0.5rem' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', padding: '0 0.5rem' }}>
                       <input type="date" className="form-input" style={{ fontSize: '0.75rem', padding: '0.2rem', width: '110px' }} value={customStart} onChange={e => setCustomStart(e.target.value)} />
                       <input type="date" className="form-input" style={{ fontSize: '0.75rem', padding: '0.2rem', width: '110px' }} value={customEnd} onChange={e => setCustomEnd(e.target.value)} />
                     </div>
@@ -464,9 +467,9 @@ const App: React.FC = () => {
       {/* Toast Notification */}
       {toast && (
         <div style={{
-          position: 'fixed', bottom: '20px', right: '20px',
+          position: 'fixed', bottom: '20px', right: '5%',
           background: 'rgba(20, 20, 20, 0.95)', border: '1px solid var(--accent-1)',
-          borderRadius: 'var(--radius-md)', padding: '1rem', width: '320px',
+          borderRadius: 'var(--radius-md)', padding: '1rem', width: '90%', maxWidth: '320px',
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)', zIndex: 10000,
           animation: 'slideIn 0.3s ease-out', backdropFilter: 'blur(10px)'
         }}>

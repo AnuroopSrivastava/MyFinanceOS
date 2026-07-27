@@ -811,7 +811,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
           </div>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
+        <div className="table-responsive">
           <table className="custom-table">
             <thead>
               <tr>

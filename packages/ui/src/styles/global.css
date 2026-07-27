@@ -279,6 +279,7 @@ button, .btn {
   background: hsla(224, 20%, 20%, 0.15);
 }
 
+
 /* Touch & Responsive Optimization Rules */
 html {
   -webkit-text-size-adjust: 100%;
@@ -293,43 +294,58 @@ body {
   padding-right: env(safe-area-inset-right, 0px);
 }
 
-/* Responsive Table Wrapper */
-.table-responsive {
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
+/* Base Mobile Responsive Rules (max-width: 768px) */
 @media (max-width: 768px) {
-  .custom-table th, .custom-table td {
-    padding: 0.65rem 0.75rem;
-    font-size: 0.8rem;
+  /* Typography Adjustments */
+  html {
+    font-size: 15px;
+  }
+  
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+  
+  /* Layout & Grid Gradients */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .glass-panel {
+    border-radius: var(--radius-sm);
+  }
+  
+  /* Responsive Table Wrapper */
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
+  .custom-table th, .custom-table td {
+    padding: 0.75rem 0.65rem;
+    font-size: 0.85rem;
+  }
+  
+  /* Forms & Inputs */
   input, select, textarea {
     font-size: 16px !important; /* Prevents auto-zoom on iOS Safari */
+    padding: 0.8rem 1rem;
   }
-
+  
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  
   button, .btn {
-    min-height: 42px; /* Tap target compliance */
+    width: 100%;
+    margin-bottom: 0.5rem;
   }
-}
-
-/* Tablet Layout Adjustments (769px to 1024px) */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .responsive-sidebar {
-    width: 200px !important;
-  }
-}
-
-/* Mobile Responsive Drawer & Layout Rules (< 768px) */
-.mobile-menu-btn {
-  display: none;
-}
-
-@media (max-width: 768px) {
+  
+  /* Sidebar Mobile Drawer */
   .mobile-menu-btn {
-    display: inline-flex;
+    display: inline-flex !important;
   }
 
   .responsive-sidebar {
@@ -338,7 +354,7 @@ body {
     left: 0;
     bottom: 0;
     z-index: 1000;
-    width: 260px !important;
+    width: 280px !important;
     transform: translateX(-100%);
     transition: transform var(--transition-normal);
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
@@ -350,10 +366,70 @@ body {
   .responsive-sidebar.mobile-open {
     transform: translateX(0);
   }
-
+  
+  /* Utilities */
   .responsive-stack {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem;
+  }
+  .responsive-grid-stack {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .hide-on-mobile {
+    display: none !important;
+  }
+  
+  .responsive-flex-wrap {
+    flex-wrap: wrap !important;
+  }
+  
+  .responsive-modal {
     grid-template-columns: 1fr !important;
   }
 }
 
-
+/* Small Mobile Devices (max-width: 480px) */
+@media (max-width: 480px) {
+  /* Tighter Layouts */
+  .dashboard-grid {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+  
+  /* Smaller Typography for compact screens */
+  html {
+    font-size: 14px;
+  }
+  
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  
+  /* Adjust Glass Panels */
+  .glass-panel {
+    padding: 1rem !important;
+  }
+  
+  /* Tables */
+  .custom-table th, .custom-table td {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
+  
+  /* Form Inputs tightly packed */
+  .form-group {
+    margin-bottom: 0.75rem;
+  }
+  
+  /* Stack Action buttons side-by-side or tightly vertically */
+  .action-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .btn, button {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+}

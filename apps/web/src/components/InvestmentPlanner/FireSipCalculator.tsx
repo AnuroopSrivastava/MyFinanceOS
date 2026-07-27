@@ -32,6 +32,7 @@ export const FireSipCalculator: React.FC<FireSipCalculatorProps> = ({
 
   // Calculate future value of corpus with SIP & annual step-up
   const calculateSIPWealth = (months: number) => {
+    if (months === 0) return { totalCorpus: currentCorpus, totalInvested: currentCorpus };
     const r = expectedReturn / 100 / 12;
     let totalCorpus = currentCorpus;
     let totalInvested = currentCorpus;

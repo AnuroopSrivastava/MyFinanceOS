@@ -416,7 +416,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
       {/* Top Banner metrics */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
         gap: '1.25rem'
       }}>
         
@@ -532,12 +532,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
       {/* Main Charts & Analytics Row */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))',
         gap: '1.25rem'
       }}>
-        
+
         {/* Net Worth Timeline Card */}
-        <div className="glass-panel" style={{ padding: '1.25rem' }}>
+        <div className="glass-panel" style={{ padding: '1.25rem', minWidth: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h4 style={{ fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Wallet size={16} color="var(--accent-1)" /> Net Worth Progression ({timelineFilter === '6M' ? '6 Months' : timelineFilter === '12M' ? '12 Months' : timelineFilter === '2Y' ? '2 Years' : timelineFilter === '5Y' ? '5 Years' : '10 Years'})
@@ -563,7 +563,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
               ))}
             </div>
           </div>
-          <div style={{ width: '100%', height: '240px' }}>
+          <div style={{ width: '100%', height: '240px', minWidth: 0 }}>
             <ResponsiveContainer>
               <AreaChart data={historyData}>
                 <defs>
@@ -585,11 +585,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
         </div>
 
         {/* Cashflow Bar Chart */}
-        <div className="glass-panel" style={{ padding: '1.25rem' }}>
+        <div className="glass-panel" style={{ padding: '1.25rem', minWidth: 0 }}>
           <h4 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <TrendingUp size={16} color="var(--success)" /> Income vs Expense comparison
           </h4>
-          <div style={{ width: '100%', height: '240px' }}>
+          <div style={{ width: '100%', height: '240px', minWidth: 0 }}>
             <ResponsiveContainer>
               <BarChart data={cashflowData}>
                 <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} />
@@ -611,18 +611,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
       {/* Third Row: Allocation and Alerts */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '1.25rem',
-        flexWrap: 'wrap'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))',
+        gap: '1.25rem'
       }} className="responsive-stack">
         
         {/* Investment Allocation Chart */}
-        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
+        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <h4 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <PieIcon size={16} color="var(--accent-2)" /> Investment Allocation
           </h4>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flex: 1, flexWrap: 'wrap' }}>
-            <div style={{ width: '160px', height: '160px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flex: 1, flexWrap: 'wrap', minWidth: 0 }}>
+            <div style={{ width: '100%', maxWidth: '160px', height: '160px', minWidth: 0 }}>
               <ResponsiveContainer>
                 <PieChart>
                   <Pie
@@ -656,10 +655,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
         </div>
 
         {/* Right side: AI insights, nominee alerts, upcoming maturities */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0 }}>
           
           {/* AI Insights & Alerts panel */}
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
+          <div className="glass-panel" style={{ padding: '1.25rem', minWidth: 0 }}>
             <h4 style={{ fontSize: '1rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Lightbulb size={16} color="var(--warning)" /> AI Assistant Insights
             </h4>
@@ -716,7 +715,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
           </div>
 
           {/* Upcoming Maturities Calendar */}
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
+          <div className="glass-panel" style={{ padding: '1.25rem', minWidth: 0 }}>
             <h4 style={{ fontSize: '1rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Calendar size={16} color="var(--accent-1)" /> Upcoming Bill & Deposit Maturities
             </h4>
@@ -744,7 +743,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
           </div>
 
           {/* Family Profiles Summary */}
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
+          <div className="glass-panel" style={{ padding: '1.25rem', minWidth: 0 }}>
             <h4 style={{ fontSize: '1rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Users size={16} color="var(--accent-2)" /> Family Wealth Profiles
             </h4>

@@ -431,20 +431,20 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
 
       {/* Animated Background Gradients */}
       <div style={{
-        position: 'absolute', top: '-20%', left: '-10%', width: '50vw', height: '50vw',
+        position: 'absolute', top: '-20%', left: '-10%', width: '50%', height: '50%',
         background: 'radial-gradient(circle, hsla(203, 100%, 50%, 0.1) 0%, transparent 60%)',
         filter: 'blur(80px)', zIndex: 0, pointerEvents: 'none', animation: 'pulse 8s infinite alternate'
       }} />
       <div style={{
-        position: 'absolute', bottom: '-20%', right: '-10%', width: '50vw', height: '50vw',
+        position: 'absolute', bottom: '-20%', right: '-10%', width: '50%', height: '50%',
         background: 'radial-gradient(circle, hsla(186, 100%, 45%, 0.08) 0%, transparent 60%)',
         filter: 'blur(80px)', zIndex: 0, pointerEvents: 'none', animation: 'pulse 10s infinite alternate-reverse'
       }} />
 
       {/* Navigation Bar */}
-      <nav className="animate-fade-in" style={{
+      <nav className="animate-fade-in responsive-nav" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '1.5rem 3rem', borderBottom: '1px solid var(--border-color)',
+        borderBottom: '1px solid var(--border-color)',
         background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(10px)',
         position: 'relative', zIndex: 10
       }}>
@@ -456,7 +456,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
             MyFinanceOS
           </h1>
         </div>
-        <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+        <div className="responsive-flex-wrap" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
           <a href="#how-it-works" onClick={scrollToHowItWorks} style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.9rem', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-secondary)'}>How It Works</a>
           <a href="/privacy.html" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.9rem', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-secondary)'}>Privacy</a>
           <a href="/terms.html" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.9rem', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-secondary)'}>Terms</a>
@@ -491,7 +491,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
           <h2 style={{ fontSize: 'clamp(3rem, 6vw, 5rem)', fontWeight: 800, lineHeight: 1.1, marginBottom: '2rem', fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
             Your <span style={{
               background: 'var(--accent-grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              display: 'inline-block', minWidth: '280px', textAlign: 'left',
+              display: 'inline-block', minWidth: 'clamp(180px, 40vw, 280px)', textAlign: 'left',
               transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: isAnimatingText ? 0 : 1,
               transform: isAnimatingText ? 'translateY(10px) rotateX(-15deg)' : 'translateY(0) rotateX(0deg)'
             }}>
@@ -596,7 +596,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
                     e.currentTarget.style.borderColor = 'var(--border-color)';
                   }}
                 >
-                  <div style={{ order: i % 2 === 0 ? 1 : 2, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div className="feature-text-content" style={{ order: i % 2 === 0 ? 1 : 2, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                       <div style={{
                         background: 'var(--bg-secondary)', width: '48px', height: '48px', borderRadius: '12px',
@@ -622,7 +622,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
                     </ul>
                   </div>
 
-                  <div style={{ order: i % 2 === 0 ? 2 : 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <div className="feature-demo-content" style={{ order: i % 2 === 0 ? 2 : 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                     <div className="demo-container">
                       {block.demo}
                     </div>
@@ -773,6 +773,32 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
           0% { left: -100%; }
           20% { left: 200%; }
           100% { left: 200%; }
+        }
+
+        /* Responsive Overrides */
+        .responsive-nav {
+          padding: 1.5rem 3rem;
+        }
+        .responsive-flex-wrap {
+          gap: 2rem;
+        }
+        @media (max-width: 768px) {
+          .responsive-nav {
+            padding: 1rem;
+            flex-direction: column;
+            gap: 1rem;
+            justify-content: center !important;
+          }
+          .responsive-flex-wrap {
+            gap: 1rem;
+            justify-content: center;
+          }
+          .feature-text-content {
+            order: 1 !important;
+          }
+          .feature-demo-content {
+            order: 2 !important;
+          }
         }
 
         /* Feature Block Demos CSS */
