@@ -11,8 +11,8 @@ export const FireSipCalculator: React.FC<FireSipCalculatorProps> = ({
   currentMonthlyExpense,
   currentLiquidNetWorth
 }) => {
-  const [monthlyExpense, setMonthlyExpense] = useState<number>(currentMonthlyExpense || 75000);
-  const [currentCorpus, setCurrentCorpus] = useState<number>(currentLiquidNetWorth || 1000000);
+  const [monthlyExpense, setMonthlyExpense] = useState<number>(0);
+  const [currentCorpus, setCurrentCorpus] = useState<number>(0);
   const [monthlySip, setMonthlySip] = useState<number>(25000);
   const [annualStepUp, setAnnualStepUp] = useState<number>(10); // 10% step up per year
   const [expectedReturn, setExpectedReturn] = useState<number>(12); // 12% CAGR

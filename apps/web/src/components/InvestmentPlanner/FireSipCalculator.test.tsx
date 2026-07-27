@@ -15,8 +15,8 @@ describe('FireSipCalculator Component Unit Tests', () => {
   it('updates inputs dynamically and recalculates compounding timeline', () => {
     render(<FireSipCalculator currentNetWorth={1000000} activeProfileId="p1" />);
 
-    const monthlyExpenseInput = screen.getByDisplayValue('75000');
-    fireEvent.change(monthlyExpenseInput, { target: { value: '100000' } });
+    const inputs = screen.getAllByDisplayValue('0');
+    fireEvent.change(inputs[0], { target: { value: '100000' } });
 
     expect(screen.getByDisplayValue('100000')).toBeTruthy();
     expect(screen.getByText(/Wealth Milestone Timeline/i)).toBeTruthy();

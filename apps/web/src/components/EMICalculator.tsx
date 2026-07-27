@@ -25,12 +25,12 @@ export const EMICalculator: React.FC<EMICalculatorProps> = ({ activeProfileId })
     [activeProfileId]
   );
 
-  const [principal, setPrincipal] = useState(() => loanAccounts.length > 0 ? Math.abs(loanAccounts[0].balance) : 2500000);
-  const [rate, setRate] = useState(() => loanAccounts.length > 0 && loanAccounts[0].interestRate ? loanAccounts[0].interestRate : 8.5);
-  const [tenureYears, setTenureYears] = useState(20);
+  const [principal, setPrincipal] = useState(0);
+  const [rate, setRate] = useState(0);
+  const [tenureYears, setTenureYears] = useState(0);
   const [prepayment, setPrepayment] = useState(0);
   const [prepaymentMonth, setPrepaymentMonth] = useState(12);
-  const [selectedLoan, setSelectedLoan] = useState(loanAccounts.length > 0 ? loanAccounts[0].id : '');
+  const [selectedLoan, setSelectedLoan] = useState('');
 
   const handleLoanSelect = (loanId: string) => {
     setSelectedLoan(loanId);
