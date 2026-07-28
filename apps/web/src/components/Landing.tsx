@@ -11,7 +11,7 @@ interface LandingProps {
   onUnlock: () => void;
 }
 
-const DYNAMIC_WORDS = ["Wealth.", "Future.", "Investments.", "Taxes.", "Net Worth."];
+// Replaced dynamic text based on specs
 
 // Utility hook for scroll animations
 function useIntersectionObserver(ref: React.RefObject<Element>, options: IntersectionObserverInit = { threshold: 0.1 }) {
@@ -78,7 +78,7 @@ const TiltCard = ({ children, delay }: { children: React.ReactNode, delay: numbe
           ? `perspective(1000px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) translateY(-8px)`
           : (isVisible ? 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0)' : 'translateY(40px)'),
         opacity: isVisible ? 1 : 0,
-        boxShadow: isHovered ? 'var(--shadow-glow)' : 'var(--shadow-md)',
+        boxShadow: isHovered ? '0 10px 40px -10px rgba(59, 130, 246, 0.15)' : 'var(--shadow-sm)',
         borderColor: isHovered ? 'var(--accent-1)' : 'var(--border-color)',
         transformStyle: 'preserve-3d', willChange: 'transform'
       }}
@@ -315,8 +315,6 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
-  const [wordIndex, setWordIndex] = useState(0);
-
   const handleFeedbackSubmit = async () => {
     if (!feedbackText.trim()) return;
     setIsSendingFeedback(true);
@@ -345,7 +343,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
       setIsSendingFeedback(false);
     }
   };
-  const [isAnimatingText, setIsAnimatingText] = useState(false);
+  
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -354,24 +352,15 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
     };
     window.addEventListener('mousemove', handleGlobalMouseMove);
 
-    const interval = setInterval(() => {
-      setIsAnimatingText(true);
-      setTimeout(() => {
-        setWordIndex((prev) => (prev + 1) % DYNAMIC_WORDS.length);
-        setIsAnimatingText(false);
-      }, 500);
-    }, 3000);
 
     return () => {
       window.removeEventListener('mousemove', handleGlobalMouseMove);
-      clearInterval(interval);
     };
   }, []);
 
   const login = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setIsLoading(true);
-      setError('');
       try {
         const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
@@ -473,37 +462,33 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
       }}>
 
         <Reveal delay={0.1}>
-          <div className="privacy-badge" style={{
+          <div style={{
             display: 'inline-flex', alignItems: 'center', gap: '0.75rem',
-            background: 'linear-gradient(90deg, hsla(186, 100%, 50%, 0.1) 0%, hsla(203, 100%, 50%, 0.1) 100%)',
+            background: 'rgba(59, 130, 246, 0.1)',
             padding: '0.6rem 1.5rem', borderRadius: '3rem',
-            border: '1px solid hsla(186, 100%, 50%, 0.4)',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
             marginBottom: '2.5rem', fontSize: '0.9rem', color: 'var(--accent-1)', fontWeight: 600,
-            boxShadow: '0 0 20px hsla(186, 100%, 50%, 0.15)',
-            animation: 'pulse-badge 3s infinite alternate'
           }}>
-            <ShieldCheck size={18} style={{ filter: 'drop-shadow(0 0 5px var(--accent-1))' }} />
-            <span style={{ letterSpacing: '0.5px' }}>100% Local-First Architecture & Strict Privacy</span>
+            <ShieldCheck size={18} />
+            <span style={{ letterSpacing: '0.5px' }}>Privacy-First Finance System for India 🇮🇳</span>
           </div>
         </Reveal>
 
         <Reveal delay={0.2}>
-          <h2 style={{ fontSize: 'clamp(3rem, 6vw, 5rem)', fontWeight: 800, lineHeight: 1.1, marginBottom: '2rem', fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
-            Your <span style={{
+          <h2 style={{ fontSize: 'clamp(3rem, 6vw, 5rem)', fontWeight: 800, lineHeight: 1.1, marginBottom: '2rem', fontFamily: 'var(--font-display)', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            All Your Money.<br />
+            <span style={{
               background: 'var(--accent-grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              display: 'inline-block', minWidth: 'clamp(180px, 40vw, 280px)', textAlign: 'left',
-              transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: isAnimatingText ? 0 : 1,
-              transform: isAnimatingText ? 'translateY(10px) rotateX(-15deg)' : 'translateY(0) rotateX(0deg)'
             }}>
-              {DYNAMIC_WORDS[wordIndex]}
-            </span><br />
-            Your Operating System.
+              One Secure Workspace.
+            </span>
           </h2>
         </Reveal>
 
         <Reveal delay={0.3}>
-          <p style={{ fontSize: '1.15rem', color: 'var(--text-secondary)', marginBottom: '3rem', maxWidth: '650px', margin: '0 auto 3.5rem', lineHeight: 1.7 }}>
-            <strong>Purpose of the Application:</strong> MyFinanceOS is a comprehensive personal finance tracker designed to help you manage your income, expenses, and investments. It acts as a highly secure, private operating system for your wealth that syncs directly to your own Google Drive. We don't store your data on our servers—you own everything.
+          <p style={{ fontSize: '1.25rem', color: 'var(--text-secondary)', marginBottom: '3rem', maxWidth: '700px', margin: '0 auto 3.5rem', lineHeight: 1.6 }}>
+            A comprehensive, local-first operating system for your wealth. 
+            Track income, expenses, taxes, and investments with absolute privacy—syncing directly to your personal Drive. We never see your data.
           </p>
         </Reveal>
 
@@ -536,6 +521,27 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
           </button>
         </Reveal>
 
+        {/* Trust Section */}
+        <Reveal delay={0.5}>
+          <div style={{
+            display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '2.5rem', marginTop: '3.5rem',
+            color: 'var(--text-muted)', fontSize: '0.95rem', fontWeight: 500
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <ShieldCheck size={18} color="var(--accent-1)" /> 100% Local-First
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Lock size={18} color="var(--accent-1)" /> AES-256 Encryption
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Target size={18} color="var(--accent-1)" /> India-Ready Tax & SIP
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Building2 size={18} color="var(--accent-1)" /> Personal + Business
+            </div>
+          </div>
+        </Reveal>
+
         {/* Feature Grid Highlights */}
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', maxWidth: '1100px', width: '100%', marginTop: '6rem', position: 'relative', zIndex: 1
@@ -547,7 +553,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
           ].map((feature, i) => (
             <TiltCard key={i} delay={i * 0.1}>
               <div style={{
-                background: 'var(--bg-secondary)', width: '56px', height: '56px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-1)', border: '1px solid var(--border-color)'
+                background: 'rgba(59, 130, 246, 0.05)', width: '56px', height: '56px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-1)', border: '1px solid rgba(59, 130, 246, 0.1)'
               }}>
                 {feature.icon}
               </div>
@@ -582,7 +588,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
                   borderRadius: '1.5rem',
                   position: 'relative',
                   overflow: 'hidden',
-                  background: 'linear-gradient(180deg, hsla(224, 20%, 14%, 0.4) 0%, hsla(224, 20%, 8%, 0.7) 100%)',
+                  background: 'var(--bg-panel)',
                   border: '1px solid var(--border-color)',
                   boxShadow: 'var(--shadow-md)',
                   transition: 'box-shadow 0.3s ease, border-color 0.3s ease'
@@ -637,8 +643,8 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
         <Reveal style={{ display: 'flex', justifyContent: 'center' }}>
           <div className="glass-panel feature-card" style={{
             marginTop: '8rem', maxWidth: '800px', width: '100%', padding: '2.5rem',
-            background: 'linear-gradient(180deg, hsla(224, 20%, 14%, 0.4) 0%, hsla(224, 20%, 8%, 0.8) 100%)',
-            borderTop: '1px solid hsla(186, 100%, 50%, 0.4)', textAlign: 'left',
+            background: 'var(--bg-panel)',
+            borderTop: '1px solid var(--border-color)', textAlign: 'left',
             zIndex: 1, position: 'relative', overflow: 'hidden', transition: 'box-shadow 0.3s ease, border-color 0.3s ease'
           }}
             onMouseOver={e => {
@@ -648,7 +654,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
             onMouseOut={e => {
               e.currentTarget.style.boxShadow = 'var(--shadow-md)';
               e.currentTarget.style.borderColor = 'var(--border-color)';
-              e.currentTarget.style.borderTopColor = 'hsla(186, 100%, 50%, 0.4)';
+              e.currentTarget.style.borderTopColor = 'var(--border-color)';
             }}
           >
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '2px', background: 'var(--accent-grad)', opacity: 0.8 }} />
