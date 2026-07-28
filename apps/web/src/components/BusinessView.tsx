@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
 import {
@@ -539,12 +540,12 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
 
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <motion.div initial="hidden" animate="visible" variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.15 } } }} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
       {/* Title */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Corporate & Bookkeeping Engine</h2>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 600, fontFamily: 'var(--font-display)' }}>Corporate & Bookkeeping Engine</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>GST Billing, purchase/sales journals, FIFO stock sheets, and financial statements</p>
         </div>
 
@@ -603,7 +604,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.25rem' }} className="responsive-stack">
 
           {/* Active Invoices List */}
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
+          <motion.div className="glass-panel" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }} style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Active Invoices</h3>
               <button className="btn btn-primary" onClick={() => setShowCreateInvoice(true)} disabled={customers.length === 0 || inventory.length === 0}>
@@ -668,10 +669,10 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                 )}
               </tbody>
             </table>
-          </div>
+          </motion.div>
 
           {/* Manage Clients List */}
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
+          <motion.div className="glass-panel" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }} style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Contacts Directory</h3>
               <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }} onClick={() => setShowAddContact(true)}>
@@ -707,7 +708,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
 
         </div>
       )}
@@ -716,31 +717,31 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
       {activeSubTab === 'gst' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-          <div className="glass-panel" style={{ padding: '1.25rem', background: 'linear-gradient(135deg, rgba(3,105,161,0.05) 0%, rgba(3,105,161,0.01) 100%)' }}>
+          <motion.div className="glass-panel" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }} style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, rgba(3,105,161,0.05) 0%, rgba(3,105,161,0.01) 100%)' }}>
             <h4 style={{ fontSize: '1rem', marginBottom: '0.75rem', color: 'var(--text-secondary)' }}>Net GST Reconciliation Summary</h4>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
               <div>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>GST Collected (Outward Sales)</span>
-                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-1)', marginTop: '0.2rem' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 600, fontFamily: 'var(--font-display)', color: 'var(--accent-1)', marginTop: '0.2rem' }}>
                   {formatRupee(gstSummary.cgstCollected + gstSummary.sgstCollected + gstSummary.igstCollected)}
                 </div>
               </div>
               <div>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Input Credit (Inward Purchase)</span>
-                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--success)', marginTop: '0.2rem' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 600, fontFamily: 'var(--font-display)', color: 'var(--success)', marginTop: '0.2rem' }}>
                   {formatRupee(gstSummary.cgstPaid + gstSummary.sgstPaid + gstSummary.igstPaid)}
                 </div>
               </div>
               <div style={{ borderLeft: '1px solid var(--border-color)', paddingLeft: '1.25rem' }}>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Net GSTR-3B Liability Due</span>
-                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: gstSummary.totalNetPayable >= 0 ? 'var(--warning)' : 'var(--success)', marginTop: '0.2rem' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 600, fontFamily: 'var(--font-display)', color: gstSummary.totalNetPayable >= 0 ? 'var(--warning)' : 'var(--success)', marginTop: '0.2rem' }}>
                   {formatRupee(gstSummary.totalNetPayable)}
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
+          <motion.div className="glass-panel" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }} style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <h4 style={{ fontSize: '1.1rem' }}>GSTR Register entries</h4>
               <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }} onClick={() => openAddRegisterEntry()}>
@@ -800,13 +801,13 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                 )}
               </tbody>
             </table>
-          </div>
+          </motion.div>
         </div>
       )}
 
       {/* Sub tab: FIFO Inventory */}
       {activeSubTab === 'inventory' && (
-        <div className="glass-panel" style={{ padding: '1.25rem' }}>
+        <motion.div className="glass-panel" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }} style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h3 style={{ fontSize: '1.1rem' }}>FIFO Store Inventory Stock Ledger</h3>
             <button className="btn btn-primary" onClick={() => setShowAddInventory(true)}>
@@ -871,14 +872,14 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
               )}
             </tbody>
           </table>
-        </div>
+        </motion.div>
       )}
 
       {/* Sub tab: Statements (P&L and Balance Sheet) */}
       {activeSubTab === 'statements' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="responsive-stack">
 
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
+          <motion.div className="glass-panel" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }} style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
             <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
               Profit & Loss Statement (Estimated)
             </h3>
@@ -900,7 +901,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                 <span>-{formatRupee(profitAndLoss.generalExpenses)}</span>
               </div>
               <div style={{
-                display: 'flex', justifyContent: 'space-between', fontWeight: 700,
+                display: 'flex', justifyContent: 'space-between', fontWeight: 600, fontFamily: 'var(--font-display)',
                 borderTop: '2px double var(--border-color)', paddingTop: '0.5rem', marginTop: '0.5rem',
                 fontSize: '1rem', color: profitAndLoss.netProfit >= 0 ? 'var(--success)' : 'var(--error)'
               }}>
@@ -908,9 +909,9 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                 <span>{formatRupee(profitAndLoss.netProfit)}</span>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
+          <motion.div className="glass-panel" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }} style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
             <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
               Balance Sheet
             </h3>
@@ -938,12 +939,12 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                 <span>Partner Owner Equity capital</span>
                 <span>{formatRupee(balanceSheet.equityCapital)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, borderTop: '2px double var(--border-color)', paddingTop: '0.4rem', paddingLeft: '0.75rem', marginTop: '0.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, fontFamily: 'var(--font-display)', borderTop: '2px double var(--border-color)', paddingTop: '0.4rem', paddingLeft: '0.75rem', marginTop: '0.25rem' }}>
                 <span>Total Equity & Liabilities</span>
                 <span>{formatRupee(balanceSheet.equityCapital)}</span>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
@@ -1117,7 +1118,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
             <div id="printable-invoice">
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #ddd', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#333' }}>TAX INVOICE</h3>
+                  <h3 style={{ fontSize: '1.5rem', fontWeight: 600, fontFamily: 'var(--font-display)', color: '#333' }}>TAX INVOICE</h3>
                   <div style={{ fontSize: '0.8rem', color: '#555' }}>FinanceOS India Bookkeeping Sandbox</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -1188,7 +1189,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                       <span>₹{viewingInvoice.igstTotal.toFixed(2)}</span>
                     </div>
                   )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, borderTop: '1px solid #333', paddingTop: '0.4rem', fontSize: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, fontFamily: 'var(--font-display)', borderTop: '1px solid #333', paddingTop: '0.4rem', fontSize: '1rem' }}>
                     <span>Grand Total:</span>
                     <span>₹{viewingInvoice.grandTotal.toFixed(2)}</span>
                   </div>
@@ -1377,6 +1378,6 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
         </div>
       )}
 
-    </div>
+    </motion.div>
   );
 };

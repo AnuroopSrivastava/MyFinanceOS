@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { Calculator, Percent, ShieldCheck, FileText, AlertCircle, Edit2, Trash2, Plus, X, Download, Calendar, Clock } from 'lucide-react';
 import { TDSSummary } from '@financeos/shared';
@@ -302,7 +303,15 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
   };
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: { opacity: 0 },
+        visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+      }}
+      style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+    >
       
       {/* Page Title */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -325,7 +334,14 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '1.25rem' }} className="responsive-stack">
         
         {/* Slabs Slider Panel */}
-        <div className="glass-panel" style={{ padding: '1.25rem' }}>
+        <motion.div
+          className="glass-panel"
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+          }}
+          style={{ padding: '1.25rem' }}
+        >
           <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <Calculator size={18} color="var(--accent-1)" /> Income & Deductions Form
           </h3>
@@ -361,10 +377,17 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
             <label className="form-label">House Rent Allowance (HRA Exemption)</label>
             <CurrencyInput className="form-input" value={hraExempt} onChange={(e) => setHraExempt(parseFloat(e.target.value) || 0)} />
           </div>
-        </div>
+        </motion.div>
 
         {/* Results Screen */}
-        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <motion.div
+          className="glass-panel"
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+          }}
+          style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+        >
           <div>
             <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Comparison Summary</h3>
             
@@ -389,22 +412,28 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1rem' }}>
               
               {/* Old regime info */}
-              <div className="glass-panel" style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)' }}>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="glass-panel" style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)' }}
+              >
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>OLD REGIME TAX</span>
                 <h4 style={{ fontSize: '1.3rem', fontWeight: 700, margin: '0.2rem 0' }}>{formatRupee(taxCalculations.totalTaxOld)}</h4>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
                   Total Deductions: {formatRupee(taxCalculations.totalDeductionsOld)}
                 </div>
-              </div>
+              </motion.div>
 
               {/* New regime info */}
-              <div className="glass-panel" style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)' }}>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="glass-panel" style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)' }}
+              >
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>NEW REGIME TAX (FY26/27)</span>
                 <h4 style={{ fontSize: '1.3rem', fontWeight: 700, margin: '0.2rem 0', color: 'var(--accent-1)' }}>{formatRupee(taxCalculations.totalTaxNew)}</h4>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
                   Standard Deduction: ₹75,000 (no exemptions)
                 </div>
-              </div>
+              </motion.div>
 
             </div>
           </div>
@@ -416,7 +445,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
             <AlertCircle size={14} style={{ flexShrink: 0 }} />
             <span>Computations include standard 4% Education & Health Cess. Rebates under Section 87A are applied.</span>
           </div>
-        </div>
+        </motion.div>
 
       </div>
 
@@ -424,7 +453,14 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.25rem' }} className="responsive-stack">
         
         {/* Capital Gains Estimator */}
-        <div className="glass-panel" style={{ padding: '1.25rem' }}>
+        <motion.div
+          className="glass-panel"
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+          }}
+          style={{ padding: '1.25rem' }}
+        >
           <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <Percent size={18} color="var(--accent-1)" /> Capital Gains Tax Estimator (Revised 2026 Slabs)
           </h3>
@@ -458,9 +494,14 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
             </button>
           </form>
 
+          <AnimatePresence>
           {capGainsResult && (
-            <div className="glass-panel animate-fade-in" style={{
-              marginTop: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderColor: 'var(--border-focus)'
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="glass-panel" style={{
+              marginTop: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderColor: 'var(--border-focus)', overflow: 'hidden'
             }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.85rem' }}>
                 <div>Total Gains: <strong>{formatRupee(capGainsResult.gain)}</strong></div>
@@ -472,12 +513,20 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
                   {capGainsResult.description}
                 </span>
               </div>
-            </div>
+            </motion.div>
           )}
-        </div>
+          </AnimatePresence>
+        </motion.div>
 
       {/* Advance Tax Quarterly Tracker */}
-      <div className="glass-panel" style={{ padding: '1.25rem' }}>
+      <motion.div
+        className="glass-panel"
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+        }}
+        style={{ padding: '1.25rem' }}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
           <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}>
             <Calendar size={18} color="var(--accent-1)" /> Advance Tax Quarterly Schedule (Sec 208)
@@ -499,7 +548,9 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
           ].map(q => {
             const installmentAmount = Math.round((netAdvanceTaxLiability * q.targetPct) / 100);
             return (
-              <div key={q.q} className="glass-card" style={{ padding: '1rem', borderLeft: '3px solid var(--accent-1)' }}>
+              <motion.div
+                whileHover={{ y: -2, scale: 1.02 }}
+                key={q.q} className="glass-card" style={{ padding: '1rem', borderLeft: '3px solid var(--accent-1)' }}>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{q.q}</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0.3rem 0', color: 'var(--text-primary)' }}>
                   {formatRupee(installmentAmount)}
@@ -508,14 +559,21 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
                   <Clock size={12} />
                   <span>Cumulative {q.targetPct}% due by {q.date}</span>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
-      </div>
+      </motion.div>
 
       {/* TDS Summary Log */}
-      <div className="glass-panel" style={{ padding: '1.25rem' }}>
+      <motion.div
+        className="glass-panel"
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+        }}
+        style={{ padding: '1.25rem' }}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
           <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <FileText size={18} color="var(--accent-2)" /> TDS Summary (Form 26AS Reconciliation)
@@ -566,18 +624,25 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
             + Upload AIS / Form 26AS JSON
           </div>
         </div>
-      </div>
+      </motion.div>
 
       </div>
 
       {/* TDS Modal */}
+      <AnimatePresence>
       {showTdsModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
           backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
           display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: '1.5rem', position: 'relative' }}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="glass-panel"
+            style={{ width: '100%', maxWidth: '420px', padding: '1.5rem', position: 'relative' }}
+          >
             <button 
               onClick={closeTdsModal}
               style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
@@ -621,10 +686,11 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
             <button className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} onClick={saveTdsRecord}>
               Save Record
             </button>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
 
-    </div>
+    </motion.div>
   );
 };

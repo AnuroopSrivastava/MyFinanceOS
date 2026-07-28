@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { authSession } from '@financeos/auth';
 import { GlobalDateRange } from './utils/dateFilter.js';
@@ -214,34 +215,34 @@ const App: React.FC = () => {
       )}
 
       {/* Sidebar Navigation */}
-      <aside className={`glass-panel responsive-sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`} style={{
-        width: '240px',
-        padding: '1.5rem 1rem',
-        margin: '0.75rem',
-        marginRight: 0,
+      <aside className={`responsive-sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`} style={{
+        width: '260px',
+        padding: '1.5rem 1.25rem',
         display: 'flex',
         flexDirection: 'column',
         gap: '2rem',
-        borderRadius: 'var(--radius-md) 0px 0px var(--radius-md)',
-        borderRight: 'none',
-        flexShrink: 0
+        background: 'rgba(10, 10, 12, 0.6)',
+        backdropFilter: 'blur(20px)',
+        borderRight: '1px solid rgba(255, 255, 255, 0.05)',
+        flexShrink: 0,
+        zIndex: 100
       }}>
 
         {/* Logo & Mobile Close Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: '0.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <img src="/logo.png" alt="MyFinanceOS Logo" style={{ width: '32px', height: '32px', borderRadius: '50%', boxShadow: '0 2px 10px rgba(0,0,0,0.3)' }} />
-            <span style={{ fontSize: '1.15rem', fontWeight: 700, fontFamily: 'var(--font-display)' }}>MyFinanceOS</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <img src="/logo.png" alt="MyFinanceOS Logo" style={{ width: '30px', height: '30px', borderRadius: '50%', boxShadow: '0 2px 10px rgba(0,0,0,0.3)' }} />
+            <span style={{ fontSize: '1.15rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#fff' }}>MyFinanceOS</span>
           </div>
           {isMobileMenuOpen && (
-            <button onClick={() => setIsMobileMenuOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+            <button onClick={() => setIsMobileMenuOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
               <X size={20} />
             </button>
           )}
         </div>
 
         {/* Links list */}
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1 }}>
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
           {[
             { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
             { id: 'ledger', label: 'Banking & Ledger', icon: <Landmark size={18} /> },
@@ -263,26 +264,37 @@ const App: React.FC = () => {
                 setActivePage(page.id as ActivePage);
                 setIsMobileMenuOpen(false);
               }}
-              className="btn btn-secondary"
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
                 justifyContent: 'flex-start',
-                padding: '0.65rem 0.8rem',
-                fontSize: '0.85rem',
+                padding: '0.65rem 1rem',
+                fontSize: '0.875rem',
+                fontWeight: activePage === page.id ? 500 : 400,
                 border: 'none',
-                background: activePage === page.id ? 'var(--accent-grad)' : 'transparent',
-                color: activePage === page.id ? '#fff' : 'var(--text-secondary)'
+                borderRadius: 'var(--radius-sm)',
+                background: activePage === page.id ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                color: activePage === page.id ? '#fff' : 'rgba(255, 255, 255, 0.6)',
+                transition: 'all 0.15s ease',
+                cursor: 'pointer',
               }}
             >
-              {page.icon}
-              <span>{page.label}</span>
+              <div style={{
+                color: activePage === page.id ? 'var(--accent-1)' : 'rgba(255, 255, 255, 0.5)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                {page.icon}
+              </div>
+              <span style={{ letterSpacing: '0.01em' }}>{page.label}</span>
             </button>
           ))}
         </nav>
 
         {/* Lock session */}
-        <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', paddingLeft: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', paddingLeft: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)' }}>
               <Users size={12} />
               <span>Active Profile</span>
             </div>
@@ -291,21 +303,23 @@ const App: React.FC = () => {
                 value={activeProfileId}
                 onChange={(e) => handleProfileSwitch(e.target.value)}
                 style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid var(--border-color)',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.82rem',
-                  padding: '0.3rem 0.5rem',
+                  background: 'rgba(0,0,0,0.2)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  color: '#fff',
+                  fontSize: '0.85rem',
+                  padding: '0.4rem 0.5rem',
                   borderRadius: 'var(--radius-sm)',
                   cursor: 'pointer',
                   width: '100%',
                   marginTop: '0.2rem',
-                  outline: 'none'
+                  outline: 'none',
+                  transition: 'border-color 0.2s',
+                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
                 }}
               >
                 {profiles.map(p => (
                   <option key={p.id} value={p.id} style={{ background: '#111' }}>
-                    {p.name} ({p.relationship})
+                    {p.name} {p.relationship ? `(${p.relationship})` : ''}
                   </option>
                 ))}
               </select>
@@ -313,9 +327,18 @@ const App: React.FC = () => {
               <span style={{ fontSize: '0.85rem' }}>No Profile</span>
             )}
           </div>
-          <button className="btn btn-secondary" style={{ justifyContent: 'flex-start', border: 'none', padding: '0.65rem 0.8rem' }} onClick={handleLock}>
-            <LogOut size={18} color="var(--error)" />
-            <span style={{ color: 'var(--error)' }}>Lock Vault</span>
+          <button
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+              justifyContent: 'flex-start', border: 'none', padding: '0.65rem 0.8rem',
+              background: 'transparent', cursor: 'pointer',
+              color: 'var(--error)', opacity: 0.9, transition: 'opacity 0.2s',
+              fontSize: '0.85rem'
+            }}
+            onClick={handleLock}
+          >
+            <LogOut size={16} />
+            <span>Lock Vault</span>
           </button>
         </div>
 
@@ -325,18 +348,16 @@ const App: React.FC = () => {
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
 
         {/* Header */}
-        <header className="glass-panel" style={{
-          margin: '0.75rem',
-          marginBottom: 0,
-          padding: '0.75rem 1.5rem',
+        <header style={{
+          padding: '1rem 2rem',
           display: 'flex',
           flexWrap: 'wrap',
           gap: '1rem',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderRadius: '0px var(--radius-md) 0px 0px',
-          borderLeft: 'none',
-          overflow: 'visible',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+          background: 'rgba(10, 10, 12, 0.4)',
+          backdropFilter: 'blur(20px)',
           zIndex: 50
         }}>
           {/* Mobile Hamburger Button */}
@@ -532,8 +553,19 @@ const App: React.FC = () => {
         </header>
 
         {/* Core Screen Content */}
-        <main style={{ flex: 1, padding: '1.25rem', overflowY: 'auto' }}>
-          {renderPage()}
+        <main style={{ flex: 1, padding: '2rem', overflowY: 'auto', background: 'transparent' }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activePage}
+              initial={{ opacity: 0, scale: 0.98, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: -10 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              style={{ height: '100%' }}
+            >
+              {renderPage()}
+            </motion.div>
+          </AnimatePresence>
         </main>
 
       </div>

@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { BankAccount, Transaction, AccountType, RecurringTransaction } from '@financeos/shared';
 import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
 import {
   Plus, Upload, Download, Landmark, Search, Trash2, CreditCard,
-  HelpCircle, AlertCircle, RefreshCw, Edit2, Tag, Filter, PieChart as PieIcon, ArrowUpRight
+  HelpCircle, AlertCircle, RefreshCw, Edit2, Tag, Filter, PieChart as PieIcon, ArrowUpRight,
+  ArrowDownLeft, MoreHorizontal, ArrowRightLeft, Calendar
 } from 'lucide-react';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip
@@ -527,7 +529,18 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
 
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          transition: { staggerChildren: 0.1 }
+        }
+      }}
+      style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
+    >
 
       {/* Page Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -536,12 +549,12 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Manage personal accounts, journal records, and statement syncs</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button className="btn btn-secondary" onClick={exportLedgerToCSV}>
+          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-secondary" onClick={exportLedgerToCSV}>
             <Download size={16} /> Export CSV
-          </button>
-          <button className="btn btn-primary" onClick={() => setShowAddTx(true)}>
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-primary" onClick={() => setShowAddTx(true)}>
             <Plus size={16} /> Add Transaction
-          </button>
+          </motion.button>
         </div>
       </div>
 
@@ -549,7 +562,14 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.25rem' }} className="responsive-stack">
 
         {/* Accounts Overview */}
-        <div className="glass-panel" style={{ padding: '1.25rem' }}>
+        <motion.div
+          className="glass-panel"
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 80 } }
+          }}
+          style={{ padding: '1.25rem' }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Linked Accounts</h3>
             <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onClick={() => setShowAddAccount(true)}>
@@ -558,10 +578,16 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-            {accounts.map(acc => (
-              <div key={acc.id} className="glass-panel" style={{
-                padding: '1rem', background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'
-              }}>
+            {accounts.map((acc, idx) => (
+              <motion.div
+                key={acc.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 + (idx * 0.05), type: "spring" }}
+                whileHover={{ y: -4, scale: 1.02 }}
+                className="glass-panel"
+                style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)' }}
+              >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                   <div>
                     <h4 style={{ fontSize: '0.9rem', fontWeight: 600 }}>{acc.name}</h4>
@@ -584,18 +610,23 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                   <span>{acc.accountNumber}</span>
                   {acc.nomineeName && <span style={{ color: 'var(--success)' }}>✓ Nominee</span>}
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* Right Column Container */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-
-
           {/* Automated Bills & SIPs Scheduler */}
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
+          <motion.div
+            className="glass-panel"
+            variants={{
+              hidden: { opacity: 0, x: 20 },
+              visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 80 } }
+            }}
+            style={{ padding: '1.25rem' }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <RefreshCw size={16} color="var(--accent-2)" /> Automated SIPs & Bills
@@ -644,10 +675,17 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* Statement Import (CSV / manual copy-paste) */}
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
+          <motion.div
+            className="glass-panel"
+            variants={{
+              hidden: { opacity: 0, x: 20 },
+              visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 80 } }
+            }}
+            style={{ padding: '1.25rem' }}
+          >
             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <Upload size={16} color="var(--accent-1)" /> Statement Smart-Import
             </h3>
@@ -691,7 +729,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                 <span>{importStatus}</span>
               </div>
             )}
-          </div>
+          </motion.div>
 
         </div>
 
@@ -699,9 +737,28 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
 
       {/* Category Analytics & Top Spends Panel */}
       {categoryAnalytics.data.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="responsive-stack">
+        <motion.div
+           initial="hidden"
+           whileInView="visible"
+           viewport={{ once: true, margin: "-50px" }}
+           variants={{
+             hidden: { opacity: 0 },
+             visible: {
+               opacity: 1,
+               transition: { staggerChildren: 0.15 }
+             }
+           }}
+           style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="responsive-stack"
+        >
           {/* Donut chart */}
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
+          <motion.div
+            className="glass-panel"
+            variants={{
+              hidden: { opacity: 0, y: 30 },
+              visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 70 } }
+            }}
+            style={{ padding: '1.25rem' }}
+          >
             <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <PieIcon size={16} color="var(--accent-2)" /> Expense Distribution by Category
             </h4>
@@ -714,84 +771,120 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                         <Cell key={i} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(v: any) => formatRupee(v)} />
+                    <Tooltip formatter={(v: any) => formatRupee(v)} contentStyle={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)', borderRadius: '8px' }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.75rem', maxWidth: '200px' }}>
                 {categoryAnalytics.data.slice(0, 5).map((cat, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}
+                  >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                       <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: cat.color }} />
                       <span style={{ color: 'var(--text-secondary)' }}>{cat.name}</span>
                     </div>
                     <span style={{ fontWeight: 600 }}>{cat.pct}%</span>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Top 5 Spends */}
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
+          <motion.div
+            className="glass-panel"
+            variants={{
+              hidden: { opacity: 0, y: 30 },
+              visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 70 } }
+            }}
+            style={{ padding: '1.25rem' }}
+          >
             <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <ArrowUpRight size={16} color="var(--error)" /> Highest Single Spends
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              {topSpends.map(t => (
-                <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem' }}>
+              {topSpends.map((t, idx) => (
+                <motion.div
+                  key={t.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ delay: idx * 0.1 }}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem' }}
+                >
                   <div>
                     <div style={{ fontWeight: 600 }}>{t.description}</div>
                     <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{t.date} • {t.category}</span>
                   </div>
                   <span style={{ fontWeight: 700, color: 'var(--error)' }}>{formatRupee(t.amount)}</span>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* Main Journal Transactions Table */}
-      <div className="glass-panel" style={{ padding: '1.25rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+      <motion.div
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-50px" }}
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0, transition: { type: "tween", duration: 0.4 } }
+        }}
+        className="glass-panel"
+        style={{ padding: '0', overflow: 'hidden' }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.05)', flexWrap: 'wrap', gap: '1rem' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Ledger Journal Log</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {/* Category Filter */}
-            <select
-              className="form-input"
-              value={selectedCategory}
-              onChange={e => setSelectedCategory(e.target.value)}
-              style={{ fontSize: '0.8rem', padding: '0.4rem 0.6rem', width: 'auto' }}
-            >
-              <option value="All">All Categories</option>
-              {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '0.15rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', borderRight: '1px solid rgba(255,255,255,0.08)', paddingRight: '0.4rem' }}>
+                <Filter size={14} style={{ color: 'var(--text-muted)', marginLeft: '0.4rem' }} />
+                <select
+                  value={selectedCategory}
+                  onChange={e => setSelectedCategory(e.target.value)}
+                  style={{ fontSize: '0.8rem', padding: '0.3rem 0.5rem', background: 'transparent', border: 'none', color: 'inherit', outline: 'none', cursor: 'pointer' }}
+                >
+                  <option value="All">All Categories</option>
+                  {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
 
-            {/* Tag Filter */}
-            {availableTags.length > 0 && (
-              <select
-                className="form-input"
-                value={selectedTag}
-                onChange={e => setSelectedTag(e.target.value)}
-                style={{ fontSize: '0.8rem', padding: '0.4rem 0.6rem', width: 'auto' }}
-              >
-                <option value="All">All Tags</option>
-                {availableTags.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            )}
+              {availableTags.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', borderRight: '1px solid rgba(255,255,255,0.08)', paddingRight: '0.4rem', paddingLeft: '0.4rem' }}>
+                   <Tag size={14} style={{ color: 'var(--text-muted)' }} />
+                   <select
+                    value={selectedTag}
+                    onChange={e => setSelectedTag(e.target.value)}
+                    style={{ fontSize: '0.8rem', padding: '0.3rem 0.5rem', background: 'transparent', border: 'none', color: 'inherit', outline: 'none', cursor: 'pointer' }}
+                  >
+                    <option value="All">All Tags</option>
+                    {availableTags.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              )}
 
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <Search size={16} style={{ position: 'absolute', left: '10px', color: 'var(--text-muted)' }} />
-              <input
-                type="text"
-                className="form-input"
-                style={{ paddingLeft: '2.2rem', width: '180px', padding: '0.45rem 2.2rem' }}
-                placeholder="Search ledger..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <Search size={14} style={{ position: 'absolute', left: '10px', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  style={{ padding: '0.3rem 0.5rem 0.3rem 2rem', background: 'transparent', border: 'none', color: 'inherit', outline: 'none', fontSize: '0.8rem', width: '160px' }}
+                  placeholder="Search ledger..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
+
             <button
               className="btn btn-secondary"
               onClick={() => {
@@ -806,64 +899,116 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
               style={{ padding: '0.45rem 0.8rem', fontSize: '0.8rem', gap: '0.4rem', display: 'flex', alignItems: 'center' }}
             >
               <Download size={14} />
-              <span>Export CSV</span>
+              <span>Export</span>
             </button>
           </div>
         </div>
 
-        <div className="table-responsive">
-          <table className="custom-table">
-            <thead>
+        <div className="table-responsive" style={{ margin: 0, padding: 0 }}>
+          <table className="custom-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ background: 'rgba(0,0,0,0.2)' }}>
               <tr>
-                <th>Date</th>
-                <th>Account</th>
-                <th>Description</th>
-                <th>Category</th>
-                <th>Type</th>
-                <th>Amount</th>
-                <th style={{ textAlign: 'center' }}>Action</th>
+                <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Transaction</th>
+                <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Account</th>
+                <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Category</th>
+                <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid rgba(255,255,255,0.05)', textAlign: 'right' }}>Amount</th>
+                <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid rgba(255,255,255,0.05)', textAlign: 'center', width: '50px' }}></th>
               </tr>
             </thead>
             <tbody>
               {filteredTxs.length > 0 ? (
-                filteredTxs.map(tx => {
+                filteredTxs.map((tx, idx) => {
                   const accName = accounts.find(a => a.id === tx.accountId)?.name || 'External';
+
+                  // Transaction Type styling map
+                  const typeStyles = {
+                    Income: { icon: <ArrowDownLeft size={16} />, color: 'var(--success)', bg: 'rgba(16, 185, 129, 0.15)' },
+                    Expense: { icon: <ArrowUpRight size={16} />, color: 'var(--text-primary)', bg: 'rgba(255,255,255,0.08)' },
+                    Transfer: { icon: <ArrowRightLeft size={16} />, color: 'var(--accent-1)', bg: 'rgba(56, 189, 248, 0.15)' }
+                  };
+
+                  const style = typeStyles[tx.type as keyof typeof typeStyles];
+
                   return (
-                    <tr key={tx.id}>
-                      <td style={{ whiteSpace: 'nowrap' }}>{tx.date}</td>
-                      <td>{accName}</td>
-                      <td>
-                        <div>{tx.description}</div>
-                        {tx.tag && <span style={{ fontSize: '0.68rem', padding: '0.1rem 0.3rem', background: 'rgba(255,255,255,0.06)', borderRadius: '3px' }}>{tx.tag}</span>}
+                    <motion.tr
+                      key={tx.id}
+                      initial={{ opacity: 0, y: 5 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, margin: "-20px" }}
+                      transition={{ delay: Math.min((idx % 10) * 0.03, 0.3) }}
+                      style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background-color 0.2s', cursor: 'pointer' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <td style={{ padding: '1rem 1.25rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div style={{
+                            width: '40px', height: '40px', borderRadius: '50%',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: style.bg, color: style.color
+                          }}>
+                            {style.icon}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{tx.description}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                              <Calendar size={12} />
+                              {tx.date}
+                            </div>
+                          </div>
+                        </div>
                       </td>
-                      <td>{tx.category}</td>
-                      <td>
-                        <span style={{
-                          fontSize: '0.78rem', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: '4px',
-                          color: tx.type === 'Income' ? 'var(--success)' : tx.type === 'Expense' ? 'var(--error)' : 'var(--accent-2)',
-                          background: tx.type === 'Income' ? 'var(--success-bg)' : tx.type === 'Expense' ? 'var(--error-bg)' : 'rgba(3,105,161,0.15)'
-                        }}>{tx.type}</span>
+                      <td style={{ padding: '1rem 1.25rem', fontSize: '0.85rem' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.2rem 0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                           <Landmark size={12} style={{ marginRight: '0.4rem', opacity: 0.7 }} />
+                           {accName}
+                        </span>
                       </td>
-                      <td style={{ fontWeight: 600 }}>{formatRupee(tx.amount)}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <button className="btn btn-danger" style={{ padding: '0.3rem', borderRadius: '4px' }} onClick={() => handleDeleteTx(tx.id)}>
-                          <Trash2 size={13} />
-                        </button>
+                      <td style={{ padding: '1rem 1.25rem' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{tx.category}</span>
+                        {tx.tag && <span style={{ marginLeft: '0.5rem', fontSize: '0.68rem', padding: '0.15rem 0.4rem', background: 'rgba(255,255,255,0.08)', borderRadius: '12px' }}>{tx.tag}</span>}
                       </td>
-                    </tr>
+                      <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>
+                        <div style={{ fontWeight: 600, fontSize: '1rem', color: tx.type === 'Income' ? 'var(--success)' : 'inherit', fontFamily: 'monospace' }}>
+                          {tx.type === 'Income' ? '+' : tx.type === 'Expense' ? '-' : ''}{formatRupee(tx.amount)}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          {tx.type}
+                        </div>
+                      </td>
+                      <td style={{ padding: '1rem 1.25rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                        <div className="action-menu-container" style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+                         <button
+                            className="btn btn-icon"
+                            style={{ padding: '0.4rem', background: 'transparent', color: 'var(--text-muted)', border: 'none' }}
+                            onClick={(e) => {
+                              // Prevent row click if any
+                              e.stopPropagation();
+                              handleDeleteTx(tx.id);
+                            }}
+                            title="Delete Transaction"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </motion.tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-                    No matching ledger records found
+                  <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem 1rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                      <RefreshCw size={24} style={{ opacity: 0.2 }} />
+                      <span>No transactions match your criteria</span>
+                    </div>
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
 
       {/* Dialog: Add Account */}
       {showAddAccount && (
@@ -1282,6 +1427,6 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
         </div>
       )}
 
-    </div>
+    </motion.div>
   );
 };

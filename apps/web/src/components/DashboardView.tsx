@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { FixedDeposit } from '@financeos/shared';
 import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
@@ -397,11 +398,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
       <svg width={size} height={size * 0.7} viewBox={`0 0 ${size} ${size * 0.75}`}>
         {/* Background arc */}
         <path d={`M ${bgStart.x} ${bgStart.y} A ${radius} ${radius} 0 1 1 ${bgEnd.x} ${bgEnd.y}`}
-          fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" strokeLinecap="round" />
+          fill="none" stroke="rgba(150,150,150,0.15)" strokeWidth="6" strokeLinecap="round" />
         {/* Progress arc */}
         {score > 0 && (
           <path d={`M ${bgStart.x} ${bgStart.y} A ${radius} ${radius} 0 ${(score / 100) * totalAngle > 180 ? 1 : 0} 1 ${progEnd.x} ${progEnd.y}`}
-            fill="none" stroke={scoreFill} strokeWidth="8" strokeLinecap="round"
+            fill="none" stroke={scoreFill} strokeWidth="6" strokeLinecap="round"
             style={{ transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }} />
         )}
         <text x={cx} y={cy - 4} textAnchor="middle" fill="#fff" fontSize="18" fontWeight="700">{score}</text>
@@ -411,67 +412,118 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
   };
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          transition: { staggerChildren: 0.1 }
+        }
+      }}
+      style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+    >
+
       {/* Top Banner metrics */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
         gap: '1.25rem'
       }}>
-        
+
         {/* Net Worth Card */}
-        <div className="glass-panel" style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 550 }}>NET WORTH</span>
-            <Wallet size={20} color="var(--accent-1)" />
+        <motion.div
+          className="glass-panel"
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+          }}
+          style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.05em' }}>NET WORTH</span>
+            <Wallet size={18} color="var(--text-muted)" />
           </div>
-          <h3 style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0.2rem 0' }}>{formatRupee(netWorth)}</h3>
+          <h3 style={{ fontSize: '2.2rem', fontWeight: 600, letterSpacing: '-0.02em', margin: 0, color: 'var(--text-primary)' }}>{formatRupee(netWorth)}</h3>
 
           {/* Subtle bottom glows */}
           <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px',
-            background: 'var(--accent-grad)'
+            position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px'
           }} />
-        </div>
+        </motion.div>
 
         {/* Monthly Income Card */}
-        <div className="glass-panel" style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 550 }}>INCOME (JULY)</span>
-            <TrendingUp size={20} color="var(--success)" />
+        <motion.div
+          className="glass-panel"
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+          }}
+          style={{ padding: '1.5rem' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.05em' }}>INCOME (JULY)</span>
+            <TrendingUp size={18} color="var(--text-muted)" />
           </div>
-          <h3 style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0.2rem 0' }}>{formatRupee(monthlyIncome)}</h3>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Business Sales + Salaries</p>
-        </div>
+          <h3 style={{ fontSize: '1.8rem', fontWeight: 600, letterSpacing: '-0.02em', margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>{formatRupee(monthlyIncome)}</h3>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Business Sales + Salaries</p>
+        </motion.div>
 
         {/* Monthly Expense Card */}
-        <div className="glass-panel" style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 550 }}>EXPENSES (JULY)</span>
-            <TrendingDown size={20} color="var(--error)" />
+        <motion.div
+          className="glass-panel"
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+          }}
+          style={{ padding: '1.5rem' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.05em' }}>EXPENSES (JULY)</span>
+            <TrendingDown size={18} color="var(--text-muted)" />
           </div>
-          <h3 style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0.2rem 0' }}>{formatRupee(monthlyExpense)}</h3>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Groceries, Utilities & Bills</p>
-        </div>
+          <h3 style={{ fontSize: '1.8rem', fontWeight: 600, letterSpacing: '-0.02em', margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>{formatRupee(monthlyExpense)}</h3>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Groceries, Utilities & Bills</p>
+        </motion.div>
 
         {/* Savings Rate Card */}
-        <div className="glass-panel" style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 550 }}>SAVINGS RATE</span>
-            <Landmark size={20} color="var(--accent-2)" />
+        <motion.div
+          className="glass-panel"
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+          }}
+          style={{ padding: '1.5rem' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.05em' }}>SAVINGS RATE</span>
+            <Landmark size={18} color="var(--text-muted)" />
           </div>
-          <h3 style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0.2rem 0' }}>{savingsRate.toFixed(1)}%</h3>
+          <h3 style={{ fontSize: '1.8rem', fontWeight: 600, letterSpacing: '-0.02em', margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>{savingsRate.toFixed(1)}%</h3>
           <div style={{
             height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', marginTop: '0.5rem', overflow: 'hidden'
           }}>
-            <div style={{ width: `${savingsRate}%`, height: '100%', background: 'var(--accent-grad)' }} />
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${savingsRate}%` }}
+              transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
+              style={{ height: '100%', background: 'var(--accent-grad)' }}
+            />
           </div>
-        </div>
+        </motion.div>
 
         {/* Budget Gauges */}
-        {budgetAlerts.slice(0, 3).map((b, idx) => (
-          <div key={idx} className="glass-panel" style={{ padding: '1.25rem' }}>
+        {budgetAlerts.slice(0, 2).map((b, idx) => (
+          <motion.div
+            key={idx}
+            className="glass-panel"
+            variants={{
+              hidden: { opacity: 0, y: 20 },
+              visible: { opacity: 1, y: 0 }
+            }}
+            style={{ padding: '1.25rem' }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{b.category}</span>
               <span style={{ fontSize: '0.8rem', color: b.pct > 90 ? 'var(--error)' : 'var(--text-secondary)' }}>
@@ -479,53 +531,62 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
               </span>
             </div>
             <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ width: `${Math.min(b.pct, 100)}%`, height: '100%', background: b.pct > 90 ? 'var(--error)' : 'var(--accent-2)' }} />
+              <motion.div
+                initial={{ width: 0 }}
+                whileInView={{ width: `${Math.min(b.pct, 100)}%` }}
+                viewport={{ once: true }}
+                transition={{ duration: 1, ease: "easeOut" }}
+                style={{ height: '100%', background: b.pct > 90 ? 'var(--error)' : 'var(--accent-2)' }}
+              />
             </div>
-          </div>
+          </motion.div>
         ))}
 
-        {/* Smart Insights Card */}
-        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 550 }}>AI SMART INSIGHTS</span>
-            <Lightbulb size={20} color="#f59e0b" />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {smartInsights.map((insight, idx) => (
-              <div key={idx} style={{ fontSize: '0.8rem', color: 'var(--text-primary)', display: 'flex', gap: '0.4rem', alignItems: 'flex-start' }}>
-                <span style={{ color: '#f59e0b' }}>✦</span>
-                <span style={{ lineHeight: 1.4 }}>{insight}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Financial Health Score */}
-        <div className="glass-panel" style={{ padding: '1.25rem', cursor: 'pointer', position: 'relative', overflow: 'hidden' }} onClick={() => setShowHealthBreakdown(!showHealthBreakdown)}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 550 }}>HEALTH SCORE</span>
-            <ShieldCheck size={20} color={healthScore.score >= 70 ? 'var(--success)' : healthScore.score >= 40 ? 'var(--warning)' : 'var(--error)'} />
+        <motion.div
+          className="glass-panel"
+          variants={{
+            hidden: { opacity: 0, scale: 0.95 },
+            visible: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 100 } }
+          }}
+          style={{ padding: '1.25rem', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
+          onClick={() => setShowHealthBreakdown(!showHealthBreakdown)}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.05em' }}>HEALTH SCORE</span>
+            <ShieldCheck size={18} color="var(--text-muted)" />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <motion.div
+            style={{ display: 'flex', justifyContent: 'center' }}
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
             <HealthGauge score={healthScore.score} />
-          </div>
-          {showHealthBreakdown && (
-            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem' }}>
-              {healthScore.breakdown.map((b, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>{b.label}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <div style={{ width: '40px', height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
-                      <div style={{ width: `${(b.points / b.max) * 100}%`, height: '100%', background: b.points >= b.max * 0.7 ? 'var(--success)' : 'var(--warning)', transition: 'width 0.5s' }} />
+          </motion.div>
+
+          <AnimatePresence>
+            {showHealthBreakdown && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem', overflow: 'hidden' }}
+              >
+                {healthScore.breakdown.map((b, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>{b.label}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <div style={{ width: '40px', height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
+                        <div style={{ width: `${(b.points / b.max) * 100}%`, height: '100%', background: b.points >= b.max * 0.7 ? 'var(--success)' : 'var(--warning)', transition: 'width 0.5s' }} />
+                      </div>
+                      <span style={{ fontWeight: 600, minWidth: '28px', textAlign: 'right' }}>{b.points}/{b.max}</span>
                     </div>
-                    <span style={{ fontWeight: 600, minWidth: '28px', textAlign: 'right' }}>{b.points}/{b.max}</span>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px', background: healthScore.score >= 70 ? 'var(--success)' : healthScore.score >= 40 ? 'var(--warning)' : 'var(--error)' }} />
-        </div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
       </div>
 
@@ -537,7 +598,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
       }}>
 
         {/* Net Worth Timeline Card */}
-        <div className="glass-panel" style={{ padding: '1.25rem', minWidth: 0 }}>
+        <motion.div
+          className="glass-panel"
+          variants={{
+            hidden: { opacity: 0, x: -30 },
+            visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 50, damping: 15 } }
+          }}
+          style={{ padding: '1.25rem', minWidth: 0 }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h4 style={{ fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Wallet size={16} color="var(--accent-1)" /> Net Worth Progression ({timelineFilter === '6M' ? '6 Months' : timelineFilter === '12M' ? '12 Months' : timelineFilter === '2Y' ? '2 Years' : timelineFilter === '5Y' ? '5 Years' : '10 Years'})
@@ -555,7 +623,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                     borderRadius: '3px',
                     color: timelineFilter === f ? '#fff' : 'var(--text-secondary)',
                     cursor: 'pointer',
-                    fontWeight: 650
+                    fontWeight: 650,
+                    transition: 'all var(--transition-fast)'
                   }}
                 >
                   {f}
@@ -568,24 +637,39 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
               <AreaChart data={historyData}>
                 <defs>
                   <linearGradient id="colorNetWorth" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent-1)" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="var(--accent-1)" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="month" stroke="var(--text-muted)" fontSize={11} tickLine={false} />
                 <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} tickFormatter={(v) => `${(v/100000).toFixed(1)}L`} />
-                <Tooltip 
+                <Tooltip
                   formatter={(value: any) => [formatRupee(value), 'Net Worth']}
-                  contentStyle={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                  contentStyle={{
+                    background: 'var(--bg-panel)',
+                    borderColor: 'var(--border-color)',
+                    color: 'var(--text-primary)',
+                    borderRadius: '12px',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                    padding: '12px'
+                  }}
+                  itemStyle={{ fontWeight: 600 }}
                 />
-                <Area type="monotone" dataKey="networth" stroke="var(--accent-1)" strokeWidth={2} fillOpacity={1} fill="url(#colorNetWorth)" />
+                <Area type="monotone" dataKey="networth" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorNetWorth)" animationDuration={1500} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
 
         {/* Cashflow Bar Chart */}
-        <div className="glass-panel" style={{ padding: '1.25rem', minWidth: 0 }}>
+        <motion.div
+          className="glass-panel"
+          variants={{
+            hidden: { opacity: 0, x: 30 },
+            visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 50, damping: 15 } }
+          }}
+          style={{ padding: '1.25rem', minWidth: 0 }}
+        >
           <h4 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <TrendingUp size={16} color="var(--success)" /> Income vs Expense comparison
           </h4>
@@ -594,29 +678,57 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
               <BarChart data={cashflowData}>
                 <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} />
                 <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
-                <Tooltip 
+                <Tooltip
                   formatter={(value: any) => formatRupee(value)}
-                  contentStyle={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
+                  contentStyle={{
+                    background: 'var(--bg-panel)',
+                    borderColor: 'var(--border-color)',
+                    borderRadius: '12px',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                    color: 'var(--text-primary)',
+                    padding: '12px'
+                  }}
+                  itemStyle={{ fontWeight: 600 }}
+                  cursor={{ fill: 'rgba(150,150,150,0.05)' }}
                 />
-                <Legend iconSize={10} wrapperStyle={{ fontSize: '11px' }} />
-                <Bar dataKey="Income" fill="var(--success)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Expense" fill="var(--error)" radius={[4, 4, 0, 0]} />
+                <Legend iconSize={10} wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                <Bar dataKey="Income" fill="#10b981" radius={[4, 4, 0, 0]} animationDuration={1500} />
+                <Bar dataKey="Expense" fill="#f43f5e" radius={[4, 4, 0, 0]} animationDuration={1500} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
 
       </div>
 
       {/* Third Row: Allocation and Alerts */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))',
-        gap: '1.25rem'
-      }} className="responsive-stack">
-        
+      <motion.div
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-50px" }}
+        variants={{
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: { staggerChildren: 0.15 }
+          }
+        }}
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))',
+          gap: '1.25rem'
+        }} className="responsive-stack"
+      >
+
         {/* Investment Allocation Chart */}
-        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <motion.div
+          className="glass-panel"
+          variants={{
+            hidden: { opacity: 0, scale: 0.95, y: 30 },
+            visible: { opacity: 1, scale: 1, y: 0, transition: { type: "spring", stiffness: 70 } }
+          }}
+          style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', minWidth: 0 }}
+        >
           <h4 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <PieIcon size={16} color="var(--accent-2)" /> Investment Allocation
           </h4>
@@ -632,107 +744,170 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                     outerRadius={75}
                     paddingAngle={3}
                     dataKey="value"
+                    animationDuration={1500}
+                    animationEasing="ease-out"
                   >
                     {allocationData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(v: any) => formatRupee(v)} />
+                  <Tooltip
+                    formatter={(v: any) => formatRupee(v)}
+                    contentStyle={{
+                      background: 'var(--bg-panel)',
+                      borderColor: 'var(--border-color)',
+                      borderRadius: '12px',
+                      color: 'var(--text-primary)',
+                      boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                      padding: '12px'
+                    }}
+                    itemStyle={{ fontWeight: 600 }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.8rem', minWidth: '150px' }}>
               {allocationData.map((item, idx) => (
-                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, x: 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
                   <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: item.color }} />
                   <span style={{ color: 'var(--text-secondary)' }}>{item.name}:</span>
                   <span style={{ fontWeight: 600 }}>{((item.value / totalAssets) * 100).toFixed(0)}%</span>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Right side: AI insights, nominee alerts, upcoming maturities */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0 }}>
-          
+
           {/* AI Insights & Alerts panel */}
-          <div className="glass-panel" style={{ padding: '1.25rem', minWidth: 0 }}>
+          <motion.div
+            className="glass-panel"
+            variants={{
+              hidden: { opacity: 0, x: 30 },
+              visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 70 } }
+            }}
+            whileHover={{ scale: 1.02 }}
+            style={{ padding: '1.25rem', minWidth: 0 }}
+          >
             <h4 style={{ fontSize: '1rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Lightbulb size={16} color="var(--warning)" /> AI Assistant Insights
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              
+
               {/* Category Budget Alerts */}
-              {budgetAlerts.filter(b => b.pct > 80).map(b => (
-                <div key={b.id} style={{
-                  display: 'flex', gap: '0.5rem', background: b.pct >= 100 ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
-                  border: `1px solid ${b.pct >= 100 ? 'var(--error)' : 'var(--warning)'}`,
-                  padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem',
-                  color: b.pct >= 100 ? 'var(--error)' : 'var(--warning)'
-                }}>
-                  <AlertTriangle size={16} style={{ flexShrink: 0 }} />
-                  <div>
-                    <strong>Budget Alert ({b.category}):</strong> Spending reached {b.pct}% of monthly limit ({formatRupee(b.spent)} / {formatRupee(b.limitAmount)}).
+              <AnimatePresence>
+                {budgetAlerts.filter(b => b.pct > 80).map((b, idx) => (
+                  <motion.div
+                    key={b.id}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    transition={{ delay: idx * 0.1 }}
+                    style={{
+                      display: 'flex', gap: '0.5rem', background: b.pct >= 100 ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
+                      border: `1px solid ${b.pct >= 100 ? 'var(--error)' : 'var(--warning)'}`,
+                      padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem',
+                      color: b.pct >= 100 ? 'var(--error)' : 'var(--warning)'
+                    }}
+                  >
+                    <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+                    <div>
+                      <strong>Budget Alert ({b.category}):</strong> Spending reached {b.pct}% of monthly limit ({formatRupee(b.spent)} / {formatRupee(b.limitAmount)}).
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                {nomineeAlerts.length > 0 ? (
+                  <div style={{
+                    display: 'flex', gap: '0.5rem', background: 'var(--warning-bg)', border: '1px solid var(--warning)',
+                    padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', color: 'var(--warning)'
+                  }}>
+                    <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+                    <div>
+                      <strong>Nominee Audit:</strong> {nomineeAlerts.length} investment accounts lack designated nominees.
+                      Select "List investments without nominees" in AI Chat.
+                    </div>
                   </div>
-                </div>
-              ))}
-              {nomineeAlerts.length > 0 ? (
-                <div style={{
-                  display: 'flex', gap: '0.5rem', background: 'var(--warning-bg)', border: '1px solid var(--warning)',
-                  padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', color: 'var(--warning)'
-                }}>
-                  <AlertTriangle size={16} style={{ flexShrink: 0 }} />
-                  <div>
-                    <strong>Nominee Audit:</strong> {nomineeAlerts.length} investment accounts lack designated nominees. 
-                    Select "List investments without nominees" in AI Chat.
+                ) : (
+                  <div style={{
+                    display: 'flex', gap: '0.5rem', background: 'var(--success-bg)', border: '1px solid var(--success)',
+                    padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', color: 'var(--success)'
+                  }}>
+                    <ShieldCheck size={16} />
+                    <div>All active accounts have nominative details. Well done!</div>
                   </div>
-                </div>
-              ) : (
-                <div style={{
-                  display: 'flex', gap: '0.5rem', background: 'var(--success-bg)', border: '1px solid var(--success)',
-                  padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', color: 'var(--success)'
-                }}>
-                  <ShieldCheck size={16} />
-                  <div>All active accounts have nominative details. Well done!</div>
-                </div>
-              )}
+                )}
+              </motion.div>
 
               {/* General tax insight */}
-              <div style={{
-                display: 'flex', gap: '0.5rem', background: 'hsla(186, 100%, 50%, 0.05)', border: '1px solid var(--border-focus)',
-                padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem'
-              }}>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                style={{
+                  display: 'flex', gap: '0.5rem', background: 'hsla(186, 100%, 50%, 0.05)', border: '1px solid var(--border-focus)',
+                  padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem'
+                }}
+              >
                 <Lightbulb size={16} color="var(--accent-1)" style={{ flexShrink: 0 }} />
                 <div>
-                  <strong>Tax Saver Alert:</strong> You can save up to ₹15,600 by shifting to the New Tax Regime slabs (FY25-26) or maximizing 80C under Old. 
+                  <strong>Tax Saver Alert:</strong> You can save up to ₹15,600 by shifting to the New Tax Regime slabs (FY25-26) or maximizing 80C under Old.
                   View tax comparator.
                 </div>
-              </div>
+              </motion.div>
 
             </div>
-          </div>
+          </motion.div>
 
           {/* Upcoming Maturities Calendar */}
-          <div className="glass-panel" style={{ padding: '1.25rem', minWidth: 0 }}>
+          <motion.div
+            className="glass-panel"
+            variants={{
+              hidden: { opacity: 0, x: 30 },
+              visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 70 } }
+            }}
+            whileHover={{ scale: 1.02 }}
+            style={{ padding: '1.25rem', minWidth: 0 }}
+          >
             <h4 style={{ fontSize: '1rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Calendar size={16} color="var(--accent-1)" /> Upcoming Bill & Deposit Maturities
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '120px', overflowY: 'auto' }}>
               {maturities.length > 0 ? (
-                maturities.map(m => (
-                  <div key={m.id} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.82rem'
-                  }}>
+                maturities.map((m, idx) => (
+                  <motion.div
+                    key={m.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.1 }}
+                    style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.82rem'
+                    }}
+                  >
                     <span style={{ fontWeight: 500 }}>{m.label}</span>
                     <div style={{ display: 'flex', gap: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
                       <span>Matures: {m.date}</span>
                       <span style={{ color: 'var(--accent-1)', fontWeight: 600 }}>{formatRupee(m.amount)}</span>
                     </div>
-                  </div>
+                  </motion.div>
                 ))
               ) : (
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '1rem' }}>
@@ -740,37 +915,60 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* Family Profiles Summary */}
-          <div className="glass-panel" style={{ padding: '1.25rem', minWidth: 0 }}>
+          <motion.div
+            className="glass-panel"
+            variants={{
+              hidden: { opacity: 0, x: 30 },
+              visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 70 } }
+            }}
+            style={{ padding: '1.25rem', minWidth: 0 }}
+          >
             <h4 style={{ fontSize: '1rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Users size={16} color="var(--accent-2)" /> Family Wealth Profiles
             </h4>
             <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-              {profiles.map(p => (
-                <div key={p.id} className="glass-panel" style={{
-                  padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
-                  fontSize: '0.78rem', background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'
-                }}>
+              {profiles.map((p, idx) => (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  whileHover={{ y: -2, scale: 1.05 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1, type: "spring", stiffness: 300 }}
+                  className="glass-panel"
+                  style={{
+                    padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
+                    fontSize: '0.78rem', background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'
+                  }}
+                >
                   <div style={{
                     width: '8px', height: '8px', borderRadius: '50%',
                     background: p.role === 'Admin' ? 'var(--accent-1)' : 'var(--text-muted)'
                   }} />
                   <span style={{ fontWeight: 600 }}>{p.name}</span>
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>({p.relationship})</span>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
         </div>
 
-      </div>
+      </motion.div>
 
       {/* Goals Section (embedded) */}
-      <GoalTracker activeProfileId={activeProfileId} />
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ type: "spring", stiffness: 60, delay: 0.2 }}
+      >
+        <GoalTracker activeProfileId={activeProfileId} />
+      </motion.div>
 
-    </div>
+    </motion.div>
   );
 };

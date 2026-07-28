@@ -1,83 +1,84 @@
 /* @import url for custom premium Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap');
 
 /* Core Custom Theme Variables */
 :root {
-  /* Default: Dark Glass Cyan Theme */
-  --bg-primary: hsl(224, 25%, 6%);
-  --bg-secondary: hsl(224, 20%, 10%);
-  --bg-panel: hsla(224, 20%, 12%, 0.5);
-  --bg-panel-hover: hsla(224, 20%, 16%, 0.65);
-  
-  --border-color: hsla(224, 15%, 22%, 0.35);
-  --border-focus: hsla(186, 100%, 50%, 0.6);
-  --border-color-glow: hsla(186, 100%, 50%, 0.15);
+  /* Elegant Dark Mode (Fintech) */
+  --bg-primary: hsl(220, 10%, 12%);
+  --bg-secondary: hsl(220, 10%, 16%);
+  --bg-panel: hsla(220, 10%, 18%, 0.6);
+  --bg-panel-hover: hsla(220, 10%, 22%, 0.7);
 
-  --text-primary: hsl(210, 20%, 98%);
-  --text-secondary: hsl(215, 15%, 72%);
-  --text-muted: hsl(215, 12%, 50%);
+  --border-color: hsla(0, 0%, 100%, 0.08); /* More subtle */
+  --border-focus: hsla(220, 80%, 65%, 0.4);
+  --border-color-glow: hsla(220, 80%, 65%, 0.1);
 
-  --accent-1: hsl(186, 100%, 45%); /* Neon Cyan */
-  --accent-2: hsl(203, 100%, 50%); /* Vibrant Blue */
+  --text-primary: hsl(0, 0%, 98%);
+  --text-secondary: hsl(220, 10%, 65%);
+  --text-muted: hsl(220, 10%, 45%);
+
+  --accent-1: hsl(220, 80%, 65%); /* Premium Deep Soft Blue */
+  --accent-2: hsl(260, 60%, 70%); /* Restrained Violet */
   --accent-grad: linear-gradient(135deg, var(--accent-1) 0%, var(--accent-2) 100%);
-  
-  --success: hsl(142, 70%, 45%); /* Emerald */
-  --success-bg: hsla(142, 70%, 45%, 0.15);
-  --error: hsl(346, 80%, 55%); /* Rose Red */
-  --error-bg: hsla(346, 80%, 55%, 0.15);
-  --warning: hsl(40, 90%, 52%); /* Gold/Amber */
-  --warning-bg: hsla(40, 90%, 52%, 0.15);
 
-  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --success: hsl(150, 60%, 45%); /* Soft Emerald */
+  --success-bg: hsla(150, 60%, 45%, 0.1);
+  --error: hsl(350, 70%, 55%); /* Restrained Red */
+  --error-bg: hsla(350, 70%, 55%, 0.1);
+  --warning: hsl(35, 90%, 55%); /* Restrained Gold */
+  --warning-bg: hsla(35, 90%, 55%, 0.1);
+
+  --font-display: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --shadow-glow: 0 0 15px var(--border-color-glow);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 10px var(--border-color-glow);
 
-  --backdrop-blur: blur(16px);
-  --radius-sm: 8px;
-  --radius-md: 14px;
+  --backdrop-blur: blur(16px) saturate(120%);
+  --radius-sm: 8px; /* Slightly tighter rounded corners common in fintech */
+  --radius-md: 16px;
   --radius-lg: 24px;
-  
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  --transition-fast: 0.15s ease-out;
+  --transition-normal: 0.25s ease-out;
 }
 
 /* Alternate Theme Overwrites */
 [data-theme='glass-emerald'] {
-  --accent-1: hsl(150, 100%, 43%); /* Neon Emerald */
-  --accent-2: hsl(174, 90%, 40%); /* Rich Teal */
-  --border-focus: hsla(150, 100%, 43%, 0.6);
-  --border-color-glow: hsla(150, 100%, 43%, 0.15);
+  --accent-1: hsl(150, 60%, 45%);
+  --accent-2: hsl(174, 50%, 40%);
+  --border-focus: hsla(150, 60%, 45%, 0.4);
+  --border-color-glow: hsla(150, 60%, 45%, 0.1);
 }
 
 [data-theme='glass-gold'] {
-  --bg-primary: hsl(20, 15%, 5%);
-  --bg-secondary: hsl(20, 12%, 8%);
-  --bg-panel: hsla(20, 12%, 10%, 0.5);
-  --bg-panel-hover: hsla(20, 12%, 14%, 0.65);
-  --accent-1: hsl(42, 100%, 55%); /* Chrome Gold */
-  --accent-2: hsl(25, 95%, 50%); /* Dark Gold/Bronze */
-  --border-focus: hsla(42, 100%, 55%, 0.6);
-  --border-color-glow: hsla(42, 100%, 55%, 0.15);
+  --bg-primary: hsl(40, 10%, 14%);
+  --bg-secondary: hsl(40, 10%, 18%);
+  --bg-panel: hsla(40, 10%, 20%, 0.6);
+  --bg-panel-hover: hsla(40, 10%, 24%, 0.7);
+  --accent-1: hsl(40, 80%, 65%);
+  --accent-2: hsl(25, 75%, 60%);
+  --border-focus: hsla(40, 80%, 65%, 0.4);
+  --border-color-glow: hsla(40, 80%, 65%, 0.1);
 }
 
 [data-theme='light'] {
-  --bg-primary: hsl(210, 20%, 96%);
-  --bg-secondary: hsl(0, 0%, 100%);
-  --bg-panel: rgba(255, 255, 255, 0.7);
-  --bg-panel-hover: rgba(255, 255, 255, 0.85);
-  
-  --border-color: rgba(0, 0, 0, 0.08);
-  --border-focus: hsl(203, 100%, 45%);
-  --border-color-glow: rgba(0, 150, 255, 0.1);
+  --bg-primary: hsl(220, 20%, 98%); /* Soft crisp near-white */
+  --bg-secondary: #ffffff;
+  --bg-panel: rgba(255, 255, 255, 0.65);
+  --bg-panel-hover: rgba(255, 255, 255, 0.9);
 
-  --text-primary: hsl(224, 25%, 12%);
-  --text-secondary: hsl(220, 15%, 35%);
-  --text-muted: hsl(220, 10%, 55%);
+  --border-color: rgba(30, 40, 60, 0.08); /* Sophisticated faint gray outline */
+  --border-focus: hsl(220, 80%, 55%);
+  --border-color-glow: rgba(0, 100, 255, 0.08);
 
-  --shadow-md: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  --text-primary: hsl(220, 30%, 15%);
+  --text-secondary: hsl(220, 15%, 45%);
+  --text-muted: hsl(220, 10%, 60%);
+
+  --shadow-sm: 0 1px 3px rgba(30, 40, 60, 0.04);
+  --shadow-md: 0 8px 32px -4px rgba(30, 40, 60, 0.08);
 }
 
 /* Global Reset & Base Elements */
@@ -93,9 +94,12 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
-  background-image: 
-    radial-gradient(at 0% 0%, hsla(203, 100%, 50%, 0.04) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, hsla(186, 100%, 45%, 0.03) 0px, transparent 50%);
+  /* Subtle Modern Fintech Mesh Gradient */
+  background-image:
+    radial-gradient(ellipse at 10% 0%, hsla(220, 80%, 65%, 0.08) 0%, transparent 40%),
+    radial-gradient(ellipse at 90% 10%, hsla(260, 60%, 70%, 0.05) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 100%, hsla(150, 60%, 45%, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, hsla(0, 0%, 0%, 0.0) 0%, transparent 40%);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
 }
@@ -113,13 +117,15 @@ h1, h2, h3, h4, h5, h6 {
   -webkit-backdrop-filter: var(--backdrop-blur);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
-  transition: border-color var(--transition-normal), background var(--transition-normal), box-shadow var(--transition-normal);
+  box-shadow: var(--shadow-sm); /* Default to subtle modern shadow */
+  transition: all var(--transition-normal);
 }
 
 .glass-panel:hover {
   background: var(--bg-panel-hover);
-  border-color: hsla(210, 100%, 100%, 0.08);
+  border-color: hsla(0, 0%, 100%, 0.12); /* Very subtle hover outline */
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .glass-panel-glow {
@@ -130,7 +136,7 @@ h1, h2, h3, h4, h5, h6 {
 /* Interactive Elements & Custom Controls */
 button, .btn {
   font-family: var(--font-body);
-  font-weight: 550;
+  font-weight: 500;
   font-size: 0.9rem;
   padding: 0.65rem 1.25rem;
   border-radius: var(--radius-sm);
@@ -146,12 +152,12 @@ button, .btn {
 .btn-primary {
   background: var(--accent-grad);
   color: #fff;
-  box-shadow: 0 4px 12px hsla(203, 100%, 50%, 0.25);
+  box-shadow: 0 4px 12px hsla(220, 80%, 40%, 0.15); /* Softer drop shadow */
 }
 
 .btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px hsla(203, 100%, 50%, 0.35), var(--shadow-glow);
+  box-shadow: 0 6px 16px hsla(220, 80%, 40%, 0.25), var(--shadow-glow);
 }
 
 .btn-primary:active {
@@ -159,26 +165,26 @@ button, .btn {
 }
 
 .btn-secondary {
-  background: hsla(224, 20%, 20%, 0.4);
+  background: transparent;
   border: 1px solid var(--border-color);
   color: var(--text-primary);
 }
 
 .btn-secondary:hover {
-  background: hsla(224, 20%, 25%, 0.6);
+  background: hsla(220, 10%, 50%, 0.05); /* very soft hover background */
   border-color: var(--text-secondary);
 }
 
 .btn-danger {
   background: var(--error-bg);
-  border: 1px solid var(--error);
+  border: 1px solid transparent;
   color: var(--error);
 }
 
 .btn-danger:hover {
   background: var(--error);
   color: #fff;
-  box-shadow: 0 4px 12px hsla(346, 80%, 55%, 0.2);
+  box-shadow: 0 4px 12px hsla(350, 70%, 55%, 0.2);
 }
 
 /* Form Fields */
@@ -197,7 +203,7 @@ button, .btn {
 .form-input, select, textarea {
   width: 100%;
   padding: 0.7rem 1rem;
-  background: hsla(224, 20%, 8%, 0.6);
+  background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
@@ -205,12 +211,13 @@ button, .btn {
   font-size: 0.92rem;
   transition: all var(--transition-fast);
   outline: none;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .form-input:focus, select:focus, textarea:focus {
   border-color: var(--border-focus);
-  box-shadow: var(--shadow-glow);
-  background: hsla(224, 20%, 6%, 0.85);
+  box-shadow: 0 0 0 3px var(--border-color-glow); /* Smooth standard focus ring */
+  background: var(--bg-primary);
 }
 
 /* Dashboard Layout Grid definitions */
@@ -257,10 +264,12 @@ button, .btn {
 .custom-table th {
   padding: 0.9rem 1.25rem;
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 500;
   font-size: 0.85rem;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-color);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .custom-table td {
@@ -276,7 +285,7 @@ button, .btn {
 }
 
 .custom-table tr:hover td {
-  background: hsla(224, 20%, 20%, 0.15);
+  background: hsla(0, 0%, 50%, 0.03); /* Softer universal hover */
 }
 
 
