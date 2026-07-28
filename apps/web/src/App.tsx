@@ -15,10 +15,13 @@ import { SettingsView } from './components/SettingsView.js';
 import { InvestmentPlanner } from './components/InvestmentPlanner/index.js';
 import { CommandPalette } from './components/CommandPalette.js';
 
+import { SaveStatusPopup } from './components/SaveStatusPopup.js';
+
 import {
   LayoutDashboard, Landmark, TrendingUp, Percent,
   Briefcase, Network, Sparkles, Settings, LogOut, Lock,
-  Users, Calendar, Target, ChevronDown, UploadCloud, Menu, X
+  Users, Calendar, Target, ChevronDown, UploadCloud, Menu, X,
+  CheckCircle2, AlertCircle, RefreshCw
 } from 'lucide-react';
 
 type ActivePage = 'dashboard' | 'ledger' | 'investments' | 'tax' | 'business' | 'sankey' | 'ai' | 'settings' | 'planner';
@@ -38,6 +41,8 @@ const App: React.FC = () => {
 
   const [syncTrigger, setSyncTrigger] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [showSavePopup, setShowSavePopup] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; title: string; message: string } | null>(null);
 
   const showToastAlert = (title: string, message: string) => {
@@ -49,14 +54,26 @@ const App: React.FC = () => {
   const activeProfile = profiles.find(p => p.id === activeProfileId);
 
   const handleProfileSwitch = (targetId: string) => {
+    if (hasUnsavedChanges || saveError) {
+      setShowSavePopup(true);
+    }
     setActiveProfileId(targetId);
   };
 
   useEffect(() => {
-    const cleanup = dbService.onUnsavedChangeStatus((status) => {
+    const cleanupUnsaved = dbService.onUnsavedChangeStatus((status) => {
       setHasUnsavedChanges(status);
     });
-    return () => cleanup();
+    const cleanupError = dbService.onSaveErrorStatus((err) => {
+      setSaveError(err);
+      if (err) {
+        setShowSavePopup(true);
+      }
+    });
+    return () => {
+      cleanupUnsaved();
+      cleanupError();
+    };
   }, []);
 
   useEffect(() => {
@@ -337,18 +354,75 @@ const App: React.FC = () => {
           </div>
 
           <div className="responsive-flex-wrap" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem' }}>
-            {hasUnsavedChanges && (
-              <button
-                className="btn animate-fade-in"
-                onClick={() => {
-                  dbService.syncToCloud().then(() => showToastAlert('Cloud Sync', 'Saved to Google Drive'));
-                }}
-                style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', gap: '0.4rem', background: '#3b82f6', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center' }}
-              >
-                <UploadCloud size={14} />
-                <span>Save to Cloud</span>
-              </button>
-            )}
+            {/* Live Auto-Save Status Badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              {saveError ? (
+                <button
+                  className="btn animate-fade-in"
+                  onClick={() => setShowSavePopup(true)}
+                  title="Click to view error and retry"
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    fontSize: '0.8rem',
+                    gap: '0.4rem',
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    color: '#f87171',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    fontWeight: 600,
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <AlertCircle size={14} />
+                  <span>Save Not Done</span>
+                </button>
+              ) : hasUnsavedChanges ? (
+                <button
+                  className="btn animate-fade-in"
+                  onClick={() => {
+                    dbService.syncToCloud().then(() => showToastAlert('Auto-Save', 'State saved to cloud'));
+                  }}
+                  title="Saving changes in background..."
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    fontSize: '0.8rem',
+                    gap: '0.4rem',
+                    background: 'rgba(245, 158, 11, 0.15)',
+                    color: '#f59e0b',
+                    border: '1px solid rgba(245, 158, 11, 0.4)',
+                    fontWeight: 600,
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <RefreshCw size={14} className="spin" />
+                  <span>Saving...</span>
+                </button>
+              ) : (
+                <div
+                  title="All feature states are automatically saved"
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    fontSize: '0.8rem',
+                    gap: '0.4rem',
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    color: '#10b981',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    fontWeight: 600,
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  <CheckCircle2 size={14} />
+                  <span>Auto-Saved</span>
+                </div>
+              )}
+            </div>
 
             {/* Global Date Filter */}
             <div style={{ position: 'relative' }}>
@@ -480,6 +554,14 @@ const App: React.FC = () => {
           <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0 }}>{toast.message}</p>
         </div>
       )}
+
+      {/* Save Status Warning / Error Popup */}
+      <SaveStatusPopup
+        isOpen={showSavePopup}
+        onClose={() => setShowSavePopup(false)}
+        saveError={saveError}
+        hasUnsavedChanges={hasUnsavedChanges}
+      />
 
       {/* Command Palette (Ctrl+K) */}
       <CommandPalette

@@ -29,6 +29,51 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
   const [holdingMonths, setHoldingMonths] = useState<number>(0);
   const [capGainsResult, setCapGainsResult] = useState<any>(null);
 
+  const [isLoaded, setIsLoaded] = React.useState(false);
+
+  // Load saved Tax Inputs on activeProfileId change
+  React.useEffect(() => {
+    try {
+      const saved = dbService.getTaxInputs?.(activeProfileId);
+      if (saved) {
+        setGrossSalary(saved.grossSalary || 0);
+        setDed80C(saved.ded80C || 0);
+        setDed80D(saved.ded80D || 0);
+        setDedNps(saved.dedNps || 0);
+        setDedHomeLoan(saved.dedHomeLoan || 0);
+        setHraExempt(saved.hraExempt || 0);
+        if (saved.assetType) setAssetType(saved.assetType);
+        if (saved.buyValue !== undefined) setBuyValue(saved.buyValue);
+        if (saved.sellValue !== undefined) setSellValue(saved.sellValue);
+        if (saved.holdingMonths !== undefined) setHoldingMonths(saved.holdingMonths);
+      }
+    } catch (e) {
+      console.error('Failed to load saved tax inputs', e);
+    } finally {
+      setIsLoaded(true);
+    }
+  }, [activeProfileId]);
+
+  // Auto-Save Tax Inputs on change
+  React.useEffect(() => {
+    if (!isLoaded) return;
+    const timer = setTimeout(() => {
+      dbService.updateTaxInputs(activeProfileId, {
+        grossSalary,
+        ded80C,
+        ded80D,
+        dedNps,
+        dedHomeLoan,
+        hraExempt,
+        assetType,
+        buyValue,
+        sellValue,
+        holdingMonths
+      }).catch(console.error);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [grossSalary, ded80C, ded80D, dedNps, dedHomeLoan, hraExempt, assetType, buyValue, sellValue, holdingMonths, activeProfileId, isLoaded]);
+
   // TDS Records State
   const tdsRecords = useMemo(() => dbService.getTDSRecords(), [refresh, activeProfileId]);
 

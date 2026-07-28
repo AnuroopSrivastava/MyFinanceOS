@@ -309,4 +309,76 @@ export interface SavingsGoal {
   createdAt: string; // ISO
 }
 
+// Auto-Save Feature State Models
+export interface TaxViewInputs {
+  grossSalary: number;
+  ded80C: number;
+  ded80D: number;
+  dedNps: number;
+  dedHomeLoan: number;
+  hraExempt: number;
+  assetType?: 'Equity' | 'Debt' | 'Property';
+  buyValue?: number;
+  sellValue?: number;
+  holdingMonths?: number;
+}
+
+export interface EMICalculatorInputs {
+  principal: number;
+  rate: number;
+  tenureYears: number;
+  prepayment: number;
+  prepaymentMonth: number;
+}
+
+export interface BusinessDrafts {
+  selectedCustomerId?: string;
+  invoiceItems?: { itemId: string; quantity: number }[];
+  invoiceNotes?: string;
+  invoiceNumber?: string;
+  contName?: string;
+  contGstin?: string;
+  contPhone?: string;
+  contEmail?: string;
+  contAddress?: string;
+  contType?: 'Customer' | 'Vendor';
+  invCode?: string;
+  invName?: string;
+  invQty?: string;
+  invPurchasePrice?: string;
+  invSalesPrice?: string;
+  invGstRate?: string;
+  invReorder?: string;
+  regDate?: string;
+  regType?: 'Sales' | 'Purchase';
+  regRefNumber?: string;
+  regPartyName?: string;
+  regTaxableAmount?: string;
+  regCgst?: string;
+  regSgst?: string;
+  regIgst?: string;
+  regGstRate?: string;
+}
+
+export interface FireCalculatorInputs {
+  targetAge?: number;
+  currentAge?: number;
+  monthlyExpense?: number;
+  currentCorpus?: number;
+  monthlySip?: number;
+  annualStepUp?: number;
+  yearsToRetire?: number;
+  expectedInflation?: number;
+  expectedReturn?: number;
+  swrPct?: number;
+}
+
+export interface AIChatMessage {
+  id: string;
+  sender: 'user' | 'assistant';
+  text: string;
+  timestamp?: string;
+}
+
 export * from './crypto.js';
+

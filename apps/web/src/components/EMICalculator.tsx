@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { dbService } from '@financeos/database';
 import { formatRupee } from '../utils/currency.js';
 import { exportToCSV } from '../utils/exportCsv.js';
 import { Calculator, Download, IndianRupee, Clock, PieChart as PieIcon } from 'lucide-react';
@@ -23,6 +24,39 @@ export const EMICalculator: React.FC<EMICalculatorProps> = ({ activeProfileId })
   const [tenureYears, setTenureYears] = useState(0);
   const [prepayment, setPrepayment] = useState(0);
   const [prepaymentMonth, setPrepaymentMonth] = useState(12);
+
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = dbService.getEmiInputs?.(activeProfileId);
+      if (saved) {
+        setPrincipal(saved.principal || 0);
+        setRate(saved.rate || 0);
+        setTenureYears(saved.tenureYears || 0);
+        setPrepayment(saved.prepayment || 0);
+        setPrepaymentMonth(saved.prepaymentMonth || 12);
+      }
+    } catch (e) {
+      console.error('Failed to load EMI inputs', e);
+    } finally {
+      setIsLoaded(true);
+    }
+  }, [activeProfileId]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    const timer = setTimeout(() => {
+      dbService.updateEmiInputs(activeProfileId, {
+        principal,
+        rate,
+        tenureYears,
+        prepayment,
+        prepaymentMonth
+      }).catch(console.error);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [principal, rate, tenureYears, prepayment, prepaymentMonth, activeProfileId, isLoaded]);
 
   const tenureMonths = tenureYears * 12;
   const monthlyRate = rate / 12 / 100;

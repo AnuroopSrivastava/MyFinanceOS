@@ -196,6 +196,7 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
         </>
       ) : activeTab === 'fire' ? (
         <FireSipCalculator
+          activeProfileId={activeProfileId}
           currentMonthlyExpense={currentMonthExpenses}
           currentLiquidNetWorth={currentLiquidNetWorth}
         />

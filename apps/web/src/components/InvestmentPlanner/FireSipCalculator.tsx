@@ -1,24 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { dbService } from '@financeos/database';
 import { formatRupee as formatINR } from '../../utils/currency.js';
 import { Flame, TrendingUp, Target, Award, ArrowUpRight, ShieldCheck, Sparkles } from 'lucide-react';
 
 interface FireSipCalculatorProps {
+  activeProfileId?: string;
   currentMonthlyExpense: number;
   currentLiquidNetWorth: number;
 }
 
 export const FireSipCalculator: React.FC<FireSipCalculatorProps> = ({
+  activeProfileId,
   currentMonthlyExpense,
   currentLiquidNetWorth
 }) => {
   const [monthlyExpense, setMonthlyExpense] = useState<number>(0);
   const [currentCorpus, setCurrentCorpus] = useState<number>(0);
-  const [monthlySip, setMonthlySip] = useState<number>(25000);
+  const [monthlySip, setMonthlySip] = useState<number>(0);
   const [annualStepUp, setAnnualStepUp] = useState<number>(10); // 10% step up per year
   const [expectedReturn, setExpectedReturn] = useState<number>(12); // 12% CAGR
   const [inflationRate, setInflationRate] = useState<number>(6); // 6% annual inflation
   const [swr, setSwr] = useState<number>(3.5); // 3.5% Safe Withdrawal Rate
   const [yearsToRetire, setYearsToRetire] = useState<number>(15);
+
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!activeProfileId) return;
+    try {
+      const saved = dbService.getFireInputs?.(activeProfileId);
+      if (saved) {
+        if (saved.monthlyExpense !== undefined) setMonthlyExpense(saved.monthlyExpense);
+        if (saved.currentCorpus !== undefined) setCurrentCorpus(saved.currentCorpus);
+        if (saved.monthlySip !== undefined) setMonthlySip(saved.monthlySip);
+        if (saved.annualStepUp !== undefined) setAnnualStepUp(saved.annualStepUp);
+        if (saved.yearsToRetire !== undefined) setYearsToRetire(saved.yearsToRetire);
+        if (saved.expectedReturn !== undefined) setExpectedReturn(saved.expectedReturn);
+        if (saved.expectedInflation !== undefined) setInflationRate(saved.expectedInflation);
+        if (saved.swrPct !== undefined) setSwr(saved.swrPct);
+      }
+    } catch (e) {
+      console.error('Failed to load FIRE inputs', e);
+    } finally {
+      setIsLoaded(true);
+    }
+  }, [activeProfileId]);
+
+  useEffect(() => {
+    if (!activeProfileId || !isLoaded) return;
+    const timer = setTimeout(() => {
+      dbService.updateFireInputs(activeProfileId, {
+        monthlyExpense,
+        currentCorpus,
+        monthlySip,
+        annualStepUp,
+        yearsToRetire,
+        expectedReturn,
+        expectedInflation: inflationRate,
+        swrPct: swr
+      }).catch(console.error);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [monthlyExpense, currentCorpus, monthlySip, annualStepUp, yearsToRetire, expectedReturn, inflationRate, swr, activeProfileId, isLoaded]);
 
   const annualExpense = monthlyExpense * 12;
   
@@ -26,16 +69,20 @@ export const FireSipCalculator: React.FC<FireSipCalculatorProps> = ({
   const realReturnRate = Math.max(0, expectedReturn - inflationRate);
 
   // Target FIRE Corpuses based on SWR (25x for 4%, ~28.5x for 3.5%, 33.3x for 3%)
-  const standardFireCorpus = Math.round(annualExpense / (swr / 100));
+  const standardFireCorpus = swr > 0 ? Math.round(annualExpense / (swr / 100)) : 0;
   const leanFireCorpus = Math.round(standardFireCorpus * 0.75); // 75% of standard
   const fatFireCorpus = Math.round(standardFireCorpus * 1.5); // 150% of standard
 
+  const activeCorpus = currentCorpus || currentLiquidNetWorth || 0;
+
   // Calculate future value of corpus with SIP & annual step-up
   const calculateSIPWealth = (months: number) => {
-    if (months === 0) return { totalCorpus: currentCorpus, totalInvested: currentCorpus };
+    if (months === 0 || (monthlySip <= 0 && activeCorpus <= 0)) {
+      return { totalCorpus: activeCorpus, totalInvested: activeCorpus };
+    }
     const r = expectedReturn / 100 / 12;
-    let totalCorpus = currentCorpus;
-    let totalInvested = currentCorpus;
+    let totalCorpus = activeCorpus;
+    let totalInvested = activeCorpus;
     let currentMonthlySip = monthlySip;
 
     for (let m = 1; m <= months; m++) {
@@ -64,11 +111,12 @@ export const FireSipCalculator: React.FC<FireSipCalculatorProps> = ({
   ];
 
   const getMilestoneYear = (targetAmount: number) => {
-    let corpus = currentCorpus;
+    let corpus = activeCorpus;
     let sip = monthlySip;
     const r = expectedReturn / 100 / 12;
 
     if (corpus >= targetAmount) return 'Achieved 🎉';
+    if (sip <= 0 && corpus <= 0) return '--';
 
     for (let m = 1; m <= 480; m++) { // Up to 40 years
       corpus = (corpus + sip) * (1 + r);
@@ -82,7 +130,9 @@ export const FireSipCalculator: React.FC<FireSipCalculatorProps> = ({
     return '40+ years';
   };
 
-  const fireProgress = Math.min(100, Math.round((currentCorpus / standardFireCorpus) * 100));
+  const fireProgress = standardFireCorpus > 0
+    ? Math.min(100, Math.max(0, Math.round((activeCorpus / standardFireCorpus) * 100)))
+    : 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

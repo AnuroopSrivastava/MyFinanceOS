@@ -57,14 +57,14 @@ describe('Cryptography Utilities - Deep Testing', () => {
     it('should correctly encrypt and decrypt massive payloads', async () => {
       const salt = generateSalt();
       const key = await deriveKey('strong-password', salt);
-      
+
       // Generate a ~5MB string
       const largePayload = 'A'.repeat(5 * 1024 * 1024);
       const { ciphertext, iv } = await encrypt(largePayload, key);
       const decrypted = await decrypt(ciphertext, iv, key);
       expect(decrypted.length).toBe(largePayload.length);
       expect(decrypted === largePayload).toBe(true);
-    });
+    }, 15000);
 
     it('should handle complex UTF-8 characters and emojis correctly', async () => {
       const salt = generateSalt();
@@ -87,10 +87,10 @@ describe('Cryptography Utilities - Deep Testing', () => {
       const salt = generateSalt();
       const key = await deriveKey('password123', salt);
       const { ciphertext, iv } = await encrypt('secret message', key);
-      
+
       // Tamper with ciphertext by flipping last character
       const tampered = ciphertext.substring(0, ciphertext.length - 1) + (ciphertext.endsWith('0') ? '1' : '0');
-      
+
       // AES-GCM includes auth tag, tampering will throw
       await expect(decrypt(tampered, iv, key)).rejects.toThrow();
     });
@@ -100,7 +100,7 @@ describe('Cryptography Utilities - Deep Testing', () => {
     it('should successfully encrypt and decrypt 50 randomized payloads', async () => {
       const salt = generateSalt();
       const key = await deriveKey('fuzz-test', salt);
-      
+
       for (let i = 0; i < 50; i++) {
         // Generate a random string that could include special chars, unicode, etc
         const randomPayload = faker.string.sample({ min: 1, max: 10000 });

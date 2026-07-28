@@ -100,6 +100,89 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
   // View Invoice State
   const [viewingInvoice, setViewingInvoice] = useState<BusinessInvoice | null>(null);
 
+  const [isLoaded, setIsLoaded] = React.useState(false);
+
+  // Load saved Business Drafts on profile switch
+  React.useEffect(() => {
+    try {
+      const saved = dbService.getBusinessDrafts?.(activeProfileId);
+      if (saved) {
+        if (saved.selectedCustomerId) setSelectedCustomerId(saved.selectedCustomerId);
+        if (saved.invoiceItems) setInvoiceItems(saved.invoiceItems);
+        if (saved.invoiceNotes !== undefined) setInvoiceNotes(saved.invoiceNotes);
+        if (saved.invoiceNumber) setInvoiceNumber(saved.invoiceNumber);
+        if (saved.contName !== undefined) setContName(saved.contName);
+        if (saved.contGstin !== undefined) setContGstin(saved.contGstin);
+        if (saved.contPhone !== undefined) setContPhone(saved.contPhone);
+        if (saved.contEmail !== undefined) setContEmail(saved.contEmail);
+        if (saved.contAddress !== undefined) setContAddress(saved.contAddress);
+        if (saved.contType) setContType(saved.contType);
+        if (saved.invCode !== undefined) setInvCode(saved.invCode);
+        if (saved.invName !== undefined) setInvName(saved.invName);
+        if (saved.invQty !== undefined) setInvQty(saved.invQty);
+        if (saved.invPurchasePrice !== undefined) setInvPurchasePrice(saved.invPurchasePrice);
+        if (saved.invSalesPrice !== undefined) setInvSalesPrice(saved.invSalesPrice);
+        if (saved.invGstRate) setInvGstRate(saved.invGstRate);
+        if (saved.invReorder) setInvReorder(saved.invReorder);
+        if (saved.regDate !== undefined) setRegDate(saved.regDate);
+        if (saved.regType) setRegType(saved.regType);
+        if (saved.regRefNumber !== undefined) setRegRefNumber(saved.regRefNumber);
+        if (saved.regPartyName !== undefined) setRegPartyName(saved.regPartyName);
+        if (saved.regTaxableAmount !== undefined) setRegTaxableAmount(saved.regTaxableAmount);
+        if (saved.regCgst !== undefined) setRegCgst(saved.regCgst);
+        if (saved.regSgst !== undefined) setRegSgst(saved.regSgst);
+        if (saved.regIgst !== undefined) setRegIgst(saved.regIgst);
+        if (saved.regGstRate) setRegGstRate(saved.regGstRate);
+      }
+    } catch (e) {
+      console.error('Failed to load business drafts', e);
+    } finally {
+      setIsLoaded(true);
+    }
+  }, [activeProfileId]);
+
+  // Auto-Save Business Drafts on change
+  React.useEffect(() => {
+    if (!isLoaded) return;
+    const timer = setTimeout(() => {
+      dbService.updateBusinessDrafts(activeProfileId, {
+        selectedCustomerId,
+        invoiceItems,
+        invoiceNotes,
+        invoiceNumber,
+        contName,
+        contGstin,
+        contPhone,
+        contEmail,
+        contAddress,
+        contType,
+        invCode,
+        invName,
+        invQty,
+        invPurchasePrice,
+        invSalesPrice,
+        invGstRate,
+        invReorder,
+        regDate,
+        regType,
+        regRefNumber,
+        regPartyName,
+        regTaxableAmount,
+        regCgst,
+        regSgst,
+        regIgst,
+        regGstRate
+      }).catch(console.error);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [
+    selectedCustomerId, invoiceItems, invoiceNotes, invoiceNumber,
+    contName, contGstin, contPhone, contEmail, contAddress, contType,
+    invCode, invName, invQty, invPurchasePrice, invSalesPrice, invGstRate, invReorder,
+    regDate, regType, regRefNumber, regPartyName, regTaxableAmount, regCgst, regSgst, regIgst, regGstRate,
+    activeProfileId, isLoaded
+  ]);
+
   const refreshData = () => {
     setInvoices(dbService.getInvoices());
     setInventory(dbService.getInventory());

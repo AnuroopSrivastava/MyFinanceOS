@@ -81,14 +81,37 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'm1',
-      sender: 'assistant',
-      text: 'Namaste! I am your FinanceOS AI assistant. I can run locally for absolute privacy or use cloud AI for advanced queries. Ask me about your net worth, TDS summaries, tax regimes, or financial reports.'
-    }
-  ]);
+  const initialWelcome: ChatMessage = {
+    id: 'm1',
+    sender: 'assistant',
+    text: 'Namaste! I am your FinanceOS AI assistant. I can run locally for absolute privacy or use cloud AI for advanced queries. Ask me about your net worth, TDS summaries, tax regimes, or financial reports.'
+  };
+
+  const [messages, setMessages] = useState<ChatMessage[]>([initialWelcome]);
+  const [isLoaded, setIsLoaded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load saved chat history on profile switch
+  useEffect(() => {
+    try {
+      const saved = dbService.getChatHistory(activeProfileId);
+      if (saved && saved.length > 0) {
+        setMessages(saved);
+      } else {
+        setMessages([initialWelcome]);
+      }
+    } catch (e) {
+      console.error('Failed to load chat history', e);
+    } finally {
+      setIsLoaded(true);
+    }
+  }, [activeProfileId]);
+
+  // Auto-Save chat history on change
+  useEffect(() => {
+    if (!isLoaded) return;
+    dbService.saveChatHistory(activeProfileId, messages).catch(console.error);
+  }, [messages, activeProfileId, isLoaded]);
 
   // DB Data access to answer queries
   const accounts = useMemo(() => dbService.getAccounts().filter(a => a.profileId === activeProfileId), [activeProfileId]);

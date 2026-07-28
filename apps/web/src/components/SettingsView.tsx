@@ -4,7 +4,7 @@ import { setTheme, AppTheme } from '@financeos/ui';
 import { UserProfile, AuditLog, SystemSettings } from '@financeos/shared';
 import {
   Settings, Users, Shield, Download, Upload, Clipboard,
-  Trash2, Plus, Sliders, Sparkles
+  Trash2, Plus, Sliders
 } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -150,15 +150,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
     }
   };
 
-  const handleSeedDemoData = async () => {
-    if (confirm('Seed sample demo data (bank accounts, transactions, stocks, MFs, FDs, and budgets)?')) {
-      await dbService.seedSampleData(activeProfileId);
-      refreshData();
-      alert('Sample demo data seeded successfully! All charts, FIRE tools, and tax engines are ready.');
-      window.location.reload();
-    }
-  };
-
   // Backups: Import database JSON
   const handleImportBackup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -262,15 +253,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
               <Download size={18} color="var(--accent-2)" /> Local Data Backup Vault
             </h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              Generate complete offline file copies of your ledgers or populate sample data for testing.
+              Generate complete offline file copies of your ledgers.
             </p>
 
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <button className="btn btn-secondary" style={{ flex: 1 }} onClick={handleExportBackup}>
                 <Download size={16} /> Download Backup (.json)
-              </button>
-              <button className="btn btn-primary" style={{ flex: 1, background: 'var(--accent-grad)', color: '#fff', border: 'none' }} onClick={handleSeedDemoData}>
-                <Sparkles size={16} /> Populate Demo Data
               </button>
             </div>
 

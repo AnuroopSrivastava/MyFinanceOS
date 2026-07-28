@@ -6,7 +6,8 @@ import {
   StockHolding, MutualFundHolding, GoldHolding, NPSHolding,
   ProvidentFundHolding, VendorCustomer, InventoryItem, BusinessInvoice,
   BusinessRegisterEntry, AuditLog, SystemSettings, RecurringTransaction,
-  TDSSummary, InvestmentPlan, SavingsGoal
+  TDSSummary, InvestmentPlan, SavingsGoal, TaxViewInputs, EMICalculatorInputs,
+  BusinessDrafts, FireCalculatorInputs, AIChatMessage
 } from '@financeos/shared';
 
 interface DatabaseSchema {
@@ -30,6 +31,11 @@ interface DatabaseSchema {
   tdsRecords?: TDSSummary[];
   investmentPlans?: InvestmentPlan[];
   goals?: SavingsGoal[];
+  taxInputs?: Record<string, TaxViewInputs>;
+  emiInputs?: Record<string, EMICalculatorInputs>;
+  businessDrafts?: Record<string, BusinessDrafts>;
+  fireInputs?: Record<string, FireCalculatorInputs>;
+  chatHistory?: Record<string, AIChatMessage[]>;
 }
 
 class DatabaseService {
@@ -38,9 +44,13 @@ class DatabaseService {
   private driveFileId: string | null = null;
   private isSyncing = false;
   private lastSavedPayload: string | null = null;
+  private cloudSyncTimer: any = null;
   
   public hasUnsavedChanges = false;
+  public lastSaveError: string | null = null;
+
   private unsavedChangesListeners: ((hasUnsaved: boolean) => void)[] = [];
+  private saveErrorListeners: ((error: string | null) => void)[] = [];
 
   public onUnsavedChangeStatus(callback: (hasUnsaved: boolean) => void): () => void {
     this.unsavedChangesListeners.push(callback);
@@ -50,11 +60,24 @@ class DatabaseService {
     };
   }
 
+  public onSaveErrorStatus(callback: (error: string | null) => void): () => void {
+    this.saveErrorListeners.push(callback);
+    callback(this.lastSaveError);
+    return () => {
+      this.saveErrorListeners = this.saveErrorListeners.filter(cb => cb !== callback);
+    };
+  }
+
   private setUnsavedChanges(status: boolean) {
     if (this.hasUnsavedChanges !== status) {
       this.hasUnsavedChanges = status;
       this.unsavedChangesListeners.forEach(cb => cb(status));
     }
+  }
+
+  private setSaveError(error: string | null) {
+    this.lastSaveError = error;
+    this.saveErrorListeners.forEach(cb => cb(error));
   }
 
   public isInitialized(): boolean {
@@ -69,6 +92,10 @@ class DatabaseService {
     const res = await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name="financeos_db.json"', {
       headers: { Authorization: `Bearer ${token}` }
     });
+    if (res.status === 401) {
+      authSession.logout();
+      return null;
+    }
     if (!res.ok) return null;
     const data = await res.json();
     if (data.files && data.files.length > 0) {
@@ -85,49 +112,99 @@ class DatabaseService {
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
       headers: { Authorization: `Bearer ${token}` }
     });
+    if (res.status === 401) {
+      authSession.logout();
+      return null;
+    }
     if (!res.ok) return null;
     return await res.text();
   }
 
   private async pushToDrive(payload: string): Promise<void> {
-    if (!authSession.isAuthenticated()) return;
-    const token = authSession.getAccessToken();
-    const fileId = await this.fetchDriveFileId();
-    
-    if (fileId) {
-      // Update existing file
-      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: payload
-      });
-    } else {
-      // Create new file in appDataFolder
-      const metadata = {
-        name: 'financeos_db.json',
-        parents: ['appDataFolder']
-      };
-      
-      const form = new FormData();
-      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-      form.append('file', new Blob([payload], { type: 'application/json' }));
-      
-      const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: form
-      });
-      const data = await res.json();
-      if (data.id) this.driveFileId = data.id;
+    if (!authSession.isAuthenticated()) {
+      this.setSaveError(null);
+      this.setUnsavedChanges(false);
+      return;
     }
-    
-    // Clear unsaved changes flag on successful upload
-    this.setUnsavedChanges(false);
+    try {
+      const token = authSession.getAccessToken();
+      const fileId = await this.fetchDriveFileId();
+      
+      if (!authSession.isAuthenticated()) {
+        this.setSaveError('Cloud auth token expired. Local data is auto-saved on disk.');
+        this.setUnsavedChanges(false);
+        return;
+      }
+
+      if (fileId) {
+        // Update existing file
+        const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: payload
+        });
+        if (res.status === 401) {
+          authSession.logout();
+          this.setSaveError('Google Drive session expired (401). Local data is auto-saved on disk.');
+          this.setUnsavedChanges(false);
+          return;
+        }
+        if (!res.ok) throw new Error(`Cloud storage API HTTP ${res.status}`);
+      } else {
+        // Create new file in appDataFolder
+        const metadata = {
+          name: 'financeos_db.json',
+          parents: ['appDataFolder']
+        };
+        
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+        form.append('file', new Blob([payload], { type: 'application/json' }));
+        
+        const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: form
+        });
+        if (res.status === 401) {
+          authSession.logout();
+          this.setSaveError('Google Drive session expired (401). Local data is auto-saved on disk.');
+          this.setUnsavedChanges(false);
+          return;
+        }
+        if (!res.ok) throw new Error(`Cloud storage API HTTP ${res.status}`);
+        const data = await res.json();
+        if (data.id) this.driveFileId = data.id;
+      }
+      
+      // Clear unsaved changes flag and save error on successful upload
+      this.setSaveError(null);
+      this.setUnsavedChanges(false);
+    } catch (err: any) {
+      console.error('Push to Drive failed:', err);
+      const is401 = err?.message?.includes('401');
+      if (is401) {
+        authSession.logout();
+        this.setSaveError('Google session expired (401). Local data is auto-saved on disk.');
+        this.setUnsavedChanges(false);
+      } else {
+        const errMsg = err?.message ? `Cloud backup failed: ${err.message}` : 'Google Drive sync failed';
+        this.setSaveError(errMsg);
+        this.setUnsavedChanges(true);
+      }
+      throw err;
+    }
   }
 
   public async syncToCloud(): Promise<void> {
+    if (this.cloudSyncTimer) {
+      clearTimeout(this.cloudSyncTimer);
+      this.cloudSyncTimer = null;
+    }
     if (this.lastSavedPayload && authSession.isAuthenticated()) {
       await this.pushToDrive(this.lastSavedPayload);
+    } else if (this.db) {
+      await this.save();
     }
   }
 
@@ -195,22 +272,37 @@ class DatabaseService {
     try {
       const payload = JSON.stringify(this.db);
       this.lastSavedPayload = payload;
-      this.setUnsavedChanges(true);
       
       if (typeof window !== 'undefined') {
+        // Instant local persistence (<1ms)
         localStorage.setItem(this.storageKey, payload);
         
         // Save local backup if running inside Electron
         if ((window as any).electronAPI) {
-          (window as any).electronAPI.saveDbBackup(payload).catch(console.error);
+          (window as any).electronAPI.saveDbBackup(payload).catch((err: any) => {
+            console.error('Electron local backup save error:', err);
+          });
         }
 
+        // Local storage write succeeded - mark save as clean immediately
+        this.setSaveError(null);
+        this.setUnsavedChanges(false);
+
+        // Debounced background cloud sync to avoid network lag or API rate limits
         if (authSession.isAuthenticated()) {
-           this.pushToDrive(payload).catch(console.error);
+          if (this.cloudSyncTimer) clearTimeout(this.cloudSyncTimer);
+          this.cloudSyncTimer = setTimeout(() => {
+            this.pushToDrive(payload).catch((err: any) => {
+              console.error('Cloud drive sync error:', err);
+            });
+          }, 800);
         }
       }
-    } catch (e) {
-      console.error('Failed to save database', e);
+    } catch (e: any) {
+      console.error('Failed to save database:', e);
+      const errMsg = e?.message ? `Local storage save failed: ${e.message}` : 'Local database save failed';
+      this.setSaveError(errMsg);
+      this.setUnsavedChanges(true);
     }
   }
 
@@ -1215,7 +1307,70 @@ class DatabaseService {
     await this.save();
     return newTx;
   }
+
+  // --- Auto-Save Feature State Repositories ---
+
+  public getTaxInputs(profileId: string): TaxViewInputs | null {
+    if (!this.db) return null;
+    return this.db.taxInputs?.[profileId] || null;
+  }
+
+  public async updateTaxInputs(profileId: string, inputs: TaxViewInputs): Promise<void> {
+    if (!this.db) return;
+    if (!this.db.taxInputs) this.db.taxInputs = {};
+    this.db.taxInputs[profileId] = inputs;
+    await this.save();
+  }
+
+  public getEmiInputs(profileId: string): EMICalculatorInputs | null {
+    if (!this.db) return null;
+    return this.db.emiInputs?.[profileId] || null;
+  }
+
+  public async updateEmiInputs(profileId: string, inputs: EMICalculatorInputs): Promise<void> {
+    if (!this.db) return;
+    if (!this.db.emiInputs) this.db.emiInputs = {};
+    this.db.emiInputs[profileId] = inputs;
+    await this.save();
+  }
+
+  public getBusinessDrafts(profileId: string): BusinessDrafts | null {
+    if (!this.db) return null;
+    return this.db.businessDrafts?.[profileId] || null;
+  }
+
+  public async updateBusinessDrafts(profileId: string, drafts: BusinessDrafts): Promise<void> {
+    if (!this.db) return;
+    if (!this.db.businessDrafts) this.db.businessDrafts = {};
+    this.db.businessDrafts[profileId] = drafts;
+    await this.save();
+  }
+
+  public getFireInputs(profileId: string): FireCalculatorInputs | null {
+    if (!this.db) return null;
+    return this.db.fireInputs?.[profileId] || null;
+  }
+
+  public async updateFireInputs(profileId: string, inputs: FireCalculatorInputs): Promise<void> {
+    if (!this.db) return;
+    if (!this.db.fireInputs) this.db.fireInputs = {};
+    this.db.fireInputs[profileId] = inputs;
+    await this.save();
+  }
+
+  public getChatHistory(profileId: string): AIChatMessage[] {
+    if (!this.db) return [];
+    return this.db.chatHistory?.[profileId] || [];
+  }
+
+  public async saveChatHistory(profileId: string, history: AIChatMessage[]): Promise<void> {
+    if (!this.db) return;
+    if (!this.db.chatHistory) this.db.chatHistory = {};
+    this.db.chatHistory[profileId] = history;
+    await this.save();
+  }
 }
 
 export const dbService = new DatabaseService();
 export default dbService;
+

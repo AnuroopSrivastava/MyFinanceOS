@@ -218,5 +218,59 @@ describe('DatabaseService - Comprehensive Tests', () => {
       expect(dbService.getAccounts()).toHaveLength(0);
       expect(dbService.getTransactions()).toHaveLength(0);
     });
+
+    it('should correctly save and retrieve TaxView, EMI, Business, FIRE, and AI Chat feature states', async () => {
+      const profile = await dbService.addProfile({ name: 'AutoSave User', role: 'Member', isNomineeProvided: true });
+
+      // Tax Inputs
+      await dbService.updateTaxInputs(profile.id, {
+        grossSalary: 1200000,
+        ded80C: 150000,
+        ded80D: 25000,
+        dedNps: 50000,
+        dedHomeLoan: 0,
+        hraExempt: 100000
+      });
+      const savedTax = dbService.getTaxInputs(profile.id);
+      expect(savedTax?.grossSalary).toBe(1200000);
+      expect(savedTax?.ded80C).toBe(150000);
+
+      // EMI Inputs
+      await dbService.updateEmiInputs(profile.id, {
+        principal: 5000000,
+        rate: 8.5,
+        tenureYears: 20,
+        prepayment: 100000,
+        prepaymentMonth: 12
+      });
+      const savedEmi = dbService.getEmiInputs(profile.id);
+      expect(savedEmi?.principal).toBe(5000000);
+
+      // Business Drafts
+      await dbService.updateBusinessDrafts(profile.id, {
+        invoiceNotes: 'Auto-saved draft notes',
+        invoiceNumber: 'INV-2026-99'
+      });
+      const savedBusiness = dbService.getBusinessDrafts(profile.id);
+      expect(savedBusiness?.invoiceNotes).toBe('Auto-saved draft notes');
+
+      // FIRE Inputs
+      await dbService.updateFireInputs(profile.id, {
+        monthlyExpense: 80000,
+        expectedReturn: 12
+      });
+      const savedFire = dbService.getFireInputs(profile.id);
+      expect(savedFire?.monthlyExpense).toBe(80000);
+
+      // Chat History
+      await dbService.saveChatHistory(profile.id, [
+        { id: 'm1', sender: 'user', text: 'Hello' },
+        { id: 'm2', sender: 'assistant', text: 'Namaste!' }
+      ]);
+      const savedChat = dbService.getChatHistory(profile.id);
+      expect(savedChat).toHaveLength(2);
+      expect(savedChat[1].text).toBe('Namaste!');
+    });
   });
 });
+
