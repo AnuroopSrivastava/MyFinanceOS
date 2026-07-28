@@ -1,6 +1,8 @@
 {
   "name": "@financeos/desktop",
   "version": "1.0.0",
+  "description": "MyFinanceOS Desktop Application",
+  "author": "Anuroop",
   "type": "module",
   "main": "./dist/main.js",
   "scripts": {
@@ -20,7 +22,11 @@
       "output": "release"
     },
     "win": {
-      "target": "nsis"
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico"
     },
     "files": [
       "dist/**/*",

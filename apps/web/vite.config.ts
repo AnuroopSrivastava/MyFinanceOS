@@ -86,11 +86,11 @@ export default defineConfig({
   plugins: [react(), localSyncPlugin()],
   server: {
     port: 3000,
+    strictPort: true,
     host: true
   },
   test: {
     environment: 'jsdom',
-    setupFiles: ['./vitest.setup.js'],
     globals: true,
     setupFiles: ['./src/setupTests.ts']
   }

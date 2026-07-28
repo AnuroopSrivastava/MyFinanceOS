@@ -16,7 +16,7 @@ if (!fs.existsSync(dataDir)) {
 const backupFilePath = path.join(dataDir, 'financeos_data.json');
 const configFilePath = path.join(dataDir, 'financeos_config.json');
 
-const PORT = 5174;
+const PORT = 3000;
 
 function serveStatic(port: number, dir: string) {
   return new Promise((resolve) => {
@@ -24,11 +24,11 @@ function serveStatic(port: number, dir: string) {
       // Remove query strings
       const rawUrl = req.url?.split('?')[0] || '/';
       let filePath = path.join(dir, rawUrl === '/' ? 'index.html' : rawUrl);
-      
+
       if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
         filePath = path.join(dir, 'index.html'); // SPA fallback
       }
-      
+
       const extname = String(path.extname(filePath)).toLowerCase();
       const mimeTypes: { [key: string]: string } = {
         '.html': 'text/html',
@@ -93,7 +93,7 @@ async function createWindow() {
   });
 
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-  
+
   if (isDev) {
     const loadDevServer = () => {
       if (!mainWindow) return;
