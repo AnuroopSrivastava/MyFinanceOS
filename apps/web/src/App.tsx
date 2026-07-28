@@ -18,14 +18,18 @@ import { CommandPalette } from './components/CommandPalette.js';
 
 import { SaveStatusPopup } from './components/SaveStatusPopup.js';
 
+import { DocumentVaultView } from './components/DocumentVaultView.js';
+import { AutomationView } from './components/AutomationView.js';
+import { ReportsView } from './components/ReportsView.js';
+
 import {
   LayoutDashboard, Landmark, TrendingUp, Percent,
   Briefcase, Network, Sparkles, Settings, LogOut, Lock,
   Users, Calendar, Target, ChevronDown, UploadCloud, Menu, X,
-  CheckCircle2, AlertCircle, RefreshCw
+  CheckCircle2, AlertCircle, RefreshCw, ShieldCheck, Zap, FileSpreadsheet
 } from 'lucide-react';
 
-type ActivePage = 'dashboard' | 'ledger' | 'investments' | 'tax' | 'business' | 'sankey' | 'ai' | 'settings' | 'planner';
+type ActivePage = 'dashboard' | 'ledger' | 'investments' | 'tax' | 'business' | 'sankey' | 'ai' | 'settings' | 'planner' | 'vault' | 'automation' | 'reports';
 
 const App: React.FC = () => {
   const [isBooting, setIsBooting] = useState(true);
@@ -60,6 +64,13 @@ const App: React.FC = () => {
     }
     setActiveProfileId(targetId);
   };
+
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+  }, [activePage, isUnlocked]);
 
   useEffect(() => {
     const cleanupUnsaved = dbService.onUnsavedChangeStatus((status) => {
@@ -169,6 +180,9 @@ const App: React.FC = () => {
       case 'sankey': return <SankeyView key={`${activeProfileId}_${syncTrigger}`} activeProfileId={activeProfileId} dateRange={dateRange} />;
       case 'ai': return <AIChatView key={`${activeProfileId}_${syncTrigger}`} activeProfileId={activeProfileId} />;
       case 'planner': return <InvestmentPlanner key={`${activeProfileId}_${syncTrigger}`} activeProfileId={activeProfileId} />;
+      case 'vault': return <DocumentVaultView key={`${activeProfileId}_${syncTrigger}`} profileId={activeProfileId} />;
+      case 'automation': return <AutomationView key={`${activeProfileId}_${syncTrigger}`} profileId={activeProfileId} />;
+      case 'reports': return <ReportsView key={`${activeProfileId}_${syncTrigger}`} profileId={activeProfileId} />;
       case 'settings': return (
         <SettingsView
           key={`${activeProfileId}_${syncTrigger}`}
@@ -244,14 +258,17 @@ const App: React.FC = () => {
         {/* Links list */}
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
           {[
-            { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+            { id: 'dashboard', label: 'Mission Control', icon: <LayoutDashboard size={18} /> },
             { id: 'ledger', label: 'Banking & Ledger', icon: <Landmark size={18} /> },
             { id: 'investments', label: 'Investments', icon: <TrendingUp size={18} /> },
-            { id: 'tax', label: 'Indian Tax Engine', icon: <Percent size={18} /> },
-            { id: 'business', label: 'Business Slabs', icon: <Briefcase size={18} /> },
-            { id: 'sankey', label: 'Sankey Flow', icon: <Network size={18} /> },
+            { id: 'tax', label: 'Tax & GST Suite', icon: <Percent size={18} /> },
+            { id: 'business', label: 'Business Suite', icon: <Briefcase size={18} /> },
+            { id: 'sankey', label: 'Sankey Cash Flow', icon: <Network size={18} /> },
             { id: 'planner', label: 'Investment Planner', icon: <Target size={18} /> },
-            { id: 'ai', label: 'AI Assistant', icon: <Sparkles size={18} /> },
+            { id: 'vault', label: 'Encrypted Vault', icon: <ShieldCheck size={18} /> },
+            { id: 'automation', label: 'Automation Rules', icon: <Zap size={18} /> },
+            { id: 'reports', label: '1-Click Reports', icon: <FileSpreadsheet size={18} /> },
+            { id: 'ai', label: 'AI Financial Assistant', icon: <Sparkles size={18} /> },
             { id: 'settings', label: 'Settings', icon: <Settings size={18} /> }
           ].map(page => (
             <button

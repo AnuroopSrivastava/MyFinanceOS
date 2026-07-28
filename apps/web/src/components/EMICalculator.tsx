@@ -145,50 +145,173 @@ export const EMICalculator: React.FC<EMICalculatorProps> = ({ activeProfileId })
           <Calculator size={18} color="var(--accent-1)" /> EMI & Loan Amortization Calculator
         </h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-          {/* Principal Slider */}
-          <div>
-            <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Loan Amount</span>
-              <span style={{ color: 'var(--accent-1)', fontWeight: 600 }}>{formatRupee(principal)}</span>
-            </label>
-            <input type="range" min={100000} max={50000000} step={100000} value={principal} onChange={e => setPrincipal(Number(e.target.value))}
-              style={{ width: '100%', accentColor: 'var(--accent-1)', marginTop: '0.3rem' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+          {/* Principal Input & Slider */}
+          <div className="form-group">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Loan Amount</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '0.2rem 0.5rem', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--accent-1)', fontWeight: 700 }}>₹</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={500000000}
+                  step={10000}
+                  value={principal}
+                  onChange={e => setPrincipal(Math.max(0, Number(e.target.value)))}
+                  style={{
+                    width: '120px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--accent-1)',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    textAlign: 'right'
+                  }}
+                />
+              </div>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={50000000}
+              step={100000}
+              value={principal}
+              onChange={e => setPrincipal(Number(e.target.value))}
+              style={{ width: '100%', accentColor: 'var(--accent-1)', marginTop: '0.3rem' }}
+            />
           </div>
 
-          {/* Interest Rate Slider */}
-          <div>
-            <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Interest Rate</span>
-              <span style={{ color: 'var(--accent-1)', fontWeight: 600 }}>{rate.toFixed(1)}%</span>
-            </label>
-            <input type="range" min={1} max={20} step={0.1} value={rate} onChange={e => setRate(Number(e.target.value))}
-              style={{ width: '100%', accentColor: 'var(--accent-1)', marginTop: '0.3rem' }} />
+          {/* Interest Rate Input & Slider */}
+          <div className="form-group">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Interest Rate</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '0.2rem 0.5rem', border: '1px solid var(--border-color)' }}>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  value={rate}
+                  onChange={e => setRate(Math.max(0, Number(e.target.value)))}
+                  style={{
+                    width: '60px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--accent-1)',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    textAlign: 'right'
+                  }}
+                />
+                <span style={{ fontSize: '0.85rem', color: 'var(--accent-1)', fontWeight: 700 }}>%</span>
+              </div>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={25}
+              step={0.1}
+              value={rate}
+              onChange={e => setRate(Number(e.target.value))}
+              style={{ width: '100%', accentColor: 'var(--accent-1)', marginTop: '0.3rem' }}
+            />
           </div>
 
-          {/* Tenure Slider */}
-          <div>
-            <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Tenure</span>
-              <span style={{ color: 'var(--accent-1)', fontWeight: 600 }}>{tenureYears} Years</span>
-            </label>
-            <input type="range" min={1} max={30} step={1} value={tenureYears} onChange={e => setTenureYears(Number(e.target.value))}
-              style={{ width: '100%', accentColor: 'var(--accent-1)', marginTop: '0.3rem' }} />
+          {/* Tenure Input & Slider */}
+          <div className="form-group">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Tenure</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '0.2rem 0.5rem', border: '1px solid var(--border-color)' }}>
+                <input
+                  type="number"
+                  min={0}
+                  max={50}
+                  step={1}
+                  value={tenureYears}
+                  onChange={e => setTenureYears(Math.max(0, Number(e.target.value)))}
+                  style={{
+                    width: '50px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--accent-1)',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    textAlign: 'right'
+                  }}
+                />
+                <span style={{ fontSize: '0.8rem', color: 'var(--accent-1)', fontWeight: 600 }}>Yrs</span>
+              </div>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={30}
+              step={1}
+              value={tenureYears}
+              onChange={e => setTenureYears(Number(e.target.value))}
+              style={{ width: '100%', accentColor: 'var(--accent-1)', marginTop: '0.3rem' }}
+            />
           </div>
 
-          {/* Prepayment */}
-          <div>
-            <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Lump-Sum Prepayment</span>
-              <span style={{ color: 'var(--warning)', fontWeight: 600 }}>{formatRupee(prepayment)}</span>
-            </label>
-            <input type="range" min={0} max={principal * 0.5} step={50000} value={prepayment} onChange={e => setPrepayment(Number(e.target.value))}
-              style={{ width: '100%', accentColor: 'var(--warning)', marginTop: '0.3rem' }} />
+          {/* Prepayment Input & Slider */}
+          <div className="form-group">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Lump-Sum Prepayment</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '0.2rem 0.5rem', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--warning)', fontWeight: 700 }}>₹</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={500000000}
+                  step={10000}
+                  value={prepayment}
+                  onChange={e => setPrepayment(Math.max(0, Number(e.target.value)))}
+                  style={{
+                    width: '110px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--warning)',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    textAlign: 'right'
+                  }}
+                />
+              </div>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(100000, principal * 0.5)}
+              step={10000}
+              value={prepayment}
+              onChange={e => setPrepayment(Number(e.target.value))}
+              style={{ width: '100%', accentColor: 'var(--warning)', marginTop: '0.3rem' }}
+            />
             {prepayment > 0 && (
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                 Applied at month {prepaymentMonth}
-                <input type="number" min={1} max={tenureMonths} value={prepaymentMonth} onChange={e => setPrepaymentMonth(Number(e.target.value))}
-                  style={{ width: '50px', marginLeft: '0.3rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', borderRadius: '4px', color: '#fff', padding: '0.1rem 0.3rem', fontSize: '0.7rem' }} />
+                <input
+                  type="number"
+                  min={1}
+                  max={Math.max(1, tenureMonths)}
+                  value={prepaymentMonth}
+                  onChange={e => setPrepaymentMonth(Number(e.target.value))}
+                  style={{
+                    width: '50px',
+                    marginLeft: '0.3rem',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '4px',
+                    color: '#fff',
+                    padding: '0.1rem 0.3rem',
+                    fontSize: '0.7rem'
+                  }}
+                />
               </div>
             )}
           </div>

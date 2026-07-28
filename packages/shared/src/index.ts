@@ -124,6 +124,86 @@ export interface ProvidentFundHolding {
   nomineeName?: string;
 }
 
+export interface USStockHolding {
+  id: string;
+  profileId: string;
+  ticker: string;
+  name: string;
+  shares: number;
+  avgCostUsd: number;
+  currentPriceUsd: number;
+  usdInrRate: number;
+  nomineeName?: string;
+}
+
+export interface RealEstateHolding {
+  id: string;
+  profileId: string;
+  propertyName: string;
+  location: string;
+  purchaseValue: number;
+  estimatedCurrentValue: number;
+  monthlyRentalIncome?: number;
+  isMortgaged: boolean;
+  outstandingLoan?: number;
+}
+
+export interface BondHolding {
+  id: string;
+  profileId: string;
+  issuer: string;
+  bondType: 'SGB' | 'Corporate' | 'GovtGSec' | 'TaxFree';
+  faceValue: number;
+  couponRate: number;
+  maturityDate: string;
+  quantity: number;
+}
+
+export interface InsurancePolicy {
+  id: string;
+  profileId: string;
+  policyName: string;
+  provider: string;
+  policyType: 'Health' | 'TermLife' | 'Motor' | 'ULIP';
+  sumAssured: number;
+  premiumAmount: number;
+  renewalDate: string;
+  policyNumber: string;
+}
+
+export interface EncryptedDocument {
+  id: string;
+  profileId: string;
+  title: string;
+  category: 'PAN' | 'Aadhaar' | 'Insurance' | 'Property' | 'Tax' | 'MutualFund' | 'Loan' | 'Passport' | 'Other';
+  uploadDate: string;
+  fileSizeFormatted: string;
+  tags: string[];
+  notes?: string;
+  isEncrypted: boolean;
+  ocrSummary?: string;
+}
+
+export interface AutomationRule {
+  id: string;
+  profileId: string;
+  name: string;
+  triggerType: 'CategoryMatch' | 'AmountOver' | 'DescriptionContains';
+  matchPattern: string;
+  targetCategory: string;
+  targetTag?: string;
+  isActive: boolean;
+}
+
+export interface DashboardWidgetConfig {
+  id: string;
+  title: string;
+  category: string;
+  isVisible: boolean;
+  order: number;
+  size: 'small' | 'medium' | 'large' | 'full';
+}
+
 // Tax Models
 export interface TaxDeductions {
   section80C: number; // Max 1.5 Lakhs (PPF, ELSS, EPF, LIC)

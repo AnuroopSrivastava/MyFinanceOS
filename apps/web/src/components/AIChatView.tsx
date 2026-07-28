@@ -14,13 +14,16 @@ interface AIChatViewProps {
 }
 
 const QUICK_PROMPTS = [
-  { label: '📊 Net Worth Summary', prompt: 'Give me a complete net worth summary and breakdown across my accounts.' },
-  { label: '🔥 FIRE Goal Progress', prompt: 'How close am I to my FIRE retirement goal based on my current liquid net worth?' },
-  { label: '⚖️ Tax Regime Comparison', prompt: 'Compare my tax liability between Old and New Indian tax regimes.' },
-  { label: '🏛️ Advance Tax Schedule', prompt: 'What are my estimated quarterly advance tax installment dates and amounts?' },
-  { label: '🛡️ Nominee Audit Check', prompt: 'Which of my accounts or investment assets are missing nominees?' },
-  { label: '💸 Monthly Cashflow', prompt: 'Analyze my income versus expenses for this month.' }
+  { label: '📊 Where did my money go?', prompt: 'Where did my money go this month? Show spending breakdown and category analysis.' },
+  { label: '🚘 Can I buy a ₹15 lakh car?', prompt: 'Can I buy a ₹15 lakh car based on my current liquid net worth, monthly cash flow, and emergency fund safety margin?' },
+  { label: '🌅 Can I retire by 2045?', prompt: 'Can I retire by 2045? Calculate projected wealth, required SIP, inflation-adjusted corpus, and SWR withdrawal plan.' },
+  { label: '📈 What if inflation becomes 7%?', prompt: 'What if inflation increases to 7%? Model long-term corpus purchasing power and required step-up SIP.' },
+  { label: '💡 How much tax will I save?', prompt: 'How much tax will I save under the New Tax Regime vs Old Tax Regime with 80C, 80D, and NPS?' },
+  { label: '🚀 Should I increase SIP?', prompt: 'Should I increase my monthly SIP by 15%? Project portfolio growth delta over 10 years.' },
+  { label: '📑 Generate Monthly Report', prompt: 'Generate a comprehensive executive monthly financial report and cash flow synthesis.' },
+  { label: '⚖️ Compare 2025 vs 2026', prompt: 'Compare 2025 vs 2026 financial metrics, savings rate, and portfolio trajectory.' }
 ];
+
 
 const FormattedMarkdown: React.FC<{ text: string }> = ({ text }) => {
   const lines = text.split('\n');

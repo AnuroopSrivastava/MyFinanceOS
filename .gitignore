@@ -5,3 +5,10 @@ web-dist
 .env
 financeos_data.json
 financeos_config.json
+playwright-report
+test-results
+.claude
+*.js
+!apps/**/*.js
+!packages/**/*.js
+

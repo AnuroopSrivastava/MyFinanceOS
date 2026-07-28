@@ -112,18 +112,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
     }).sort((a, b) => b.pct - a.pct);
   }, [budgets, rawTransactions, currentMonthStr]);
 
-  // Monthly flows (Income vs Expense in current July 2026 month)
+  // Monthly flows (Income vs Expense in current active month)
   const monthlyIncome = useMemo(() => {
     return transactions
-      .filter(t => t.type === 'Income' && t.date.startsWith('2026-07'))
+      .filter(t => t.type === 'Income' && t.date.startsWith(currentMonthStr))
       .reduce((sum, t) => sum + t.amount, 0);
-  }, [transactions]);
+  }, [transactions, currentMonthStr]);
 
   const monthlyExpense = useMemo(() => {
     return transactions
-      .filter(t => t.type === 'Expense' && t.date.startsWith('2026-07'))
+      .filter(t => t.type === 'Expense' && t.date.startsWith(currentMonthStr))
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-  }, [transactions]);
+  }, [transactions, currentMonthStr]);
 
   const savingsRate = useMemo(() => {
     if (monthlyIncome === 0) return 0;
@@ -145,7 +145,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
   const [timelineFilter, setTimelineFilter] = useState<'6M' | '12M' | '2Y' | '5Y' | '10Y'>('6M');
 
   const historyData = useMemo(() => {
-    const now = new Date('2026-07-16');
+    const now = new Date();
     let points = 6;
     let monthStep = 1;
 
@@ -192,13 +192,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
 
       let calculatedNetWorth = netWorth - actualDiff;
 
-      // Simulated backward compounding decay factor (8% annual backwards decay) if past oldest transaction
-      const oldestTxDate = sortedTx.length > 0 ? sortedTx[sortedTx.length - 1].date.slice(0, 7) : '2026-07';
+      const oldestTxDate = sortedTx.length > 0 ? sortedTx[sortedTx.length - 1].date.slice(0, 7) : currentMonthStr;
       if (dateStr < oldestTxDate) {
         const oldestYear = parseInt(oldestTxDate.slice(0, 4));
         const oldestMonth = parseInt(oldestTxDate.slice(5, 7)) - 1;
         const diffMonths = (oldestYear - d.getFullYear()) * 12 + (oldestMonth - d.getMonth());
-        
+
         if (diffMonths > 0) {
           const decay = Math.pow(1 - 0.08 / 12, diffMonths);
           let oldestActualDiff = 0;
@@ -229,15 +228,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
     }
 
     return data;
-  }, [timelineFilter, netWorth, transactions]);
+  }, [timelineFilter, netWorth, transactions, currentMonthStr]);
 
   // Cashflow compare monthly data
   const cashflowData = useMemo(() => {
     const monthlyData: Record<string, { Income: number; Expense: number }> = {};
-    const now = new Date('2026-07-16');
-    const currentMonthStr = now.toISOString().slice(0, 7);
-    monthlyData[currentMonthStr] = { Income: 0, Expense: 0 };
-    
+    const now = new Date();
+    const cMonthStr = now.toISOString().slice(0, 7);
+    monthlyData[cMonthStr] = { Income: 0, Expense: 0 };
+
     transactions.forEach(t => {
       const monthPrefix = t.date.slice(0, 7);
       if (!monthlyData[monthPrefix]) {
@@ -251,7 +250,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
     });
 
     const monthsNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
+
     return Object.entries(monthlyData)
       .sort((a, b) => a[0].localeCompare(b[0]))
       .slice(-6)
@@ -296,50 +295,84 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [fds]);
 
-
   const smartInsights = useMemo(() => {
     const insights: string[] = [];
-    if (savingsRate > 40) {
-      insights.push(`Your savings rate of ${savingsRate.toFixed(1)}% is excellent. Try increasing your SIP step-up by 2% to reach financial independence earlier.`);
+    if (monthlyIncome === 0 && monthlyExpense === 0) {
+      insights.push(`Welcome! Add your bank accounts and first transaction in Banking & Ledger to initialize financial analytics.`);
+    } else if (savingsRate > 40) {
+      insights.push(`Your savings rate of ${savingsRate.toFixed(1)}% is excellent. Try increasing your monthly SIP step-up to reach financial independence earlier.`);
     } else if (savingsRate > 20) {
-      insights.push(`Good savings rate (${savingsRate.toFixed(1)}%). Consider optimizing expenses to reach 30%.`);
+      insights.push(`Good savings rate (${savingsRate.toFixed(1)}%). Consider optimizing monthly expenses to reach 30%.`);
     } else {
       insights.push(`Your savings rate is ${savingsRate.toFixed(1)}%. Track your Food & Dining expenses to boost this.`);
     }
 
     if (totalAssets > 0 && bankBalances / totalAssets > 0.4) {
-      insights.push(`You hold over 40% of assets in bank accounts. Consider moving excess cash to Index Funds or FDs to beat inflation.`);
+      insights.push(`You hold over 40% of assets in cash/bank accounts. Consider allocating to Index Funds or FDs.`);
     }
 
     if (monthlyExpense > monthlyIncome && monthlyIncome > 0) {
-      insights.push(`Warning: Your expenses exceed income this month. Review your budget to prevent a deficit.`);
-    } else if (monthlyExpense < monthlyIncome * 0.3) {
-      insights.push(`Incredible expense control! You have high surplus liquidity this month for additional investments.`);
+      insights.push(`Warning: Expenses exceed income this month. Review your budget to prevent a deficit.`);
     }
 
-    return insights.slice(0, 2); // Max 2 insights
+    return insights.slice(0, 2);
   }, [savingsRate, totalAssets, bankBalances, monthlyExpense, monthlyIncome]);
 
-  // Financial Health Score (0-100)
+  // Automated Financial Health Score (0-100) strictly from User Data
   const healthScore = useMemo(() => {
     let score = 0;
     const breakdown: { label: string; points: number; max: number; tip: string }[] = [];
 
     // 1. Savings Rate (0-25 pts)
-    const srPts = Math.min(25, Math.round(savingsRate * 0.625));
-    breakdown.push({ label: 'Savings Rate', points: srPts, max: 25, tip: savingsRate < 20 ? 'Target 30%+ monthly savings' : 'Great savings discipline!' });
+    const srPts = monthlyIncome > 0 ? Math.min(25, Math.round(savingsRate * 0.5)) : 0;
+    breakdown.push({
+      label: 'Savings Rate',
+      points: srPts,
+      max: 25,
+      tip: monthlyIncome === 0 ? 'Record monthly income to compute savings rate' : savingsRate < 20 ? 'Target 30%+ monthly savings' : 'Great savings discipline!'
+    });
     score += srPts;
 
     // 2. Debt-to-Asset Ratio (0-20 pts)
-    const debtRatio = totalAssets > 0 ? totalLiabilities / totalAssets : 0;
-    const daPts = debtRatio === 0 ? 20 : debtRatio < 0.2 ? 18 : debtRatio < 0.4 ? 14 : debtRatio < 0.6 ? 8 : 3;
-    breakdown.push({ label: 'Debt-to-Asset', points: daPts, max: 20, tip: debtRatio > 0.4 ? 'Focus on reducing liabilities' : 'Healthy debt levels' });
+    let daPts = 0;
+    if (totalAssets > 0) {
+      const debtRatio = totalLiabilities / totalAssets;
+      daPts = debtRatio === 0 ? 20 : debtRatio < 0.2 ? 18 : debtRatio < 0.4 ? 14 : debtRatio < 0.6 ? 8 : 3;
+      breakdown.push({
+        label: 'Debt-to-Asset',
+        points: daPts,
+        max: 20,
+        tip: debtRatio > 0.4 ? 'Focus on reducing liabilities' : debtRatio === 0 ? 'Zero debt balance — Excellent!' : 'Healthy debt levels'
+      });
+    } else {
+      breakdown.push({
+        label: 'Debt-to-Asset',
+        points: 0,
+        max: 20,
+        tip: 'Add bank accounts or assets to compute debt ratio'
+      });
+    }
     score += daPts;
 
     // 3. Emergency Fund (0-20 pts) — 6+ months = full score
+    let efPts = 0;
     const emergencyMonths = monthlyExpense > 0 ? bankBalances / monthlyExpense : 0;
-    const efPts = Math.min(20, Math.round((emergencyMonths / 6) * 20));
-    breakdown.push({ label: 'Emergency Fund', points: efPts, max: 20, tip: emergencyMonths < 3 ? 'Build 6 months of expenses in liquid savings' : `${emergencyMonths.toFixed(1)} months covered` });
+    if (monthlyExpense > 0 && bankBalances > 0) {
+      efPts = Math.min(20, Math.round((emergencyMonths / 6) * 20));
+      breakdown.push({
+        label: 'Emergency Fund',
+        points: efPts,
+        max: 20,
+        tip: emergencyMonths < 3 ? 'Build 6 months of expenses in liquid savings' : `${emergencyMonths.toFixed(1)} months covered`
+      });
+    } else {
+      breakdown.push({
+        label: 'Emergency Fund',
+        points: 0,
+        max: 20,
+        tip: bankBalances === 0 ? 'Add liquid bank balance' : 'Record monthly expenses to compute emergency runway'
+      });
+    }
     score += efPts;
 
     // 4. Investment Diversification (0-15 pts)
@@ -349,26 +382,61 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
     const hasRetirement = (npsValue + pfValue) > 0 ? 1 : 0;
     const hasFd = fdValue > 0 ? 1 : 0;
     const diversityCount = hasStocks + hasMf + hasGold + hasRetirement + hasFd;
-    const divPts = Math.min(15, diversityCount * 3);
-    breakdown.push({ label: 'Diversification', points: divPts, max: 15, tip: diversityCount < 3 ? 'Spread across equity, debt, and gold' : `${diversityCount} asset classes` });
+    const divPts = diversityCount > 0 ? Math.min(15, diversityCount * 3) : 0;
+    breakdown.push({
+      label: 'Diversification',
+      points: divPts,
+      max: 15,
+      tip: diversityCount === 0 ? 'Add holdings across stocks, mutual funds, FD, or gold' : diversityCount < 3 ? 'Spread across equity, debt, and gold' : `${diversityCount} asset classes active`
+    });
     score += divPts;
 
     // 5. Nominee Coverage (0-10 pts)
     const totalHoldings = stocks.length + mfs.length + accounts.filter(a => a.accountType !== 'CreditCard').length;
-    const withNominee = stocks.filter(s => s.nomineeName).length + mfs.filter(m => m.nomineeName).length + accounts.filter(a => a.accountType !== 'CreditCard' && a.nomineeName).length;
-    const nomPct = totalHoldings > 0 ? withNominee / totalHoldings : 1;
-    const nomPts = Math.round(nomPct * 10);
-    breakdown.push({ label: 'Nominee Coverage', points: nomPts, max: 10, tip: nomPct < 1 ? 'Update nominees for all holdings' : 'All nominees set!' });
+    let nomPts = 0;
+    if (totalHoldings > 0) {
+      const withNominee = stocks.filter(s => s.nomineeName).length + mfs.filter(m => m.nomineeName).length + accounts.filter(a => a.accountType !== 'CreditCard' && a.nomineeName).length;
+      const nomPct = withNominee / totalHoldings;
+      nomPts = Math.round(nomPct * 10);
+      breakdown.push({
+        label: 'Nominee Coverage',
+        points: nomPts,
+        max: 10,
+        tip: nomPct < 1 ? 'Update nominees for all holdings' : 'All nominees set!'
+      });
+    } else {
+      breakdown.push({
+        label: 'Nominee Coverage',
+        points: 0,
+        max: 10,
+        tip: 'Add holdings or accounts to measure nominee coverage'
+      });
+    }
     score += nomPts;
 
-    // 6. Budget Adherence (0-10 pts)
-    const overBudgets = budgetAlerts.filter(b => b.pct > 100).length;
-    const budPts = budgetAlerts.length === 0 ? 7 : overBudgets === 0 ? 10 : Math.max(0, 10 - overBudgets * 3);
-    breakdown.push({ label: 'Budget Discipline', points: budPts, max: 10, tip: overBudgets > 0 ? `${overBudgets} categories over budget` : 'Within all budgets' });
+    // 6. Budget Discipline (0-10 pts)
+    let budPts = 0;
+    if (budgets.length > 0) {
+      const overBudgets = budgetAlerts.filter(b => b.pct > 100).length;
+      budPts = overBudgets === 0 ? 10 : Math.max(0, 10 - overBudgets * 3);
+      breakdown.push({
+        label: 'Budget Discipline',
+        points: budPts,
+        max: 10,
+        tip: overBudgets > 0 ? `${overBudgets} categories over budget` : 'Within all budgets'
+      });
+    } else {
+      breakdown.push({
+        label: 'Budget Discipline',
+        points: 0,
+        max: 10,
+        tip: 'Set up category budgets to measure spending discipline'
+      });
+    }
     score += budPts;
 
     return { score: Math.min(100, score), breakdown };
-  }, [savingsRate, totalAssets, totalLiabilities, bankBalances, monthlyExpense, stockValue, mfValue, goldValue, npsValue, pfValue, fdValue, stocks, mfs, accounts, budgetAlerts]);
+  }, [savingsRate, monthlyIncome, totalAssets, totalLiabilities, bankBalances, monthlyExpense, stockValue, mfValue, goldValue, npsValue, pfValue, fdValue, stocks, mfs, accounts, budgets, budgetAlerts]);
 
   const [showHealthBreakdown, setShowHealthBreakdown] = useState(false);
 

@@ -4,7 +4,8 @@ import { authSession } from '@financeos/auth';
 import { useGoogleLogin } from '@react-oauth/google';
 import {
   ShieldCheck, ArrowRight, Database, Network, PieChart, Lock, MessageSquare,
-  LayoutDashboard, Receipt, Calculator, Building2, GitFork, Target, Bot, Settings
+  LayoutDashboard, Landmark, TrendingUp, Percent, Briefcase, Building2, Target, Zap,
+  FileSpreadsheet, Sparkles, Settings
 } from 'lucide-react';
 
 interface LandingProps {
@@ -124,186 +125,485 @@ const FaqItem = ({ question, answer }: { question: string, answer: string }) => 
   );
 };
 
+// All 12 Features in Exact Sequence Top-to-Bottom
 const FEATURE_BLOCKS = [
   {
     id: 'dashboard',
     icon: <LayoutDashboard size={24} />,
-    title: 'Command Center Dashboard',
-    desc: 'Get an instant, high-level overview of your entire financial universe. Our intelligent dashboard aggregates data from all modules to give you actionable insights at a glance.',
+    title: 'Mission Control',
+    desc: 'Get an instant, high-level overview of your entire financial universe. Aggregates live net worth, asset allocation, monthly cash flow, and automated financial health score gauges.',
     bullets: [
       'Real-time Net Worth calculation',
+      'Financial Health Score gauge & tips',
       'Interactive asset allocation charts',
-      '30-day quick expense tracking',
-      'Upcoming bill reminders'
+      'Live monthly cash flow synthesis'
     ],
     demo: (
-      <div className="bar-chart">
-        <div className="bar"></div>
-        <div className="bar"></div>
-        <div className="bar"></div>
-        <div className="bar"></div>
-        <div className="bar"></div>
+      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', minWidth: '300px', boxShadow: 'var(--shadow-md)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)', boxShadow: '0 0 8px var(--success)' }} />
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.5px' }}>MISSION CONTROL</span>
+          </div>
+          <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '9999px', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)', fontWeight: 700, border: '1px solid rgba(16, 185, 129, 0.3)' }}>+14.2% YoY</span>
+        </div>
+        <div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Net Worth</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>₹48,50,200</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+          <div style={{ padding: '0.5rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Monthly Income</div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-1)' }}>₹2,15,000</div>
+          </div>
+          <div style={{ padding: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Expenses</div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--error)' }}>₹82,400</div>
+          </div>
+          <div style={{ padding: '0.5rem', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Health Score</div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--success)' }}>94 / 100</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.4rem', height: '50px', marginTop: '0.25rem', padding: '0.5rem 0 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          {[35, 50, 65, 80, 60, 90, 100].map((val, idx) => (
+            <div key={idx} style={{ flex: 1, height: `${val}%`, background: idx === 6 ? 'var(--success)' : (idx === 5 ? 'var(--accent-1)' : 'rgba(59, 130, 246, 0.4)'), borderRadius: '4px', transition: 'all 0.3s' }} />
+          ))}
+        </div>
       </div>
     )
   },
   {
     id: 'ledger',
-    icon: <Receipt size={24} />,
-    title: 'Banking & Core Ledger',
+    icon: <Landmark size={24} />,
+    title: 'Banking & Ledger',
     desc: 'The heart of your financial OS. A powerful, double-entry capable ledger that tracks every rupee with absolute precision and military-grade encryption.',
     bullets: [
-      'Multi-account syncing & tracking',
-      'Automated categorization engine',
-      'Advanced filtering and search',
-      'Split transactions capabilities'
+      'Multi-account balance reconciliation',
+      'Automated category & tag filter engine',
+      'Split transactions & recurring logs',
+      'Full CSV & Excel import & export'
     ],
     demo: (
-      <div className="ledger-list">
-        <div className="ledger-row">
-          <span>Salary Credit</span>
-          <span className="amount-pos">+ ₹85,000</span>
+      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.5rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>TRANSACTION LEDGER</div>
+          <div style={{ display: 'flex', gap: '0.3rem' }}>
+            <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', background: 'var(--accent-1)', color: '#fff', borderRadius: '4px', fontWeight: 600 }}>All</span>
+            <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', borderRadius: '4px' }}>Income</span>
+            <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', borderRadius: '4px' }}>Expenses</span>
+          </div>
         </div>
-        <div className="ledger-row">
-          <span>Grocery Store</span>
-          <span className="amount-neg">- ₹2,400</span>
-        </div>
-        <div className="ledger-row">
-          <span>Dividend Payout</span>
-          <span className="amount-pos">+ ₹1,200</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.75rem', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px' }}>
+            <div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>TechCorp Payroll</div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>HDFC Salary • Today</div>
+            </div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--success)' }}>+ ₹1,85,000</div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.75rem', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px' }}>
+            <div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>HDFC Home Loan EMI</div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Auto-Debit • Yday</div>
+            </div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--error)' }}>- ₹48,500</div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.75rem', background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '8px' }}>
+            <div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>Zerodha Index SIP</div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Investments • 24 Jul</div>
+            </div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--accent-1)' }}>- ₹25,000</div>
+          </div>
         </div>
       </div>
     )
   },
   {
     id: 'investments',
-    icon: <PieChart size={24} />,
-    title: 'Investments Portfolio',
-    desc: 'Track all your equities, mutual funds, and crypto in one place. Monitor real-time updates and allocation breakdowns across your entire portfolio.',
+    icon: <TrendingUp size={24} />,
+    title: 'Investments',
+    desc: 'Consolidated asset tracking for Indian Equities, Mutual Funds, Fixed Deposits, Gold, NPS, EPF, and US Stocks with live P&L and yield analytics.',
     bullets: [
-      'Consolidated asset tracking',
-      'Current vs invested value visualization',
-      'Diversification metrics',
-      'Dividend tracking'
+      'Real-time portfolio valuation & returns',
+      'Multi-asset class allocation grid',
+      'Dividend yield & CAGR tracking',
+      'Nominee coverage audit'
     ],
     demo: (
-      <div className="matrix-grid">
-        <div className="matrix-cell cell-1">Equities<br /><span>45%</span></div>
-        <div className="matrix-cell cell-2">Bonds<br /><span>20%</span></div>
-        <div className="matrix-cell cell-3">Crypto<br /><span>10%</span></div>
-        <div className="matrix-cell cell-4">Real Est.<br /><span>15%</span></div>
-        <div className="matrix-cell cell-5">Cash<br /><span>5%</span></div>
-        <div className="matrix-cell cell-6">Gold<br /><span>5%</span></div>
+      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.85rem', width: '100%', minWidth: '300px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Portfolio Holdings</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>₹34,80,000</div>
+          </div>
+          <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)', borderRadius: '9999px', fontWeight: 700 }}>+₹5.4L (18.3%)</span>
+        </div>
+        <div style={{ display: 'flex', height: '10px', borderRadius: '5px', overflow: 'hidden', gap: '2px' }}>
+          <div style={{ width: '45%', background: '#38bdf8' }} title="Equities 45%" />
+          <div style={{ width: '30%', background: '#c084fc' }} title="Mutual Funds 30%" />
+          <div style={{ width: '15%', background: '#fbbf24' }} title="Gold 15%" />
+          <div style={{ width: '10%', background: '#34d399' }} title="Debt 10%" />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', marginTop: '0.2rem' }}>
+          <div style={{ padding: '0.5rem 0.6rem', background: 'rgba(56, 189, 248, 0.08)', borderRadius: '6px', borderLeft: '3px solid #38bdf8', fontSize: '0.75rem' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>Equities:</span> <strong>45% (₹15.6L)</strong>
+          </div>
+          <div style={{ padding: '0.5rem 0.6rem', background: 'rgba(192, 132, 252, 0.08)', borderRadius: '6px', borderLeft: '3px solid #c084fc', fontSize: '0.75rem' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>Mutual Funds:</span> <strong>30% (₹10.4L)</strong>
+          </div>
+          <div style={{ padding: '0.5rem 0.6rem', background: 'rgba(251, 191, 36, 0.08)', borderRadius: '6px', borderLeft: '3px solid #fbbf24', fontSize: '0.75rem' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>Gold SGBs:</span> <strong>15% (₹5.2L)</strong>
+          </div>
+          <div style={{ padding: '0.5rem 0.6rem', background: 'rgba(52, 211, 153, 0.08)', borderRadius: '6px', borderLeft: '3px solid #34d399', fontSize: '0.75rem' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>Debt & FDs:</span> <strong>10% (₹3.5L)</strong>
+          </div>
+        </div>
       </div>
     )
   },
   {
     id: 'tax',
-    icon: <Calculator size={24} />,
-    title: 'Indian Tax Engine',
-    desc: 'Stay ahead of tax season with real-time tax liability forecasting. Our engine automatically calculates your expected tax based on the latest Indian tax slabs (Old & New regime).',
+    icon: <Percent size={24} />,
+    title: 'Tax & GST Suite',
+    desc: 'Stay ahead of tax season with real-time tax liability forecasting. Automatically calculates expected tax based on latest Indian tax slabs for Old vs New regimes.',
     bullets: [
       'Real-time Old vs New Regime comparison',
-      '80C, 80D, & standard deduction tracking',
-      'Capital Gains tax estimates',
-      'Advance tax payment reminders'
+      '80C, 80D & standard deduction headroom',
+      'STCG & LTCG capital gains calculator',
+      'TDS & Form 26AS reconciliation'
     ],
     demo: (
-      <div className="tax-card">
-        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '2px' }}>Optimizing Tax Liability...</div>
-        <div className="tax-number"></div>
-        <div style={{ color: '#00ffcc', fontSize: '0.85rem', fontWeight: 600 }}>Optimal Regime Detected</div>
+      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>FY26 TAX REGIME COMPARISON</span>
+          <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: 'rgba(59, 130, 246, 0.15)', color: 'var(--accent-1)', borderRadius: '4px' }}>Auto-Optimized</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+          <div style={{ padding: '0.75rem', background: 'rgba(16, 185, 129, 0.12)', border: '1.5px solid var(--success)', borderRadius: '10px' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--success)', fontWeight: 700 }}>NEW REGIME (OPTIMAL)</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.2rem' }}>₹1,42,500</div>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Lower Slabs Applied</div>
+          </div>
+          <div style={{ padding: '0.75rem', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', opacity: 0.7 }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>OLD REGIME</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--error)', marginTop: '0.2rem' }}>₹1,68,000</div>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Includes 80C & 80D</div>
+          </div>
+        </div>
+        <div style={{ padding: '0.4rem 0.75rem', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '6px', color: 'var(--success)', fontSize: '0.75rem', fontWeight: 600, textAlign: 'center' }}>
+          ✓ New Tax Regime Saves You ₹25,500 Annually
+        </div>
       </div>
     )
   },
   {
     id: 'business',
-    icon: <Building2 size={24} />,
-    title: 'Business Slabs',
-    desc: 'Manage multiple business entities, track corporate tax slabs, and seamlessly categorize business versus personal expenses.',
+    icon: <Briefcase size={24} />,
+    title: 'Business Suite',
+    desc: 'Manage multiple commercial entities, corporate tax slabs, GST invoicing, inventory stock, vendor accounts, and automated Profit & Loss statements.',
     bullets: [
-      'Multi-entity accounting',
-      'Corporate tax tier tracking',
-      'Expense separation',
-      'Automated P&L generation'
+      'Commercial GST invoicing & tracking',
+      'Multi-entity corporate tax tier slabs',
+      'Inventory stock & vendor registers',
+      'Automated Commercial P&L generation'
     ],
     demo: (
-      <div className="slab-container">
-        <div className="slab-layer tier-1">Tier 1: Up to ₹5L</div>
-        <div className="slab-layer tier-2">Tier 2: ₹5L - ₹10L</div>
-        <div className="slab-layer tier-3">Tier 3: Above ₹10L</div>
+      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Active Commercial Entity</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>Apex Innovations Pvt Ltd</div>
+          </div>
+          <span style={{ fontSize: '0.65rem', padding: '0.2rem 0.5rem', background: 'rgba(59, 130, 246, 0.15)', color: 'var(--accent-1)', borderRadius: '4px', fontWeight: 600 }}>GST Registered</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <div style={{ padding: '0.45rem 0.75rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+            <span>Slab 1 (Up to ₹5 Lakhs)</span>
+            <strong style={{ color: 'var(--success)' }}>0% Tax Exemption</strong>
+          </div>
+          <div style={{ padding: '0.45rem 0.75rem', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+            <span>Slab 2 (₹5L - ₹10L)</span>
+            <strong style={{ color: 'var(--accent-1)' }}>10% Corporate Slab</strong>
+          </div>
+          <div style={{ padding: '0.45rem 0.75rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+            <span>Slab 3 (Above ₹10L)</span>
+            <strong style={{ color: 'var(--error)' }}>20% Tier Slab</strong>
+          </div>
+        </div>
       </div>
     )
   },
   {
     id: 'sankey',
-    icon: <GitFork size={24} />,
+    icon: <Network size={24} />,
     title: 'Sankey Cash Flow',
-    desc: 'Visualize your money in motion. Sankey diagrams beautifully illustrate exactly how your income flows into different expense categories, investments, and savings.',
+    desc: 'Visualize your money in motion. Interactive Sankey diagrams map exact money paths from salary & business revenue into expense categories, investments, and net savings.',
     bullets: [
-      'Dynamic visual flow tracing',
-      'Identify money leaks instantly',
-      'Customizable node grouping',
-      'Exportable high-res diagrams'
+      'Dynamic visual money flow tracing',
+      'Identify spending leaks instantly',
+      'Customizable node grouping & paths',
+      'High-res diagram export'
     ],
     demo: (
-      <svg className="sankey-svg" viewBox="0 0 200 200" preserveAspectRatio="none">
-        <path className="sankey-line" d="M 0,100 C 100,100 100,50 200,50" />
-        <path className="sankey-line" d="M 0,100 C 100,100 100,150 200,150" />
-        <path className="sankey-line" d="M 0,100 C 100,100 150,180 200,180" />
-      </svg>
+      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '320px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>SANKEY MONEY FLOW DIAGRAM</span>
+          <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: 'rgba(6, 182, 212, 0.15)', color: '#67e8f9', borderRadius: '4px' }}>Live Tracing</span>
+        </div>
+        <div style={{ position: 'relative', width: '100%', height: '140px' }}>
+          <svg viewBox="0 0 340 140" style={{ width: '100%', height: '100%' }}>
+            {/* Left Node: Total Inflow */}
+            <rect x="10" y="25" width="75" height="90" rx="8" fill="rgba(59, 130, 246, 0.2)" stroke="#38bdf8" strokeWidth="1.5" />
+            <text x="47.5" y="62" fill="#ffffff" fontSize="10" fontWeight="bold" textAnchor="middle">INCOME</text>
+            <text x="47.5" y="78" fill="#38bdf8" fontSize="11" fontWeight="bold" textAnchor="middle">₹2,50,000</text>
+
+            {/* Connecting Flow Paths */}
+            <path className="sankey-animated-path" d="M 85 40 C 135 40, 150 25, 195 25" stroke="#34d399" strokeWidth="6" fill="none" opacity="0.85" />
+            <path className="sankey-animated-path" d="M 85 70 C 135 70, 150 70, 195 70" stroke="#38bdf8" strokeWidth="8" fill="none" opacity="0.85" />
+            <path className="sankey-animated-path" d="M 85 100 C 135 100, 150 115, 195 115" stroke="#f43f5e" strokeWidth="5" fill="none" opacity="0.85" />
+
+            {/* Right Nodes */}
+            <rect x="195" y="10" width="135" height="30" rx="6" fill="rgba(52, 211, 153, 0.15)" stroke="#34d399" strokeWidth="1" />
+            <text x="262.5" y="29" fill="#34d399" fontSize="9" fontWeight="bold" textAnchor="middle">SIPs ₹1,25,000 (50%)</text>
+
+            <rect x="195" y="55" width="135" height="30" rx="6" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" strokeWidth="1" />
+            <text x="262.5" y="74" fill="#38bdf8" fontSize="9" fontWeight="bold" textAnchor="middle">Savings ₹75,000 (30%)</text>
+
+            <rect x="195" y="100" width="135" height="30" rx="6" fill="rgba(244, 63, 94, 0.15)" stroke="#f43f5e" strokeWidth="1" />
+            <text x="262.5" y="119" fill="#f43f5e" fontSize="9" fontWeight="bold" textAnchor="middle">Expenses ₹50,000 (20%)</text>
+          </svg>
+        </div>
+      </div>
     )
   },
   {
     id: 'planner',
     icon: <Target size={24} />,
     title: 'Investment Planner',
-    desc: 'Plot your path to financial independence (FIRE). Set long-term goals and let our compounding calculators show you exactly what it takes to reach them.',
+    desc: 'Plot your path to Financial Independence & Early Retirement (FIRE), SIP step-up compounding, goal-based milestone tracking, and EMI loan amortization.',
     bullets: [
-      'FIRE (Financial Independence) calculators',
-      'Future value projections',
-      'Dividend yield projections',
-      'Goal-based timeline mapping'
+      'FIRE Lean / Standard / Fat target corpus math',
+      'SIP compounding with annual step-up',
+      'EMI loan amortization & prepayment calculator',
+      'Goal-based milestone progress mapping'
     ],
     demo: (
-      <svg className="invest-graph" viewBox="0 0 200 100" preserveAspectRatio="none">
-        <path className="invest-axis" d="M 10 10 L 10 90 L 190 90" />
-        <path className="invest-curve" d="M 10 90 Q 100 85, 140 50 T 190 10" />
-      </svg>
+      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.95)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.85rem', width: '100%', minWidth: '320px' }}>
+        {/* Top Header & Mode Tabs */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.4rem' }}>
+            <span style={{ fontSize: '0.65rem', padding: '0.2rem 0.55rem', background: 'rgba(52, 211, 153, 0.2)', color: '#34d399', borderRadius: '6px', fontWeight: 700, border: '1px solid rgba(52, 211, 153, 0.3)' }}>🔥 FIRE Lab</span>
+            <span style={{ fontSize: '0.65rem', padding: '0.2rem 0.55rem', background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-muted)', borderRadius: '6px', fontWeight: 600 }}>📈 SIP Step-Up</span>
+            <span style={{ fontSize: '0.65rem', padding: '0.2rem 0.55rem', background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-muted)', borderRadius: '6px', fontWeight: 600 }}>🏠 EMI Amortization</span>
+          </div>
+          <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', borderRadius: '4px', fontWeight: 600 }}>Interactive</span>
+        </div>
+
+        {/* FIRE Goal Target Summary */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.6rem 0.75rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Target FIRE Corpus</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#34d399' }}>₹2.50 Cr <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 500 }}>(Standard)</span></div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Monthly SIP + Step-Up</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#38bdf8' }}>₹50,000 <span style={{ fontSize: '0.65rem', color: '#38bdf8', fontWeight: 600 }}>+10%/yr</span></div>
+          </div>
+        </div>
+
+        {/* Compounding Curve Chart */}
+        <div style={{ position: 'relative', width: '100%', height: '115px' }}>
+          <svg viewBox="0 0 330 115" style={{ width: '100%', height: '100%' }}>
+            <defs>
+              <linearGradient id="fireGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#34d399" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#34d399" stopOpacity="0.0" />
+              </linearGradient>
+            </defs>
+
+            {/* Horizontal Grid lines */}
+            <line x1="15" y1="95" x2="315" y2="95" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+            <line x1="15" y1="60" x2="315" y2="60" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
+            <line x1="15" y1="20" x2="315" y2="20" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
+
+            {/* Invested Capital Line (Linear) */}
+            <path d="M 15 95 L 315 65" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="4 4" fill="none" opacity="0.6" />
+
+            {/* Wealth Compounding Curve (Exponential) */}
+            <path d="M 15 95 Q 180 90, 220 52 T 315 18 L 315 95 L 15 95 Z" fill="url(#fireGrad)" />
+            <path d="M 15 95 Q 180 90, 220 52 T 315 18" stroke="#34d399" strokeWidth="3" fill="none" />
+
+            {/* Key Milestones Dots */}
+            <circle cx="15" cy="95" r="3.5" fill="#94a3b8" />
+            <circle cx="170" cy="74" r="4" fill="#38bdf8" stroke="#0f172a" strokeWidth="1.5" />
+            <circle cx="315" cy="18" r="5" fill="#34d399" className="pulse-glow-dot" stroke="#ffffff" strokeWidth="1.5" />
+
+            {/* Labels (Strategically Anchored to avoid any overlapping) */}
+            <text x="15" y="110" fill="#94a3b8" fontSize="8" textAnchor="start">Age 30 (Start)</text>
+            <text x="170" y="110" fill="#38bdf8" fontSize="8" fontWeight="600" textAnchor="middle">Age 37 (₹85L)</text>
+            <text x="315" y="110" fill="#34d399" fontSize="8" fontWeight="bold" textAnchor="end">Age 45 (₹2.68 Cr ✨)</text>
+          </svg>
+        </div>
+
+        {/* FIRE Tiers Progress bar */}
+        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem', paddingTop: '0.2rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <span style={{ color: '#34d399', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.2rem' }}>✓ Lean: ₹1.5 Cr</span>
+          <span style={{ color: '#38bdf8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.2rem' }}>🎯 Standard: ₹2.5 Cr</span>
+          <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>Fat: ₹4.0 Cr (67%)</span>
+        </div>
+      </div>
+    )
+  },
+  {
+    id: 'vault',
+    icon: <ShieldCheck size={24} />,
+    title: 'Encrypted Vault',
+    desc: 'Zero-knowledge document repository for PAN cards, Aadhaar files, ITR acknowledgements, health policies, and sale deeds with AES-256 local key encryption.',
+    bullets: [
+      'Zero-knowledge local AES-256 file vault',
+      'Automated OCR document summary indexing',
+      'Insurance & tax document tagging',
+      'Encrypted local key storage'
+    ],
+    demo: (
+      <div style={{ position: 'relative', padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px', overflow: 'hidden' }}>
+        <div className="scan-laser-line" />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Lock size={16} color="var(--success)" />
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>LOCAL AES-256 VAULT</span>
+          </div>
+          <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)', borderRadius: '4px', fontWeight: 600 }}>Zero Knowledge</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', fontSize: '0.75rem' }}>
+            <span>ITR_Acknowledgment_AY26.pdf</span>
+            <span style={{ color: 'var(--success)', fontWeight: 600 }}>Encrypted</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', fontSize: '0.75rem' }}>
+            <span>Health_Policy_2026.enc</span>
+            <span style={{ color: 'var(--success)', fontWeight: 600 }}>Encrypted</span>
+          </div>
+        </div>
+        <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', fontSize: '0.7rem', color: 'var(--accent-1)' }}>
+          OCR Index: Taxable Income ₹18,40,000 • Refund ₹24,500
+        </div>
+      </div>
+    )
+  },
+  {
+    id: 'automation',
+    icon: <Zap size={24} />,
+    title: 'Automation Rules',
+    desc: 'Custom IF-THIS-THEN-THAT rules engine for auto-categorizing bank transaction descriptions, flagging high-value spends, and scheduling bill reminders.',
+    bullets: [
+      'Rule-based transaction auto-categorization',
+      'High-value spend alert threshold flags',
+      'Recurring SIP & EMI scheduled obligations',
+      'One-click automated execution'
+    ],
+    demo: (
+      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>AUTOMATION WORKFLOW</span>
+          <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)', borderRadius: '9999px', fontWeight: 600 }}>Active (148 Matched)</span>
+        </div>
+        <div style={{ padding: '0.75rem', background: 'rgba(59, 130, 246, 0.08)', border: '1px stroke rgba(59, 130, 246, 0.2)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--accent-1)', fontWeight: 700 }}>IF Description Contains ("Swiggy" | "Zomato")</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-primary)' }}>➔ THEN Categorize: <strong>Food & Dining</strong></div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>➔ AND Attach Tag: <strong>#DailySpent</strong></div>
+        </div>
+      </div>
+    )
+  },
+  {
+    id: 'reports',
+    icon: <FileSpreadsheet size={24} />,
+    title: '1-Click Reports',
+    desc: 'Generate commercial-grade PDF, Excel, and CSV executive financial statements for personal audits, CA tax filings, and bank loan applications.',
+    bullets: [
+      'Monthly & Annual balance sheet synthesis',
+      'Print-ready PDF executive summaries',
+      'Structured CSV & Excel data export',
+      'Cryptographically verified hash ledger'
+    ],
+    demo: (
+      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>COMMERCIAL REPORT ENGINE</span>
+          <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)', borderRadius: '4px', fontWeight: 700 }}>100% Ready</span>
+        </div>
+        <div style={{ display: 'flex', gap: '0.4rem' }}>
+          <span style={{ fontSize: '0.65rem', padding: '0.3rem 0.6rem', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', borderRadius: '4px', fontWeight: 700 }}>PDF REPORT</span>
+          <span style={{ fontSize: '0.65rem', padding: '0.3rem 0.6rem', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', borderRadius: '4px', fontWeight: 700 }}>EXCEL SHEETS</span>
+          <span style={{ fontSize: '0.65rem', padding: '0.3rem 0.6rem', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', borderRadius: '4px', fontWeight: 700 }}>CSV BACKUP</span>
+        </div>
+        <div style={{ padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', fontSize: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Executive Statement FY26</span>
+          <span style={{ color: 'var(--success)', fontWeight: 600 }}>Download PDF ⬇</span>
+        </div>
+      </div>
     )
   },
   {
     id: 'ai',
-    icon: <Bot size={24} />,
+    icon: <Sparkles size={24} />,
     title: 'AI Financial Assistant',
-    desc: 'Your personal wealth advisor, running securely. Ask questions about your spending habits, request deep-dive analyses, or get smart categorization suggestions.',
+    desc: 'Your private AI wealth copilot running 100% locally. Query your spending habits, analyze budget leaks, and receive tailored financial insights.',
     bullets: [
-      'Natural language query processing',
-      'Automated anomaly detection',
-      'Personalized saving insights',
-      'Privacy-first local processing'
+      'Natural language financial query engine',
+      'Automated spending anomaly detection',
+      'Tailored savings & SIP step-up advice',
+      'Zero third-party data leaks'
     ],
     demo: (
-      <div className="chat-bubble">
-        <strong style={{ color: 'var(--accent-1)' }}>Finance AI:</strong><br />
-        <span style={{ fontSize: '0.9rem' }}>You saved 15% more on groceries this month compared to last! Keep it up. 🚀</span>
+      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Sparkles size={16} color="var(--accent-1)" />
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-1)' }}>AI WEALTH COPILOT</span>
+          </div>
+          <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', background: 'rgba(59, 130, 246, 0.15)', color: 'var(--accent-1)', borderRadius: '4px' }}>Local Model</span>
+        </div>
+        <div style={{ padding: '0.75rem', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '10px', fontSize: '0.8rem', lineHeight: 1.5, color: 'var(--text-primary)' }}>
+          "Your monthly savings rate hit <strong>48%</strong>! Redirecting ₹5,000 into Index SIP reaches your FIRE goal <strong>1.8 years earlier</strong>! 🚀"
+        </div>
       </div>
     )
   },
   {
     id: 'settings',
     icon: <Settings size={24} />,
-    title: 'Advanced Settings',
-    desc: 'Total control over your data. Configure local storage options, manage export formats, and customize your theme and preferences.',
+    title: 'Settings',
+    desc: 'Complete control over your financial workspace. Configure local storage, manage personal Google Drive sync, customize themes, and export raw backups.',
     bullets: [
-      'Google Drive sync configuration',
-      'Complete JSON/CSV data export',
-      'Theme customization',
-      'Vault encryption management'
+      'Personal Google Drive appData sync',
+      'Complete JSON database backup & restore',
+      'Custom theme & aesthetic switching',
+      'Profile & security preference management'
     ],
     demo: (
-      <div className="gears-container">
-        <div className="gear gear-large"></div>
-        <div className="gear gear-small"></div>
+      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>SYSTEM & CLOUD SYNC</span>
+          <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)', borderRadius: '9999px', fontWeight: 700 }}>● Connected</span>
+        </div>
+        <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>Google Drive appData Sync</div>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Synced 2 mins ago • 4.8 MB</div>
+          </div>
+          <div style={{ width: '36px', height: '20px', background: 'var(--accent-1)', borderRadius: '10px', position: 'relative' }}>
+            <div style={{ width: '16px', height: '16px', background: '#fff', borderRadius: '50%', position: 'absolute', top: '2px', right: '2px' }} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '0.3rem' }}>
+          <span style={{ fontSize: '0.65rem', padding: '0.2rem 0.5rem', background: 'rgba(59, 130, 246, 0.2)', color: 'var(--accent-1)', border: '1px solid var(--accent-1)', borderRadius: '4px', fontWeight: 600 }}>Dark Space ✓</span>
+          <span style={{ fontSize: '0.65rem', padding: '0.2rem 0.5rem', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', borderRadius: '4px' }}>OLED Black</span>
+          <span style={{ fontSize: '0.65rem', padding: '0.2rem 0.5rem', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', borderRadius: '4px' }}>Backup JSON</span>
+        </div>
       </div>
     )
   }
@@ -343,15 +643,19 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
       setIsSendingFeedback(false);
     }
   };
-  
+
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+
     const handleGlobalMouseMove = (e: MouseEvent) => {
       setMousePos({ x: e.clientX, y: e.clientY });
     };
     window.addEventListener('mousemove', handleGlobalMouseMove);
-
 
     return () => {
       window.removeEventListener('mousemove', handleGlobalMouseMove);
@@ -390,7 +694,17 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
 
   const scrollToHowItWorks = (e: React.MouseEvent) => {
     e.preventDefault();
-    document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+    const el = document.getElementById('how-it-works');
+    if (el) {
+      const navHeight = 70;
+      const elementPosition = el.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = Math.max(0, elementPosition - navHeight);
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
   };
 
   return (

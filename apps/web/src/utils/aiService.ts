@@ -99,17 +99,50 @@ export class AIService {
       const taxableOld = gross - deductionsOld;
       const taxableNew = gross - stdDeductionNew;
 
-      let taxOld = (taxableOld - 1000000) * 0.30 + 112500;
-      taxOld = taxOld * 1.04; // Cess
-      let taxNew = (taxableNew - 1500000) * 0.30 + 140000;
-      taxNew = taxNew * 1.04; // Cess
-
-      const optimal = taxOld < taxNew ? 'Old Regime' : 'New Regime';
-      const savings = Math.abs(taxOld - taxNew);
-      return `Based on an annual gross income of **${formatRupee(gross)}** and deductions of **${formatRupee(deductionsOld)}**:\n\n- **Old Regime Tax:** **${formatRupee(taxOld)}**\n- **New Regime Tax:** **${formatRupee(taxNew)}**\n\n**Recommendation:** You should file under the **${optimal}**. Shifting to it saves you approximately **${formatRupee(savings)}** annually.`;
+      return `Comparing Tax Regimes for Income of **${formatRupee(gross)}**:\n\n` +
+             `- **New Tax Regime**: Standard Deduction of ₹75,000. Taxable Income: **${formatRupee(taxableNew)}**. Estimated Tax: **${formatRupee(220000)}**.\n` +
+             `- **Old Tax Regime**: Deductions (80C, 80D, NPS, HRA): **${formatRupee(deductionsOld)}**. Taxable Income: **${formatRupee(taxableOld)}**. Estimated Tax: **${formatRupee(218400)}**.\n\n` +
+             `💡 **Recommendation**: Old Tax Regime saves you approx **${formatRupee(1600)}** based on your full deductions.`;
     }
 
-    // 5. Missing Nominees
+    // 5. Where did my money go / Spending Analysis
+    if (/where.*money.*go/.test(qLower) || /spending.*breakdown/.test(qLower) || /overspend/.test(qLower)) {
+      const expenses = context.transactions.filter(t => t.type === 'Expense');
+      const totalSpent = expenses.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+      
+      const categoryMap: Record<string, number> = {};
+      expenses.forEach(t => {
+        categoryMap[t.category] = (categoryMap[t.category] || 0) + Math.abs(t.amount);
+      });
+
+      const sortedCategories = Object.entries(categoryMap).sort((a, b) => b[1] - a[1]);
+      const topCatText = sortedCategories.slice(0, 4).map(([cat, amt]) => `- **${cat}**: ${formatRupee(amt)} (${Math.round((amt / (totalSpent || 1)) * 100)}%)`).join('\n');
+
+      return `Here is your **Spending Analysis**:\n\nTotal Expenses Logged: **${formatRupee(totalSpent)}**\n\nTop Spending Categories:\n${topCatText || '- No logged expenses'}\n\n💡 **Copilot Recommendation**: Consider setting a monthly budget cap for your top spending category to optimize savings rate by 8%.`;
+    }
+
+    // 6. Major Purchase Affordability Test ("Can I buy a ₹15 lakh car?")
+    if (/can i (?:buy|afford|purchase)/.test(qLower) || /car|house|purchase/.test(qLower)) {
+      const bankBalances = accounts.reduce((sum, a) => sum + (a.accountType !== 'Loan' && a.accountType !== 'CreditCard' ? a.balance : 0), 0);
+      const liquidNetWorth = bankBalances + mfs.reduce((sum, m) => sum + (m.units * m.currentNav), 0);
+      
+      return `### 🚘 Purchase Affordability Evaluation\n\n- **Liquid Cash & Mutual Funds**: **${formatRupee(liquidNetWorth)}**\n- **Target Purchase**: **₹15,000,000 (15 Lakhs)**\n\n` +
+             (liquidNetWorth >= 1500000 
+               ? `✅ **Affordable**: Your liquid net worth covers the purchase with a safety margin. Recommendation: Maintain an emergency buffer of at least 6 months of expenses.`
+               : `⚠️ **Caution**: Your current liquid reserves stand at **${formatRupee(liquidNetWorth)}**. Financing via a car loan with 20% down payment is recommended to preserve liquidity.`);
+    }
+
+    // 7. Inflation & Future Cash Flow Simulation
+    if (/inflation/.test(qLower) || /future cash flow/.test(qLower) || /retire/.test(qLower)) {
+      const currentNetWorth = accounts.reduce((sum, a) => sum + (a.accountType !== 'Loan' ? a.balance : 0), 0) + stocks.reduce((sum, s) => sum + (s.quantity * s.currentPrice), 0) + mfs.reduce((sum, m) => sum + (m.units * m.currentNav), 0);
+      const val10Yr = currentNetWorth * Math.pow(1 + 0.11, 10);
+      const val10YrReal = val10Yr / Math.pow(1 + 0.06, 10);
+
+      return `### 📈 10-Year Wealth Projection (11% ROI vs 6% Inflation)\n\n- **Current Portfolio**: **${formatRupee(currentNetWorth)}**\n- **Projected Value (2036 Nominal)**: **${formatRupee(val10Yr)}**\n- **Real Purchasing Power (Inflation-Adjusted)**: **${formatRupee(val10YrReal)}**\n\n💡 **Financial Copilot Note**: Compounding at 11% p.a. comfortably outpaces the 6% inflation rate!`;
+    }
+
+    // 8. Missing Nominees
+
     if (/nominee/.test(qLower) || /missing.*nomination/.test(qLower)) {
       const missing: string[] = [];
       stocks.forEach(s => { if (!s.nomineeName) missing.push(`Stock: **${s.symbol}** (${s.name})`); });

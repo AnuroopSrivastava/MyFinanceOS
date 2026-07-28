@@ -1,24 +1,45 @@
-import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
 class IntersectionObserverMock {
   root = null;
+
   rootMargin = '';
   thresholds = [];
-  disconnect = vi.fn();
-  observe = vi.fn();
-  takeRecords = vi.fn();
-  unobserve = vi.fn();
+  constructor() {}
+  disconnect() {}
+  observe() {}
+  takeRecords() { return []; }
+  unobserve() {}
 }
 
-window.IntersectionObserver = IntersectionObserverMock;
-global.IntersectionObserver = IntersectionObserverMock;
+Object.defineProperty(window, 'IntersectionObserver', {
+  writable: true,
+  configurable: true,
+  value: IntersectionObserverMock
+});
+
+Object.defineProperty(globalThis, 'IntersectionObserver', {
+  writable: true,
+  configurable: true,
+  value: IntersectionObserverMock
+});
 
 class ResizeObserverMock {
-    disconnect = vi.fn();
-    observe = vi.fn();
-    unobserve = vi.fn();
+  constructor() {}
+  disconnect() {}
+  observe() {}
+  unobserve() {}
 }
 
-window.ResizeObserver = ResizeObserverMock;
-global.ResizeObserver = ResizeObserverMock;
+Object.defineProperty(window, 'ResizeObserver', {
+  writable: true,
+  configurable: true,
+  value: ResizeObserverMock
+});
+
+Object.defineProperty(globalThis, 'ResizeObserver', {
+  writable: true,
+  configurable: true,
+  value: ResizeObserverMock
+});
+
