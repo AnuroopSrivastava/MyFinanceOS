@@ -76,35 +76,34 @@ MyFinanceOS prioritizes visual excellence and tactile responsiveness. The UI eng
 MyFinanceOS operates as a **modular monorepo workspace**. Core logic, local storage engines, authentication, and design tokens are separated into reusable internal packages (`packages/*`), consumed cleanly by both the web app (`apps/web`) and desktop shell (`apps/desktop`).
 
 ```mermaid
-graph TD
-    %% Custom Styling
-    classDef client fill:#2563eb,stroke:#1d4ed8,stroke-width:2px,color:#fff;
-    classDef core fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#fff;
-    classDef storage fill:#059669,stroke:#047857,stroke-width:2px,color:#fff;
-    classDef crypto fill:#d97706,stroke:#b45309,stroke-width:2px,color:#fff;
-    classDef ui fill:#0284c7,stroke:#0369a1,stroke-width:2px,color:#fff;
+flowchart TD
+    classDef client fill:#1e40af,stroke:#3b82f6,stroke-width:2px,color:#fff;
+    classDef uiSys fill:#0284c7,stroke:#38bdf8,stroke-width:2px,color:#fff;
+    classDef corePkg fill:#6b21a8,stroke:#a855f7,stroke-width:2px,color:#fff;
+    classDef authPkg fill:#b45309,stroke:#f59e0b,stroke-width:2px,color:#fff;
+    classDef diskStore fill:#047857,stroke:#10b981,stroke-width:2px,color:#fff;
 
-    subgraph ClientLayer["🖥️ Presentation & Application Layer"]
-        Web["🌐 apps/web<br/>React 18 + Vite + Framer Motion"]:::client
-        Desktop["💻 apps/desktop<br/>Electron Native Windows IPC Shell"]:::client
+    subgraph AppLayer["🖥️ Presentation & Application Layer"]
+        direction LR
+        Web["🌐 <b>apps/web</b><br/>React 18 + Vite + Framer Motion"]:::client
+        Desktop["💻 <b>apps/desktop</b><br/>Electron Windows Native Shell"]:::client
     end
 
-    subgraph MotionLayer["🎨 UI & Motion System"]
-        UI["🎨 @financeos/ui<br/>Glassmorphism System, Themes & Animations"]:::ui
+    subgraph PackageLayer["📦 Core Shared Monorepo Packages (packages/*)"]
+        direction LR
+        UI["🎨 <b>@financeos/ui</b><br/>Glassmorphism & Motion Engine"]:::uiSys
+        Auth["🔑 <b>@financeos/auth</b><br/>PIN & PBKDF2 Session Security"]:::authPkg
+        DB["💾 <b>@financeos/database</b><br/>AES-256 Encrypted Engine"]:::corePkg
+        Shared["🛠️ <b>@financeos/shared</b><br/>INR Math & Data Schemas"]:::corePkg
     end
 
-    subgraph PackageLayer["📦 Monorepo Core Packages"]
-        Auth["🔑 @financeos/auth<br/>PIN Hashing & PBKDF2 Session Security"]:::crypto
-        DB["💾 @financeos/database<br/>AES-256 Encrypted Local Engine"]:::core
-        Shared["🛠️ @financeos/shared<br/>INR Math Engine & Schema Validators"]:::core
+    subgraph StorageLayer["🔒 Local Hardware Encrypted Storage Engine"]
+        direction LR
+        ConfigFile[("📄 <b>financeos_config.json</b><br/>App Settings & Theme State")]:::diskStore
+        DataFile[("🔐 <b>financeos_data.json</b><br/>AES-256-GCM Encrypted Ledger")]:::diskStore
     end
 
-    subgraph StorageLayer["🔒 Local Encrypted Storage"]
-        ConfigFile[("📄 financeos_config.json<br/>App Preferences & Theme State")]:::storage
-        DataFile[("🔐 financeos_data.json<br/>AES-256-GCM Encrypted Data Payload")]:::storage
-    end
-
-    %% Component Connections
+    %% Client Layer to Packages
     Web --> UI
     Web --> Auth
     Web --> DB
@@ -115,9 +114,9 @@ graph TD
     Desktop --> DB
     Desktop --> Shared
 
-    %% Persistence Flow
-    DB -.->|Read/Write Encrypted JSON| DataFile
-    DB -.->|Read/Write Settings| ConfigFile
+    %% Package Layer to File Storage
+    DB -->|Read / Write Settings| ConfigFile
+    DB -->|Read / Write Encrypted Ledger| DataFile
     Desktop -.->|Electron Direct File IPC| DataFile
 ```
 
@@ -127,17 +126,28 @@ graph TD
 
 ```mermaid
 flowchart LR
-    %% Styling
-    classDef state fill:#0284c7,stroke:#0369a1,color:#fff;
-    classDef motion fill:#9333ea,stroke:#7e22ce,color:#fff;
-    classDef render fill:#16a34a,stroke:#15803d,color:#fff;
+    classDef eventNode fill:#1e3a8a,stroke:#3b82f6,stroke-width:2px,color:#fff;
+    classDef engineNode fill:#581c87,stroke:#a855f7,stroke-width:2px,color:#fff;
+    classDef motionNode fill:#0369a1,stroke:#38bdf8,stroke-width:2px,color:#fff;
+    classDef visualNode fill:#065f46,stroke:#34d399,stroke-width:2px,color:#fff;
+    classDef renderNode fill:#15803d,stroke:#22c55e,stroke-width:2px,color:#fff;
 
-    UserAction["🖱️ User Interaction / Shortcut (Ctrl+K)"]:::state --> FramerEngine["⚡ Framer Motion & CSS Variables"]:::motion
-    FramerEngine --> GlassBlur["✨ Backdrop Blur & Mesh Gradients"]:::motion
-    FramerEngine --> LayoutSpring["🌀 Spring Physics & AnimatePresence"]:::motion
+    UserEvent["🖱️ <b>User Action / Shortcut</b><br/><i>Click, Hover, or Ctrl+K</i>"]:::eventNode --> MotionDispatch["⚡ <b>Framer Motion Engine</b><br/><i>Spring Physics & State Hooks</i>"]:::engineNode
 
-    GlassBlur --> RenderScreen["🖥️ 60fps Smooth UI Render"]:::render
-    LayoutSpring --> RenderScreen
+    subgraph MotionProcessing["🌀 Motion & Visual Effects Pipeline"]
+        direction TB
+        Physics["🌀 <b>Spring Physics</b><br/>AnimatePresence & Layout Motion"]:::motionNode
+        GlassBlur["✨ <b>Backdrop Filters</b><br/>Glassmorphism & Blur (20px)"]:::visualNode
+        Themes["👑 <b>Dynamic Theme CSS</b><br/>Shimmer & Mesh HSL Gradients"]:::visualNode
+    end
+
+    MotionDispatch --> Physics
+    MotionDispatch --> GlassBlur
+    MotionDispatch --> Themes
+
+    Physics --> GPUComposite["🖥️ <b>60fps Smooth UI</b><br/><i>Hardware Composite</i>"]:::renderNode
+    GlassBlur --> GPUComposite
+    Themes --> GPUComposite
 ```
 
 ---
@@ -150,22 +160,23 @@ Your Security PIN never leaves local RAM and is never saved in plain text. Encry
 sequenceDiagram
     autonumber
     actor User as 👤 User
-    participant App as 📱 MyFinanceOS App
+    participant App as 📱 Web / Desktop App
     participant Auth as 🔑 Auth Package
     participant Engine as 🛡️ AES-256 Engine
-    participant Disk as 💾 Local File System
+    participant Storage as 💾 Local File System
 
     User->>App: Input Security PIN
-    App->>Auth: Hash PIN & Derive Master Key (PBKDF2 / Salt)
+    App->>Auth: Derive Master Key (PBKDF2 / Salt)
     Auth-->>App: Key Derived Successfully
-    App->>Disk: Fetch Encrypted Payload (financeos_data.json)
-    Disk-->>Engine: Raw Encrypted Ciphertext + Auth Tag
+    App->>Storage: Read Encrypted Payload (financeos_data.json)
+    Storage-->>Engine: Raw Ciphertext + Auth Tag Payload
     Engine->>Engine: Decrypt Payload with Master Key (AES-GCM)
-    alt Valid PIN
-        Engine-->>App: Decrypted JSON Payload
+
+    alt Valid Security PIN & Unaltered Data
+        Engine-->>App: Decrypted JSON Ledger Payload
         App-->>User: Grant Access & Render Animated Dashboard
-    else Invalid PIN / Tag Mismatch
-        Engine-->>App: Cryptographic Verification Error
+    else Invalid PIN or Data Tampered Tag Mismatch
+        Engine-->>App: Throw Cryptographic Verification Error
         App-->>User: Access Denied (Data Remains Locked)
     end
 ```
