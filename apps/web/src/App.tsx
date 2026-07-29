@@ -235,11 +235,12 @@ const App: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         gap: '2rem',
-        background: 'rgba(10, 10, 12, 0.6)',
+        background: 'rgba(10, 10, 12, 0.95)',
         backdropFilter: 'blur(20px)',
         borderRight: '1px solid rgba(255, 255, 255, 0.05)',
         flexShrink: 0,
-        zIndex: 100
+        zIndex: 1000,
+        overflowY: 'auto'
       }}>
 
         {/* Logo & Mobile Close Header */}
@@ -249,8 +250,23 @@ const App: React.FC = () => {
             <span style={{ fontSize: '1.15rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#fff' }}>MyFinanceOS</span>
           </div>
           {isMobileMenuOpen && (
-            <button onClick={() => setIsMobileMenuOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
-              <X size={20} />
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              aria-label="Close menu"
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: 'rgba(255,255,255,0.8)',
+                cursor: 'pointer',
+                padding: '0.4rem',
+                borderRadius: 'var(--radius-sm)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s'
+              }}
+            >
+              <X size={18} />
             </button>
           )}
         </div>
