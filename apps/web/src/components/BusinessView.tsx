@@ -584,17 +584,17 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
       </div>
 
       {/* Sub tabs */}
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-        <button className={`btn ${activeSubTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem' }} onClick={() => setActiveSubTab('invoices')}>
+      <div className="mobile-tabs-scroll" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+        <button className={`btn ${activeSubTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onClick={() => setActiveSubTab('invoices')}>
           <FileText size={14} /> GST Invoices & Clients
         </button>
-        <button className={`btn ${activeSubTab === 'gst' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem' }} onClick={() => setActiveSubTab('gst')}>
+        <button className={`btn ${activeSubTab === 'gst' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onClick={() => setActiveSubTab('gst')}>
           <Coins size={14} /> GSTR Liability Register
         </button>
-        <button className={`btn ${activeSubTab === 'inventory' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem' }} onClick={() => setActiveSubTab('inventory')}>
+        <button className={`btn ${activeSubTab === 'inventory' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onClick={() => setActiveSubTab('inventory')}>
           <Archive size={14} /> FIFO Inventory Ledger
         </button>
-        <button className={`btn ${activeSubTab === 'statements' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem' }} onClick={() => setActiveSubTab('statements')}>
+        <button className={`btn ${activeSubTab === 'statements' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onClick={() => setActiveSubTab('statements')}>
           <BarChart2 size={14} /> Financial Statements
         </button>
       </div>

@@ -3,6 +3,8 @@ dist
 release
 web-dist
 .env
+.env.local
+.env*.local
 financeos_data.json
 financeos_config.json
 playwright-report

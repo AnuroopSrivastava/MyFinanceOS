@@ -136,7 +136,7 @@ export const PortfolioDistribution: React.FC<PortfolioDistributionProps> = ({
                 ))}
               </Pie>
               <Tooltip 
-                formatter={(value: number) => [`${value}%`, 'Allocation']}
+                formatter={(value: any) => [`${value}%`, 'Allocation']}
                 contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}
                 itemStyle={{ color: '#fff' }}
               />

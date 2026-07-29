@@ -4,13 +4,13 @@ import { dbService } from '@financeos/database';
 import { FixedDeposit } from '@financeos/shared';
 import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
 import { formatRupee } from '../utils/currency.js';
-import { 
-  TrendingUp, TrendingDown, Landmark, PieChart as PieIcon, 
+import {
+  TrendingUp, TrendingDown, Landmark, PieChart as PieIcon,
   Calendar, Users, AlertTriangle, Lightbulb, Wallet, ShieldCheck
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, AreaChart, Area, BarChart, Bar, 
-  XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell 
+import {
+  ResponsiveContainer, AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell
 } from 'recharts';
 import { GoalTracker } from './GoalTracker.js';
 
@@ -26,13 +26,13 @@ const calculateFdAccruedValue = (fd: FixedDeposit): number => {
   const rate = fd.interestRate / 100;
   const daysTotal = (maturity.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
   const daysElapsed = (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
-  
+
   if (daysTotal <= 0 || daysElapsed <= 0) return fd.principalAmount;
 
   // Compounded quarterly: A = P * (1 + r/4) ^ (4 * years)
   const years = daysElapsed / 365.25;
   const accrued = fd.principalAmount * Math.pow(1 + rate / 4, 4 * years);
-  
+
   return Math.min(fd.maturityAmount, Math.round(accrued));
 };
 
@@ -174,25 +174,37 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
 
     const data = [];
     const monthsNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const sortedTx = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
+
+    // Single-pass transaction aggregation O(N)
+    const monthlyNetDiffs: Record<string, number> = {};
+    transactions.forEach(t => {
+      const monthStr = t.date.slice(0, 7);
+      if (!monthlyNetDiffs[monthStr]) monthlyNetDiffs[monthStr] = 0;
+      if (t.type === 'Income') monthlyNetDiffs[monthStr] += t.amount;
+      else if (t.type === 'Expense') monthlyNetDiffs[monthStr] -= Math.abs(t.amount);
+    });
+
+    const sortedTxDates = Object.keys(monthlyNetDiffs).sort();
+    const oldestTxDate = sortedTxDates.length > 0 ? sortedTxDates[0] : currentMonthStr;
+
+    let oldestActualDiff = 0;
+    Object.entries(monthlyNetDiffs).forEach(([m, diff]) => {
+      if (m > oldestTxDate) oldestActualDiff += diff;
+    });
+    const oldestNetWorth = netWorth - oldestActualDiff;
 
     for (let i = points - 1; i >= 0; i--) {
       const monthsBack = i * monthStep;
       const d = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
       const dateStr = d.toISOString().slice(0, 7);
 
-      // Backtrack actual transactions
       let actualDiff = 0;
-      sortedTx.forEach(t => {
-        if (t.date.slice(0, 7) > dateStr) {
-          if (t.type === 'Income') actualDiff += t.amount;
-          else if (t.type === 'Expense') actualDiff -= Math.abs(t.amount);
-        }
+      Object.entries(monthlyNetDiffs).forEach(([m, diff]) => {
+        if (m > dateStr) actualDiff += diff;
       });
 
       let calculatedNetWorth = netWorth - actualDiff;
 
-      const oldestTxDate = sortedTx.length > 0 ? sortedTx[sortedTx.length - 1].date.slice(0, 7) : currentMonthStr;
       if (dateStr < oldestTxDate) {
         const oldestYear = parseInt(oldestTxDate.slice(0, 4));
         const oldestMonth = parseInt(oldestTxDate.slice(5, 7)) - 1;
@@ -200,26 +212,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
 
         if (diffMonths > 0) {
           const decay = Math.pow(1 - 0.08 / 12, diffMonths);
-          let oldestActualDiff = 0;
-          sortedTx.forEach(t => {
-            if (t.date.slice(0, 7) > oldestTxDate) {
-              if (t.type === 'Income') oldestActualDiff += t.amount;
-              else if (t.type === 'Expense') oldestActualDiff -= Math.abs(t.amount);
-            }
-          });
-          const oldestNetWorth = netWorth - oldestActualDiff;
           calculatedNetWorth = oldestNetWorth * decay;
         }
       }
 
       calculatedNetWorth = Math.max(0, calculatedNetWorth);
 
-      let label = '';
-      if (timelineFilter === '5Y' || timelineFilter === '10Y') {
-        label = `${monthsNames[d.getMonth()]} '${d.getFullYear().toString().slice(2)}`;
-      } else {
-        label = `${monthsNames[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`;
-      }
+      const label = (timelineFilter === '5Y' || timelineFilter === '10Y')
+        ? `${monthsNames[d.getMonth()]} '${d.getFullYear().toString().slice(2)}`
+        : `${monthsNames[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`;
 
       data.push({
         month: label,
@@ -701,16 +702,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             </div>
           </div>
           <div style={{ width: '100%', height: '240px', minWidth: 0 }}>
-            <ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={240} debounce={50}>
               <AreaChart data={historyData}>
                 <defs>
                   <linearGradient id="colorNetWorth" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="month" stroke="var(--text-muted)" fontSize={11} tickLine={false} />
-                <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} tickFormatter={(v) => `${(v/100000).toFixed(1)}L`} />
+                <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} tickFormatter={(v) => `${(v / 100000).toFixed(1)}L`} />
                 <Tooltip
                   formatter={(value: any) => [formatRupee(value), 'Net Worth']}
                   contentStyle={{
@@ -742,10 +743,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             <TrendingUp size={16} color="var(--success)" /> Income vs Expense comparison
           </h4>
           <div style={{ width: '100%', height: '240px', minWidth: 0 }}>
-            <ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={240} debounce={50}>
               <BarChart data={cashflowData}>
                 <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} />
-                <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
+                <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                 <Tooltip
                   formatter={(value: any) => formatRupee(value)}
                   contentStyle={{
@@ -772,13 +773,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
       {/* Third Row: Allocation and Alerts */}
       <motion.div
         initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-50px" }}
+        animate="visible"
         variants={{
           hidden: { opacity: 0 },
           visible: {
             opacity: 1,
-            transition: { staggerChildren: 0.15 }
+            transition: { staggerChildren: 0.1 }
           }
         }}
         style={{
@@ -792,8 +792,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
         <motion.div
           className="glass-panel"
           variants={{
-            hidden: { opacity: 0, scale: 0.95, y: 30 },
-            visible: { opacity: 1, scale: 1, y: 0, transition: { type: "spring", stiffness: 70 } }
+            hidden: { opacity: 0, scale: 0.98, y: 15 },
+            visible: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.3 } }
           }}
           style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', minWidth: 0 }}
         >
@@ -802,7 +802,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
           </h4>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flex: 1, flexWrap: 'wrap', minWidth: 0 }}>
             <div style={{ width: '100%', maxWidth: '160px', height: '160px', minWidth: 0 }}>
-              <ResponsiveContainer>
+              <ResponsiveContainer width="100%" height={160} debounce={50}>
                 <PieChart>
                   <Pie
                     data={allocationData}
@@ -839,10 +839,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
               {allocationData.map((item, idx) => (
                 <motion.div
                   key={idx}
-                  initial={{ opacity: 0, x: 20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                 >
                   <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: item.color }} />
@@ -961,9 +960,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                   <motion.div
                     key={m.id}
                     initial={{ opacity: 0, x: -10 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: idx * 0.1 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
                     style={{
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-sm)',
@@ -1001,11 +999,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
               {profiles.map((p, idx) => (
                 <motion.div
                   key={p.id}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
                   whileHover={{ y: -2, scale: 1.05 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1, type: "spring", stiffness: 300 }}
+                  transition={{ delay: idx * 0.05, type: "spring", stiffness: 300 }}
                   className="glass-panel"
                   style={{
                     padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
@@ -1030,8 +1027,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
       {/* Goals Section (embedded) */}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 60, delay: 0.2 }}
       >
         <GoalTracker activeProfileId={activeProfileId} />

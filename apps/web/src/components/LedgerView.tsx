@@ -543,12 +543,12 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
     >
 
       {/* Page Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Banking & Double-Entry Ledger</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Manage personal accounts, journal records, and statement syncs</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-secondary" onClick={exportLedgerToCSV}>
             <Download size={16} /> Export CSV
           </motion.button>

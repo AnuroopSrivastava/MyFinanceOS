@@ -3,126 +3,453 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://api.web3forms.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://www.googleapis.com https://accounts.google.com https://apis.google.com https://api.web3forms.com https://generativelanguage.googleapis.com; object-src 'none'; base-uri 'self';" />
     <title>Privacy Policy - MyFinanceOS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: hsl(224, 30%, 5%);
-            --text-primary: hsl(210, 20%, 98%);
-            --text-secondary: hsl(210, 10%, 70%);
-            --accent: hsl(186, 100%, 50%);
-            --glass-bg: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.05);
+            --bg-primary: #07090e;
+            --bg-card: rgba(18, 24, 38, 0.75);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-cyan: #38bdf8;
+            --accent-emerald: #34d399;
+            --accent-purple: #c084fc;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(56, 189, 248, 0.25);
+            --font-display: 'Plus Jakarta Sans', sans-serif;
+            --font-body: 'Inter', sans-serif;
         }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            line-height: 1.7; 
-            margin: 0; 
-            padding: 0; 
-            background: radial-gradient(circle at top center, hsl(224, 25%, 15%) 0%, var(--bg) 100%);
-            color: var(--text-secondary); 
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-primary);
+            color: var(--text-secondary);
+            line-height: 1.7;
             min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(ellipse at 15% 0%, rgba(56, 189, 248, 0.12) 0%, transparent 50%),
+                radial-gradient(ellipse at 85% 20%, rgba(192, 132, 252, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 100%, rgba(52, 211, 153, 0.08) 0%, transparent 60%);
+            background-attachment: fixed;
+            -webkit-font-smoothing: antialiased;
         }
-        .container {
-            max-width: 800px;
-            margin: 4rem auto;
-            padding: 3rem;
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
+
+        /* Animated Mesh Particles */
+        .glow-sphere {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 0;
+            pointer-events: none;
+            animation: floatGlow 12s ease-in-out infinite alternate;
+        }
+        .glow-1 { top: -100px; left: 10%; width: 400px; height: 400px; background: rgba(56, 189, 248, 0.15); }
+        .glow-2 { bottom: -100px; right: 10%; width: 450px; height: 450px; background: rgba(168, 85, 247, 0.12); animation-delay: -6s; }
+
+        @keyframes floatGlow {
+            0% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(30px) scale(1.1); }
+        }
+
+        .wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem 6rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Top Navigation Link */
+        .back-nav {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--accent-cyan);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-bottom: 2.5rem;
+        }
+
+        .back-nav:hover {
+            transform: translateX(-4px);
+            background: rgba(56, 189, 248, 0.18);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+        }
+
+        /* Glass Header Card */
+        .glass-header {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border-color);
             border-radius: 24px;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            animation: fadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .header {
+
+        .header-content {
             display: flex;
             align-items: center;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            border-bottom: 1px solid var(--glass-border);
-            padding-bottom: 1.5rem;
+            gap: 1.5rem;
         }
-        .header img {
-            width: 48px;
-            height: 48px;
+
+        .logo-box {
+            position: relative;
+        }
+
+        .logo-box img {
+            width: 64px;
+            height: 64px;
             border-radius: 50%;
-            box-shadow: 0 0 15px rgba(0, 221, 255, 0.3);
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.15);
         }
-        .header-text h1 {
+
+        .header-title h1 {
+            font-family: var(--font-display);
+            font-size: 2.2rem;
+            font-weight: 800;
             color: var(--text-primary);
-            margin: 0 0 0.25rem 0;
-            font-size: 2rem;
-            letter-spacing: -0.5px;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 50%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .header-text p {
-            margin: 0;
-            font-size: 0.9rem;
+
+        .header-title p {
             color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-top: 0.3rem;
         }
-        h2 { 
-            color: var(--text-primary); 
-            margin-top: 2.5rem; 
-            font-size: 1.4rem;
+
+        .badge-verified {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-top: 0.75rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 9999px;
+            background: rgba(52, 211, 153, 0.12);
+            color: var(--accent-emerald);
+            border: 1px solid rgba(52, 211, 153, 0.3);
+            font-size: 0.8rem;
             font-weight: 600;
         }
+
+        /* Table of Contents Quick Nav */
+        .toc-bar {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 0.5rem;
+            margin-bottom: 2rem;
+            scrollbar-width: none;
+        }
+        .toc-bar::-webkit-scrollbar { display: none; }
+
+        .toc-pill {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 0.45rem 0.9rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .toc-pill:hover {
+            color: #fff;
+            border-color: var(--accent-cyan);
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        /* Policy Sections */
+        .policy-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) ease-out;
+        }
+
+        .policy-card:hover {
+            border-color: var(--border-glow);
+            box-shadow: 0 15px 40px rgba(56, 189, 248, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .section-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.75;
+        }
+
+        p:last-child { margin-bottom: 0; }
+
         strong {
             color: var(--text-primary);
-        }
-        ul {
-            background: rgba(0,0,0,0.2);
-            padding: 1.5rem 1.5rem 1.5rem 2.5rem;
-            border-radius: 12px;
-            border: 1px solid var(--glass-border);
-        }
-        li {
-            margin-bottom: 0.5rem;
-        }
-        a.back-btn {
-            display: inline-block;
-            margin-bottom: 2rem;
-            color: var(--accent);
-            text-decoration: none;
-            font-size: 0.95rem;
             font-weight: 600;
         }
-        a.back-btn:hover {
-            text-decoration: underline;
+
+        ul {
+            list-style: none;
+            margin: 1rem 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        li {
+            position: relative;
+            padding-left: 1.75rem;
+            font-size: 0.93rem;
+            color: var(--text-secondary);
+        }
+
+        li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: var(--accent-emerald);
+            font-weight: bold;
+        }
+
+        .highlight-box {
+            background: rgba(56, 189, 248, 0.06);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            border-radius: 14px;
+            padding: 1.25rem;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin: 0 0.75rem;
+            transition: color 0.2s;
+        }
+
+        .footer a:hover { color: var(--accent-cyan); }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .wrapper { padding: 1.5rem 1rem 4rem; }
+            .glass-header { padding: 1.5rem; }
+            .header-content { flex-direction: column; text-align: center; }
+            .header-title h1 { font-size: 1.75rem; }
+            .policy-card { padding: 1.25rem; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <a href="/" class="back-btn">← Back to MyFinanceOS</a>
-        
-        <div class="header">
-            <img src="/logo.png" alt="MyFinanceOS Logo">
-            <div class="header-text">
-                <h1>Privacy Policy</h1>
-                <p>Last updated: July 2026</p>
+
+    <div class="glow-sphere glow-1"></div>
+    <div class="glow-sphere glow-2"></div>
+
+    <div class="wrapper">
+        <a href="/" class="back-nav">← Return to MyFinanceOS</a>
+
+        <!-- Header Card -->
+        <header class="glass-header">
+            <div class="header-content">
+                <div class="logo-box">
+                    <img src="/logo.png" alt="MyFinanceOS Logo">
+                </div>
+                <div class="header-title">
+                    <h1>Privacy Policy & Data Security</h1>
+                    <p>Last Revised: July 29, 2026 • Local-First Architecture Guarantee</p>
+                    <div class="badge-verified">
+                        <span>🛡️ Zero-Knowledge On-Device Processing</span>
+                    </div>
+                </div>
             </div>
-        </div>
+        </header>
 
-        <h2>1. Introduction</h2>
-        <p>Welcome to MyFinanceOS. Your privacy is critically important to us. This application is designed with a "local-first, user-controlled" architecture. We do not run central databases that collect or store your personal financial data.</p>
+        <!-- Quick Jump Bar -->
+        <nav class="toc-bar">
+            <a href="#section-1" class="toc-pill">1. Architecture</a>
+            <a href="#section-2" class="toc-pill">2. Data Storage</a>
+            <a href="#section-3" class="toc-pill">3. Google OAuth</a>
+            <a href="#section-4" class="toc-pill">4. Encryption</a>
+            <a href="#section-5" class="toc-pill">5. Third-Party Services</a>
+            <a href="#section-6" class="toc-pill">6. Your Rights</a>
+        </nav>
 
-        <h2>2. Data Collection and Storage</h2>
-        <p>MyFinanceOS integrates with Google Drive APIs to store your financial data. All of your data (transactions, accounts, budgets, etc.) is saved directly to a hidden, secure folder in <strong>your own Google Drive account</strong> (the `appDataFolder`).</p>
-        <ul>
-            <li>We do not have access to your Google Drive data.</li>
-            <li>We do not store your data on our own servers.</li>
-            <li>Your data never leaves your device except to sync directly to your personal Google Drive.</li>
-        </ul>
+        <!-- Section 1 -->
+        <section id="section-1" class="policy-card">
+            <div class="section-header">
+                <div class="section-icon">🏛️</div>
+                <h2>1. Local-First Architecture Guarantee</h2>
+            </div>
+            <p>Welcome to <strong>MyFinanceOS</strong>. We believe your personal financial data belongs to you—and only you. Unlike traditional cloud fintech services, MyFinanceOS is built on a <strong>Local-First Privacy Architecture</strong>.</p>
+            <div class="highlight-box">
+                <strong>Core Promise:</strong> We do not operate central application servers that store, inspect, process, or sell your account balances, salary details, investment portfolios, tax records, or transaction logs.
+            </div>
+            <ul>
+                <li><strong>On-Device Computing:</strong> All calculations (Net Worth, XIRR returns, tax slabs, cash flow Sankey graphs) are executed locally inside your browser or desktop sandbox.</li>
+                <li><strong>No Central Database:</strong> There is no remote central database containing your personal identity or financial records.</li>
+            </ul>
+        </section>
 
-        <h2>3. Authentication</h2>
-        <p>We use Google OAuth for authentication to securely link the application to your Google Drive. We only request the minimum permissions necessary to read and write the application's configuration file within your Drive.</p>
+        <!-- Section 2 -->
+        <section id="section-2" class="policy-card">
+            <div class="section-header">
+                <div class="section-icon">💾</div>
+                <h2>2. Data Storage & Personal Google Drive Sync</h2>
+            </div>
+            <p>To enable seamless cross-device synchronization without centralized server risks, MyFinanceOS offers optional sync directly to <strong>your personal Google Drive account</strong>.</p>
+            <ul>
+                <li><strong>Isolated AppData Folder:</strong> The application creates a single encrypted file (<code>financeos_db.json</code>) inside your personal Google Drive's hidden Application Data folder (<code>appDataFolder</code>).</li>
+                <li><strong>Complete Isolation:</strong> Our application physically cannot see, access, read, or modify any of your other Google Drive files, Google Docs, photos, or personal folders.</li>
+                <li><strong>Local-First Fallback:</strong> If Google Drive sync is not configured or disabled, all database records remain saved exclusively inside your local browser's encrypted <code>localStorage</code> / <code>IndexedDB</code> storage.</li>
+            </ul>
+        </section>
 
-        <h2>4. Third-Party Services</h2>
-        <p>Our application is hosted on Vercel. Standard web hosting analytics (like IP addresses and user agents) may be temporarily logged by the hosting provider for security and performance monitoring. However, no personal financial information is ever transmitted to these servers.</p>
+        <!-- Section 3 -->
+        <section id="section-3" class="policy-card">
+            <div class="section-header">
+                <div class="section-icon">🔐</div>
+                <h2>3. Google OAuth Restricted Permissions Scope</h2>
+            </div>
+            <p>When authenticating via Google Sign-In, MyFinanceOS requests only the minimum necessary restricted OAuth scope:</p>
+            <div class="highlight-box">
+                <code>https://www.googleapis.com/auth/drive.appdata</code> — Allows the app to create and manage its own configuration data file inside your personal Google Drive application storage space.
+            </div>
+            <ul>
+                <li>We do not request access to your Gmail, Contacts, Location, or General Google Drive storage.</li>
+                <li>Your OAuth access tokens are held exclusively in volatile memory / encrypted local state on your machine.</li>
+            </ul>
+        </section>
 
-        <h2>5. Changes to This Policy</h2>
-        <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page.</p>
+        <!-- Section 4 -->
+        <section id="section-4" class="policy-card">
+            <div class="section-header">
+                <div class="section-icon">🔑</div>
+                <h2>4. AES-256 Key Encryption & Local Passcode Vault</h2>
+            </div>
+            <p>MyFinanceOS supports local vault passcodes to safeguard your database payload against unauthorized physical access on your device.</p>
+            <ul>
+                <li><strong>Military-Grade Cipher:</strong> Vault payloads are encrypted using <strong>AES-256 GCM</strong> encryption keys generated on-device.</li>
+                <li><strong>Zero-Knowledge Key Management:</strong> Your secret master passcode is never sent over any network. If you lock your workspace session, the database cannot be unlocked without entering your secret key.</li>
+            </ul>
+        </section>
 
-        <h2>6. Contact Us</h2>
-        <p>If you have any questions about this Privacy Policy, please contact the developer.</p>
+        <!-- Section 5 -->
+        <section id="section-5" class="policy-card">
+            <div class="section-header">
+                <div class="section-icon">🌐</div>
+                <h2>5. Third-Party Services & AI Intelligence Models</h2>
+            </div>
+            <p>We maintain strict boundaries regarding third-party service providers:</p>
+            <ul>
+                <li><strong>Static App Hosting:</strong> Web assets are served statically (e.g., via Vercel / GitHub Pages). Hosting providers log standard HTTPS metadata (IP address, user agent) for DDoS prevention and static asset delivery.</li>
+                <li><strong>AI Assistant Privacy Options:</strong> In the AI Financial Assistant, you can run questions locally or supply your own private Google Gemini API key. Raw database records are never transmitted to third parties without your explicit user request.</li>
+                <li><strong>No Advertising or Tracking Pixels:</strong> We do not include third-party ad networks, tracking scripts, or data broker analytics inside MyFinanceOS.</li>
+            </ul>
+        </section>
+
+        <!-- Section 6 -->
+        <section id="section-6" class="policy-card">
+            <div class="section-header">
+                <div class="section-icon">⚖️</div>
+                <h2>6. Your Rights & Total Data Export / Destruction</h2>
+            </div>
+            <p>Because you retain 100% ownership of your data, you hold complete control:</p>
+            <ul>
+                <li><strong>1-Click Data Export:</strong> Export your complete financial ledger and account profiles into standard JSON or CSV backups at any time.</li>
+                <li><strong>Instant Data Destruction:</strong> Lock or reset your workspace database, or clear your browser cache, to permanently remove all stored application state from your device.</li>
+            </ul>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>© 2026 MyFinanceOS. Premium Local-First Personal & Business Finance Suite for India.</p>
+            <p style="margin-top: 0.5rem;">
+                <a href="/">Home</a> • 
+                <a href="/terms.html">Terms of Service</a> • 
+                <a href="#section-1">Top of Page</a>
+            </p>
+        </footer>
     </div>
+
 </body>
 </html>

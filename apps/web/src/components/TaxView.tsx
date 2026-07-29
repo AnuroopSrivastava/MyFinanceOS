@@ -409,7 +409,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
             </div>
 
             {/* Slab tables */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1rem' }}>
+            <div className="responsive-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1rem' }}>
               
               {/* Old regime info */}
               <motion.div

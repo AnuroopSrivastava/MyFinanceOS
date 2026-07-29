@@ -19,17 +19,46 @@ const configFilePath = path.join(dataDir, 'financeos_config.json');
 const PORT = 3000;
 
 function serveStatic(port: number, dir: string) {
+  const rootDir = path.resolve(dir);
+  const indexHtmlPath = path.join(rootDir, 'index.html');
+
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
-      // Remove query strings
-      const rawUrl = req.url?.split('?')[0] || '/';
-      let filePath = path.join(dir, rawUrl === '/' ? 'index.html' : rawUrl);
-
-      if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-        filePath = path.join(dir, 'index.html'); // SPA fallback
+      // 1. Sanitize & decode URL path safely
+      const rawUrl = req.url ? req.url.split('?')[0].split('#')[0] : '/';
+      let decodedPath = '/';
+      try {
+        decodedPath = decodeURIComponent(rawUrl);
+      } catch {
+        decodedPath = rawUrl;
       }
 
-      const extname = String(path.extname(filePath)).toLowerCase();
+      // 2. Resolve target file path relative to root directory
+      const safeRelativePath = path.normalize(decodedPath).replace(/^(\.\.[\/\\])+/, '');
+      let targetPath = path.resolve(rootDir, '.' + safeRelativePath);
+
+      // 3. Directory Traversal / Path Inclusion Jail Check:
+      // Ensure targetPath is strictly inside rootDir
+      if (!targetPath.startsWith(rootDir)) {
+        targetPath = indexHtmlPath;
+      }
+
+      // 4. Verify file existence and type
+      let finalFilePath = targetPath;
+      try {
+        if (!fs.existsSync(finalFilePath) || fs.statSync(finalFilePath).isDirectory()) {
+          finalFilePath = indexHtmlPath; // SPA fallback
+        }
+      } catch {
+        finalFilePath = indexHtmlPath;
+      }
+
+      // Final containment assertion before reading file
+      if (!finalFilePath.startsWith(rootDir)) {
+        finalFilePath = indexHtmlPath;
+      }
+
+      const extname = String(path.extname(finalFilePath)).toLowerCase();
       const mimeTypes: { [key: string]: string } = {
         '.html': 'text/html',
         '.js': 'text/javascript',
@@ -37,6 +66,7 @@ function serveStatic(port: number, dir: string) {
         '.json': 'application/json',
         '.png': 'image/png',
         '.jpg': 'image/jpg',
+        '.jpeg': 'image/jpeg',
         '.svg': 'image/svg+xml',
         '.woff': 'application/font-woff',
         '.woff2': 'font/woff2',
@@ -44,18 +74,23 @@ function serveStatic(port: number, dir: string) {
       };
 
       const contentType = mimeTypes[extname] || 'application/octet-stream';
-      fs.readFile(filePath, (error, content) => {
+      fs.readFile(finalFilePath, (error, content) => {
         if (error) {
           if (error.code === 'ENOENT') {
-            res.writeHead(404);
-            res.end('File not found', 'utf-8');
+            res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+            res.end('File not found');
           } else {
-            res.writeHead(500);
-            res.end('Server Error: ' + error.code, 'utf-8');
+            res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+            res.end('Server Error: ' + error.code);
           }
         } else {
-          res.writeHead(200, { 'Content-Type': contentType });
-          res.end(content, 'utf-8');
+          res.writeHead(200, {
+            'Content-Type': contentType,
+            'X-Content-Type-Options': 'nosniff',
+            'X-Frame-Options': 'DENY',
+            'Content-Security-Policy': "frame-ancestors 'none';"
+          });
+          res.end(content);
         }
       });
     });

@@ -600,14 +600,14 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
       </div>
 
       {/* Tabs Menu */}
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-        <button className={`btn ${activeTab === 'holdings' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem' }} onClick={() => setActiveTab('holdings')}>
+      <div className="mobile-tabs-scroll" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+        <button className={`btn ${activeTab === 'holdings' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onClick={() => setActiveTab('holdings')}>
           Asset Holdings
         </button>
-        <button className={`btn ${activeTab === 'rebalance' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem' }} onClick={() => setActiveTab('rebalance')}>
+        <button className={`btn ${activeTab === 'rebalance' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onClick={() => setActiveTab('rebalance')}>
           Portfolio Rebalancing
         </button>
-        <button className={`btn ${activeTab === 'sim' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem' }} onClick={() => setActiveTab('sim')}>
+        <button className={`btn ${activeTab === 'sim' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onClick={() => setActiveTab('sim')}>
           Retirement Simulator (Monte Carlo)
         </button>
       </div>

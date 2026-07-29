@@ -31,6 +31,21 @@ import {
 
 type ActivePage = 'dashboard' | 'ledger' | 'investments' | 'tax' | 'business' | 'sankey' | 'ai' | 'settings' | 'planner' | 'vault' | 'automation' | 'reports';
 
+const PAGE_TITLES: Record<ActivePage, string> = {
+  dashboard: 'Mission Control',
+  ledger: 'Banking & Ledger',
+  investments: 'Portfolio & Investments',
+  tax: 'Tax & GST Suite',
+  business: 'Business Suite',
+  sankey: 'Sankey Cash Flow',
+  planner: 'Investment Planner',
+  vault: 'Encrypted Vault',
+  automation: 'Automation Rules',
+  reports: '1-Click Reports',
+  ai: 'AI Financial Assistant',
+  settings: 'Settings'
+};
+
 const App: React.FC = () => {
   const [isBooting, setIsBooting] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -48,6 +63,7 @@ const App: React.FC = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showSavePopup, setShowSavePopup] = useState(false);
+  const [showSavedBadge, setShowSavedBadge] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; title: string; message: string } | null>(null);
 
   const showToastAlert = (title: string, message: string) => {
@@ -73,8 +89,14 @@ const App: React.FC = () => {
   }, [activePage, isUnlocked]);
 
   useEffect(() => {
+    let savedTimer: ReturnType<typeof setTimeout>;
     const cleanupUnsaved = dbService.onUnsavedChangeStatus((status) => {
       setHasUnsavedChanges(status);
+      if (!status) {
+        setShowSavedBadge(true);
+        clearTimeout(savedTimer);
+        savedTimer = setTimeout(() => setShowSavedBadge(false), 3000);
+      }
     });
     const cleanupError = dbService.onSaveErrorStatus((err) => {
       setSaveError(err);
@@ -85,6 +107,7 @@ const App: React.FC = () => {
     return () => {
       cleanupUnsaved();
       cleanupError();
+      clearTimeout(savedTimer);
     };
   }, []);
 
@@ -276,14 +299,14 @@ const App: React.FC = () => {
           {[
             { id: 'dashboard', label: 'Mission Control', icon: <LayoutDashboard size={18} /> },
             { id: 'ledger', label: 'Banking & Ledger', icon: <Landmark size={18} /> },
-            { id: 'investments', label: 'Investments', icon: <TrendingUp size={18} /> },
+            { id: 'investments', label: 'Portfolio & Investments', icon: <TrendingUp size={18} /> },
             { id: 'tax', label: 'Tax & GST Suite', icon: <Percent size={18} /> },
             { id: 'business', label: 'Business Suite', icon: <Briefcase size={18} /> },
-            { id: 'sankey', label: 'Sankey Cash Flow', icon: <Network size={18} /> },
             { id: 'planner', label: 'Investment Planner', icon: <Target size={18} /> },
             { id: 'vault', label: 'Encrypted Vault', icon: <ShieldCheck size={18} /> },
             { id: 'automation', label: 'Automation Rules', icon: <Zap size={18} /> },
             { id: 'reports', label: '1-Click Reports', icon: <FileSpreadsheet size={18} /> },
+            { id: 'sankey', label: 'Sankey Cash Flow', icon: <Network size={18} /> },
             { id: 'ai', label: 'AI Financial Assistant', icon: <Sparkles size={18} /> },
             { id: 'settings', label: 'Settings', icon: <Settings size={18} /> }
           ].map(page => (
@@ -382,10 +405,10 @@ const App: React.FC = () => {
 
         {/* Header */}
         <header style={{
-          padding: '1rem 2rem',
+          padding: '0.65rem 1rem',
           display: 'flex',
           flexWrap: 'wrap',
-          gap: '1rem',
+          gap: '0.5rem',
           justifyContent: 'space-between',
           alignItems: 'center',
           borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
@@ -394,20 +417,20 @@ const App: React.FC = () => {
           zIndex: 50
         }}>
           {/* Mobile Hamburger Button */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button
               className="btn btn-secondary mobile-menu-btn"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              style={{ padding: '0.4rem 0.6rem', border: '1px solid var(--border-color)' }}
+              style={{ padding: '0.35rem 0.5rem', border: '1px solid var(--border-color)' }}
             >
-              <Menu size={18} />
+              <Menu size={16} />
             </button>
-            <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-              {activePage.charAt(0).toUpperCase() + activePage.slice(1)}
+            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              {PAGE_TITLES[activePage]}
             </span>
           </div>
 
-          <div className="responsive-flex-wrap" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
             {/* Live Auto-Save Status Badge */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               {saveError ? (
@@ -456,8 +479,9 @@ const App: React.FC = () => {
                   <RefreshCw size={14} className="spin" />
                   <span>Saving...</span>
                 </button>
-              ) : (
+              ) : showSavedBadge ? (
                 <div
+                  className="animate-fade-in"
                   title="All feature states are automatically saved"
                   style={{
                     padding: '0.35rem 0.75rem',
@@ -475,7 +499,7 @@ const App: React.FC = () => {
                   <CheckCircle2 size={14} />
                   <span>Auto-Saved</span>
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* Global Date Filter */}
@@ -578,7 +602,7 @@ const App: React.FC = () => {
               )}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
+            <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)' }} />
               <span style={{ color: 'var(--text-secondary)' }}>Encrypted session active</span>
             </div>
@@ -586,7 +610,7 @@ const App: React.FC = () => {
         </header>
 
         {/* Core Screen Content */}
-        <main style={{ flex: 1, padding: '2rem', overflowY: 'auto', background: 'transparent' }}>
+        <main className="main-workspace" style={{ flex: 1, padding: '1.25rem', overflowY: 'auto', background: 'transparent' }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={activePage}
@@ -601,6 +625,51 @@ const App: React.FC = () => {
           </AnimatePresence>
         </main>
 
+        {/* Mobile Bottom Navigation Bar */}
+        <nav className="mobile-bottom-nav">
+          <button
+            className={`mobile-nav-item ${activePage === 'dashboard' ? 'active' : ''}`}
+            onClick={() => { setActivePage('dashboard'); setIsMobileMenuOpen(false); }}
+          >
+            <LayoutDashboard size={18} />
+            <span>Control</span>
+          </button>
+          <button
+            className={`mobile-nav-item ${activePage === 'ledger' ? 'active' : ''}`}
+            onClick={() => { setActivePage('ledger'); setIsMobileMenuOpen(false); }}
+          >
+            <Landmark size={18} />
+            <span>Ledger</span>
+          </button>
+          <button
+            className={`mobile-nav-item ${activePage === 'investments' ? 'active' : ''}`}
+            onClick={() => { setActivePage('investments'); setIsMobileMenuOpen(false); }}
+          >
+            <TrendingUp size={18} />
+            <span>Wealth</span>
+          </button>
+          <button
+            className={`mobile-nav-item ${activePage === 'tax' ? 'active' : ''}`}
+            onClick={() => { setActivePage('tax'); setIsMobileMenuOpen(false); }}
+          >
+            <Percent size={18} />
+            <span>Tax</span>
+          </button>
+          <button
+            className={`mobile-nav-item ${activePage === 'ai' ? 'active' : ''}`}
+            onClick={() => { setActivePage('ai'); setIsMobileMenuOpen(false); }}
+          >
+            <Sparkles size={18} />
+            <span>AI</span>
+          </button>
+          <button
+            className={`mobile-nav-item ${isMobileMenuOpen ? 'active' : ''}`}
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            <Menu size={18} />
+            <span>More</span>
+          </button>
+        </nav>
       </div>
 
       {/* Toast Notification */}

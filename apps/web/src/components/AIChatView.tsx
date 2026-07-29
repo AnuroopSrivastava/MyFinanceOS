@@ -347,9 +347,8 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
       </div>
 
       {/* One-click Quick Prompts */}
-      <div style={{
-        display: 'flex', gap: '0.6rem', overflowX: 'auto', paddingBottom: '0.75rem', marginBottom: '0.5rem',
-        scrollbarWidth: 'none', msOverflowStyle: 'none'
+      <div className="mobile-tabs-scroll" style={{
+        display: 'flex', gap: '0.6rem', overflowX: 'auto', paddingBottom: '0.75rem', marginBottom: '0.5rem'
       }}>
         {QUICK_PROMPTS.map((qp, i) => (
           <button

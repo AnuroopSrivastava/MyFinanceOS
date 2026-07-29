@@ -106,7 +106,7 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
         </div>
 
         {/* Tab Switcher */}
-        <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.3rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+        <div className="mobile-tabs-scroll" style={{ background: 'rgba(255,255,255,0.05)', padding: '0.3rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
           <button
             className="btn"
             onClick={() => setActiveTab('allocator')}
@@ -119,7 +119,9 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
               color: activeTab === 'allocator' ? '#fff' : 'var(--text-secondary)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              gap: '0.4rem',
+              flexShrink: 0,
+              whiteSpace: 'nowrap'
             }}
           >
             <PieChart size={16} />
@@ -137,7 +139,9 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
               color: activeTab === 'fire' ? '#fff' : 'var(--text-secondary)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              gap: '0.4rem',
+              flexShrink: 0,
+              whiteSpace: 'nowrap'
             }}
           >
             <Flame size={16} />
@@ -155,7 +159,9 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
               color: activeTab === 'emi' ? '#fff' : 'var(--text-secondary)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              gap: '0.4rem',
+              flexShrink: 0,
+              whiteSpace: 'nowrap'
             }}
           >
             <Calculator size={16} />

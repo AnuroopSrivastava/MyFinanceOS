@@ -3,128 +3,423 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://api.web3forms.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://www.googleapis.com https://accounts.google.com https://apis.google.com https://api.web3forms.com https://generativelanguage.googleapis.com; object-src 'none'; base-uri 'self';" />
     <title>Terms of Service - MyFinanceOS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: hsl(224, 30%, 5%);
-            --text-primary: hsl(210, 20%, 98%);
-            --text-secondary: hsl(210, 10%, 70%);
-            --accent: hsl(186, 100%, 50%);
-            --glass-bg: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.05);
+            --bg-primary: #07090e;
+            --bg-card: rgba(18, 24, 38, 0.75);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-cyan: #38bdf8;
+            --accent-emerald: #34d399;
+            --accent-purple: #c084fc;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(56, 189, 248, 0.25);
+            --font-display: 'Plus Jakarta Sans', sans-serif;
+            --font-body: 'Inter', sans-serif;
         }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            line-height: 1.7; 
-            margin: 0; 
-            padding: 0; 
-            background: radial-gradient(circle at top center, hsl(224, 25%, 15%) 0%, var(--bg) 100%);
-            color: var(--text-secondary); 
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-primary);
+            color: var(--text-secondary);
+            line-height: 1.7;
             min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(ellipse at 15% 0%, rgba(56, 189, 248, 0.12) 0%, transparent 50%),
+                radial-gradient(ellipse at 85% 20%, rgba(192, 132, 252, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 100%, rgba(52, 211, 153, 0.08) 0%, transparent 60%);
+            background-attachment: fixed;
+            -webkit-font-smoothing: antialiased;
         }
-        .container {
-            max-width: 800px;
-            margin: 4rem auto;
-            padding: 3rem;
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
+
+        .glow-sphere {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 0;
+            pointer-events: none;
+            animation: floatGlow 12s ease-in-out infinite alternate;
+        }
+        .glow-1 { top: -100px; left: 10%; width: 400px; height: 400px; background: rgba(56, 189, 248, 0.15); }
+        .glow-2 { bottom: -100px; right: 10%; width: 450px; height: 450px; background: rgba(168, 85, 247, 0.12); animation-delay: -6s; }
+
+        @keyframes floatGlow {
+            0% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(30px) scale(1.1); }
+        }
+
+        .wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem 6rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .back-nav {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--accent-cyan);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-bottom: 2.5rem;
+        }
+
+        .back-nav:hover {
+            transform: translateX(-4px);
+            background: rgba(56, 189, 248, 0.18);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+        }
+
+        .glass-header {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border-color);
             border-radius: 24px;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            animation: fadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .header {
+
+        .header-content {
             display: flex;
             align-items: center;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            border-bottom: 1px solid var(--glass-border);
-            padding-bottom: 1.5rem;
+            gap: 1.5rem;
         }
-        .header img {
-            width: 48px;
-            height: 48px;
+
+        .logo-box img {
+            width: 64px;
+            height: 64px;
             border-radius: 50%;
-            box-shadow: 0 0 15px rgba(0, 221, 255, 0.3);
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.15);
         }
-        .header-text h1 {
+
+        .header-title h1 {
+            font-family: var(--font-display);
+            font-size: 2.2rem;
+            font-weight: 800;
             color: var(--text-primary);
-            margin: 0 0 0.25rem 0;
-            font-size: 2rem;
-            letter-spacing: -0.5px;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 50%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .header-text p {
-            margin: 0;
-            font-size: 0.9rem;
+
+        .header-title p {
             color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-top: 0.3rem;
         }
-        h2 { 
-            color: var(--text-primary); 
-            margin-top: 2.5rem; 
-            font-size: 1.4rem;
+
+        .badge-verified {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-top: 0.75rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 9999px;
+            background: rgba(56, 189, 248, 0.12);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            font-size: 0.8rem;
             font-weight: 600;
         }
+
+        .toc-bar {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 0.5rem;
+            margin-bottom: 2rem;
+            scrollbar-width: none;
+        }
+        .toc-bar::-webkit-scrollbar { display: none; }
+
+        .toc-pill {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 0.45rem 0.9rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .toc-pill:hover {
+            color: #fff;
+            border-color: var(--accent-cyan);
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .policy-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) ease-out;
+        }
+
+        .policy-card:hover {
+            border-color: var(--border-glow);
+            box-shadow: 0 15px 40px rgba(56, 189, 248, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .section-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.75;
+        }
+
+        p:last-child { margin-bottom: 0; }
+
         strong {
             color: var(--text-primary);
-        }
-        ul {
-            background: rgba(0,0,0,0.2);
-            padding: 1.5rem 1.5rem 1.5rem 2.5rem;
-            border-radius: 12px;
-            border: 1px solid var(--glass-border);
-        }
-        li {
-            margin-bottom: 0.5rem;
-        }
-        a.back-btn {
-            display: inline-block;
-            margin-bottom: 2rem;
-            color: var(--accent);
-            text-decoration: none;
-            font-size: 0.95rem;
             font-weight: 600;
         }
-        a.back-btn:hover {
-            text-decoration: underline;
+
+        ul {
+            list-style: none;
+            margin: 1rem 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        li {
+            position: relative;
+            padding-left: 1.75rem;
+            font-size: 0.93rem;
+            color: var(--text-secondary);
+        }
+
+        li::before {
+            content: '📌';
+            position: absolute;
+            left: 0;
+            top: 0;
+            font-size: 0.85rem;
+        }
+
+        .highlight-box {
+            background: rgba(168, 85, 247, 0.06);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 14px;
+            padding: 1.25rem;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin: 0 0.75rem;
+            transition: color 0.2s;
+        }
+
+        .footer a:hover { color: var(--accent-cyan); }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .wrapper { padding: 1.5rem 1rem 4rem; }
+            .glass-header { padding: 1.5rem; }
+            .header-content { flex-direction: column; text-align: center; }
+            .header-title h1 { font-size: 1.75rem; }
+            .policy-card { padding: 1.25rem; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <a href="/" class="back-btn">← Back to MyFinanceOS</a>
-        
-        <div class="header">
-            <img src="/logo.png" alt="MyFinanceOS Logo">
-            <div class="header-text">
-                <h1>Terms of Service</h1>
-                <p>Last updated: July 2026</p>
+
+    <div class="glow-sphere glow-1"></div>
+    <div class="glow-sphere glow-2"></div>
+
+    <div class="wrapper">
+        <a href="/" class="back-nav">← Return to MyFinanceOS</a>
+
+        <!-- Header Card -->
+        <header class="glass-header">
+            <div class="header-content">
+                <div class="logo-box">
+                    <img src="/logo.png" alt="MyFinanceOS Logo">
+                </div>
+                <div class="header-title">
+                    <h1>Terms of Service</h1>
+                    <p>Last Revised: July 29, 2026 • User Data Sovereignty & License Terms</p>
+                    <div class="badge-verified">
+                        <span>📜 Local-First License & Operating Agreement</span>
+                    </div>
+                </div>
             </div>
-        </div>
+        </header>
 
-        <h2>1. Acceptance of Terms</h2>
-        <p>By accessing or using MyFinanceOS, you agree to be bound by these Terms of Service. If you do not agree to these terms, you may not use the application.</p>
+        <!-- Quick Jump Bar -->
+        <nav class="toc-bar">
+            <a href="#section-1" class="toc-pill">1. Acceptance</a>
+            <a href="#section-2" class="toc-pill">2. Scope & Advice Disclaimer</a>
+            <a href="#section-3" class="toc-pill">3. Data Ownership</a>
+            <a href="#section-4" class="toc-pill">4. Google Integration</a>
+            <a href="#section-5" class="toc-pill">5. Warranties & Liability</a>
+            <a href="#section-6" class="toc-pill">6. Updates</a>
+        </nav>
 
-        <h2>2. Description of Service</h2>
-        <p>MyFinanceOS is a personal finance management tool that operates entirely locally in your browser/device and stores its data exclusively in your personal Google Drive account.</p>
+        <!-- Section 1 -->
+        <section id="section-1" class="policy-card">
+            <div class="section-header">
+                <div class="section-icon">✍️</div>
+                <h2>1. Acceptance of Terms & Local-First Model</h2>
+            </div>
+            <p>By accessing, installing, or executing <strong>MyFinanceOS</strong>, you agree to be bound by these Terms of Service. If you do not agree to these terms, you should discontinue using the software immediately.</p>
+            <p>MyFinanceOS is designed as a local-first software product that executes on your client device (web browser or desktop runner) without relying on centralized user data servers operated by the software developers.</p>
+        </section>
 
-        <h2>3. User Responsibilities</h2>
-        <ul>
-            <li>You are responsible for maintaining the confidentiality of your Google Account and ensuring its security.</li>
-            <li>You agree to use the application for its intended purpose of personal financial tracking.</li>
-            <li>Since we do not host your data, we cannot recover your data if you delete it from your Google Drive. You are responsible for any backups outside of the Google Drive ecosystem.</li>
-        </ul>
+        <!-- Section 2 -->
+        <section id="section-2" class="policy-card">
+            <div class="section-header">
+                <div class="section-icon">📊</div>
+                <h2>2. Software Functionality & Financial Disclaimer</h2>
+            </div>
+            <p>MyFinanceOS provides tracking, visualization, tax calculation engines, compound interest models, and bookkeeping logs for personal informational purposes.</p>
+            <div class="highlight-box">
+                <strong>Important Advisory:</strong> MyFinanceOS is a computational software tool, NOT a certified Financial Planner, Registered Investment Advisor (RIA), or Chartered Accountant (CA). Calculations regarding Indian Income Tax regimes (Old vs New), GST billing, capital gains, XIRR returns, and FIRE readiness are provided for modeling purposes. Always verify official tax computations with a qualified CA.
+            </div>
+        </section>
 
-        <h2>4. Google Drive Integration</h2>
-        <p>This app uses Google Drive's APIs to read and write your financial data file (`financeos_db.json`). By using this app, you grant it the permission to create, read, update, and delete its own configuration files within your Google Drive `appDataFolder`.</p>
+        <!-- Section 3 -->
+        <section id="section-3" class="policy-card">
+            <div class="section-header">
+                <div class="section-icon">👑</div>
+                <h2>3. User Data Ownership & Backup Responsibilities</h2>
+            </div>
+            <p>You retain 100% legal ownership and control over all financial records, profiles, and documents entered into MyFinanceOS.</p>
+            <ul>
+                <li><strong>No Remote Data Recovery:</strong> Because we do not store your data on central servers, we cannot retrieve, reset, or restore lost passcodes or deleted files if you clear your local storage or delete your Google Drive backup.</li>
+                <li><strong>Backup Recommendation:</strong> You are responsible for generating periodic JSON / CSV offline backups using the built-in export features.</li>
+            </ul>
+        </section>
 
-        <h2>5. Disclaimer of Warranties</h2>
-        <p>This software is provided "AS IS", without warranty of any kind, express or implied. The developers of MyFinanceOS shall not be liable for any data loss, financial miscalculations, or any other damages arising from the use of this software.</p>
+        <!-- Section 4 -->
+        <section id="section-4" class="policy-card">
+            <div class="section-header">
+                <div class="section-icon">☁️</div>
+                <h2>4. Google Drive OAuth Integration Terms</h2>
+            </div>
+            <p>If you choose to enable cloud backup, MyFinanceOS utilizes Google OAuth to communicate directly between your client browser and Google Drive API endpoints.</p>
+            <ul>
+                <li>You grant the application permission to create, read, and update its dedicated <code>financeos_db.json</code> file inside your Google Drive <code>appDataFolder</code>.</li>
+                <li>You may revoke this OAuth access at any time through your Google Account Security settings.</li>
+            </ul>
+        </section>
 
-        <h2>6. Changes to Terms</h2>
-        <p>We reserve the right to modify these terms at any time. Your continued use of the application following any changes indicates your acceptance of the new terms.</p>
+        <!-- Section 5 -->
+        <section id="section-5" class="policy-card">
+            <div class="section-header">
+                <div class="section-icon">🛡️</div>
+                <h2>5. Disclaimer of Warranties & Limitation of Liability</h2>
+            </div>
+            <p>MyFinanceOS is provided on an <strong>"AS IS" and "AS AVAILABLE"</strong> basis without warranties of any kind, either express or implied, including but not limited to merchantability or fitness for a particular purpose.</p>
+            <p>Under no circumstances shall the developers of MyFinanceOS be liable for direct, indirect, incidental, or consequential damages resulting from data loss, device failure, tax penalty calculations, or investment performance.</p>
+        </section>
 
-        <h2>7. Contact Us</h2>
-        <p>If you have any questions about these Terms, please contact the developer.</p>
+        <!-- Section 6 -->
+        <section id="section-6" class="policy-card">
+            <div class="section-header">
+                <div class="section-icon">🔄</div>
+                <h2>6. Software Updates & Governance</h2>
+            </div>
+            <p>We reserve the right to update this application, add or modify features, or revise these Terms of Service as technology and regulatory requirements evolve. Continued usage of MyFinanceOS constitutes acceptance of updated terms.</p>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>© 2026 MyFinanceOS. Premium Local-First Personal & Business Finance Suite for India.</p>
+            <p style="margin-top: 0.5rem;">
+                <a href="/">Home</a> • 
+                <a href="/privacy.html">Privacy Policy</a> • 
+                <a href="#section-1">Top of Page</a>
+            </p>
+        </footer>
     </div>
+
 </body>
 </html>

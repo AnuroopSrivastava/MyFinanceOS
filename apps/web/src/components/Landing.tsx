@@ -223,7 +223,7 @@ const FEATURE_BLOCKS = [
   {
     id: 'investments',
     icon: <TrendingUp size={24} />,
-    title: 'Investments',
+    title: 'Portfolio & Investments',
     desc: 'Consolidated asset tracking for Indian Equities, Mutual Funds, Fixed Deposits, Gold, NPS, EPF, and US Stocks with live P&L and yield analytics.',
     bullets: [
       'Real-time portfolio valuation & returns',
@@ -335,49 +335,7 @@ const FEATURE_BLOCKS = [
       </div>
     )
   },
-  {
-    id: 'sankey',
-    icon: <Network size={24} />,
-    title: 'Sankey Cash Flow',
-    desc: 'Visualize your money in motion. Interactive Sankey diagrams map exact money paths from salary & business revenue into expense categories, investments, and net savings.',
-    bullets: [
-      'Dynamic visual money flow tracing',
-      'Identify spending leaks instantly',
-      'Customizable node grouping & paths',
-      'High-res diagram export'
-    ],
-    demo: (
-      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '320px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>SANKEY MONEY FLOW DIAGRAM</span>
-          <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: 'rgba(6, 182, 212, 0.15)', color: '#67e8f9', borderRadius: '4px' }}>Live Tracing</span>
-        </div>
-        <div style={{ position: 'relative', width: '100%', height: '140px' }}>
-          <svg viewBox="0 0 340 140" style={{ width: '100%', height: '100%' }}>
-            {/* Left Node: Total Inflow */}
-            <rect x="10" y="25" width="75" height="90" rx="8" fill="rgba(59, 130, 246, 0.2)" stroke="#38bdf8" strokeWidth="1.5" />
-            <text x="47.5" y="62" fill="#ffffff" fontSize="10" fontWeight="bold" textAnchor="middle">INCOME</text>
-            <text x="47.5" y="78" fill="#38bdf8" fontSize="11" fontWeight="bold" textAnchor="middle">₹2,50,000</text>
 
-            {/* Connecting Flow Paths */}
-            <path className="sankey-animated-path" d="M 85 40 C 135 40, 150 25, 195 25" stroke="#34d399" strokeWidth="6" fill="none" opacity="0.85" />
-            <path className="sankey-animated-path" d="M 85 70 C 135 70, 150 70, 195 70" stroke="#38bdf8" strokeWidth="8" fill="none" opacity="0.85" />
-            <path className="sankey-animated-path" d="M 85 100 C 135 100, 150 115, 195 115" stroke="#f43f5e" strokeWidth="5" fill="none" opacity="0.85" />
-
-            {/* Right Nodes */}
-            <rect x="195" y="10" width="135" height="30" rx="6" fill="rgba(52, 211, 153, 0.15)" stroke="#34d399" strokeWidth="1" />
-            <text x="262.5" y="29" fill="#34d399" fontSize="9" fontWeight="bold" textAnchor="middle">SIPs ₹1,25,000 (50%)</text>
-
-            <rect x="195" y="55" width="135" height="30" rx="6" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" strokeWidth="1" />
-            <text x="262.5" y="74" fill="#38bdf8" fontSize="9" fontWeight="bold" textAnchor="middle">Savings ₹75,000 (30%)</text>
-
-            <rect x="195" y="100" width="135" height="30" rx="6" fill="rgba(244, 63, 94, 0.15)" stroke="#f43f5e" strokeWidth="1" />
-            <text x="262.5" y="119" fill="#f43f5e" fontSize="9" fontWeight="bold" textAnchor="middle">Expenses ₹50,000 (20%)</text>
-          </svg>
-        </div>
-      </div>
-    )
-  },
   {
     id: 'planner',
     icon: <Target size={24} />,
@@ -548,6 +506,49 @@ const FEATURE_BLOCKS = [
     )
   },
   {
+    id: 'sankey',
+    icon: <Network size={24} />,
+    title: 'Sankey Cash Flow',
+    desc: 'Visualize your money in motion. Interactive Sankey diagrams map exact money paths from salary & business revenue into expense categories, investments, and net savings.',
+    bullets: [
+      'Dynamic visual money flow tracing',
+      'Identify spending leaks instantly',
+      'Customizable node grouping & paths',
+      'High-res diagram export'
+    ],
+    demo: (
+      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '320px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>SANKEY MONEY FLOW DIAGRAM</span>
+          <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: 'rgba(6, 182, 212, 0.15)', color: '#67e8f9', borderRadius: '4px' }}>Live Tracing</span>
+        </div>
+        <div style={{ position: 'relative', width: '100%', height: '140px' }}>
+          <svg viewBox="0 0 340 140" style={{ width: '100%', height: '100%' }}>
+            {/* Left Node: Total Inflow */}
+            <rect x="10" y="25" width="75" height="90" rx="8" fill="rgba(59, 130, 246, 0.2)" stroke="#38bdf8" strokeWidth="1.5" />
+            <text x="47.5" y="62" fill="#ffffff" fontSize="10" fontWeight="bold" textAnchor="middle">INCOME</text>
+            <text x="47.5" y="78" fill="#38bdf8" fontSize="11" fontWeight="bold" textAnchor="middle">₹2,50,000</text>
+
+            {/* Connecting Flow Paths */}
+            <path className="sankey-animated-path" d="M 85 40 C 135 40, 150 25, 195 25" stroke="#34d399" strokeWidth="6" fill="none" opacity="0.85" />
+            <path className="sankey-animated-path" d="M 85 70 C 135 70, 150 70, 195 70" stroke="#38bdf8" strokeWidth="8" fill="none" opacity="0.85" />
+            <path className="sankey-animated-path" d="M 85 100 C 135 100, 150 115, 195 115" stroke="#f43f5e" strokeWidth="5" fill="none" opacity="0.85" />
+
+            {/* Right Nodes */}
+            <rect x="195" y="10" width="135" height="30" rx="6" fill="rgba(52, 211, 153, 0.15)" stroke="#34d399" strokeWidth="1" />
+            <text x="262.5" y="29" fill="#34d399" fontSize="9" fontWeight="bold" textAnchor="middle">SIPs ₹1,25,000 (50%)</text>
+
+            <rect x="195" y="55" width="135" height="30" rx="6" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" strokeWidth="1" />
+            <text x="262.5" y="74" fill="#38bdf8" fontSize="9" fontWeight="bold" textAnchor="middle">Savings ₹75,000 (30%)</text>
+
+            <rect x="195" y="100" width="135" height="30" rx="6" fill="rgba(244, 63, 94, 0.15)" stroke="#f43f5e" strokeWidth="1" />
+            <text x="262.5" y="119" fill="#f43f5e" fontSize="9" fontWeight="bold" textAnchor="middle">Expenses ₹50,000 (20%)</text>
+          </svg>
+        </div>
+      </div>
+    )
+  },
+  {
     id: 'ai',
     icon: <Sparkles size={24} />,
     title: 'AI Financial Assistant',
@@ -610,6 +611,7 @@ const FEATURE_BLOCKS = [
 ];
 
 export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
+  const [activeLegalModal, setActiveLegalModal] = useState<'privacy' | 'terms' | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState(false);
@@ -626,7 +628,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          access_key: '0c19adce-e009-4488-80f6-ca979a99aa35',
+          access_key: import.meta.env.VITE_WEB3FORMS_ACCESS_KEY || '',
           subject: 'New Feedback for MyFinanceOS',
           message: feedbackText
         })
@@ -1056,13 +1058,152 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
         background: 'var(--bg-secondary)', color: 'var(--text-muted)', fontSize: '0.9rem',
         position: 'relative', zIndex: 10, marginTop: '4rem'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
           <a href="#how-it-works" onClick={scrollToHowItWorks} style={{ color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>How It Works</a>
-          <a href="/privacy.html" style={{ color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>Privacy Policy</a>
-          <a href="/terms.html" style={{ color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>Terms of Service</a>
+          <button onClick={() => setActiveLegalModal('privacy')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.9rem', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>Privacy Policy</button>
+          <button onClick={() => setActiveLegalModal('terms')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.9rem', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>Terms of Service</button>
         </div>
         © {new Date().getFullYear()} MyFinanceOS. All rights reserved.
       </footer>
+
+      {/* Interactive Smooth Glassmorphism Legal Modal */}
+      {activeLegalModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(7, 9, 14, 0.85)',
+          backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '1.5rem', animation: 'fadeInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}>
+          <div className="glass-panel" style={{
+            width: '100%', maxWidth: '850px', maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+            borderRadius: '24px', border: '1px solid rgba(255, 255, 255, 0.1)', background: 'rgba(15, 23, 42, 0.95)',
+            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.6)', overflow: 'hidden'
+          }}>
+            {/* Modal Top Bar */}
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '1.25rem 1.75rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              background: 'rgba(0, 0, 0, 0.3)'
+            }}>
+              <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.05)', padding: '0.3rem', borderRadius: '12px' }}>
+                <button
+                  onClick={() => setActiveLegalModal('privacy')}
+                  style={{
+                    padding: '0.4rem 1rem', fontSize: '0.85rem', fontWeight: 600, border: 'none',
+                    borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s',
+                    background: activeLegalModal === 'privacy' ? 'var(--accent-grad)' : 'transparent',
+                    color: activeLegalModal === 'privacy' ? '#fff' : 'var(--text-secondary)'
+                  }}
+                >
+                  🛡️ Privacy Policy
+                </button>
+                <button
+                  onClick={() => setActiveLegalModal('terms')}
+                  style={{
+                    padding: '0.4rem 1rem', fontSize: '0.85rem', fontWeight: 600, border: 'none',
+                    borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s',
+                    background: activeLegalModal === 'terms' ? 'var(--accent-grad)' : 'transparent',
+                    color: activeLegalModal === 'terms' ? '#fff' : 'var(--text-secondary)'
+                  }}
+                >
+                  📜 Terms of Service
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <a
+                  href={activeLegalModal === 'privacy' ? '/privacy.html' : '/terms.html'}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ fontSize: '0.8rem', color: 'var(--accent-1)', textDecoration: 'none', fontWeight: 600 }}
+                >
+                  Open Page ↗
+                </a>
+                <button
+                  onClick={() => setActiveLegalModal(null)}
+                  style={{
+                    background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff',
+                    borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer',
+                    fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body Scroll Area */}
+            <div style={{ padding: '2rem 2rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {activeLegalModal === 'privacy' ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '1rem' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
+                      🛡️
+                    </div>
+                    <div>
+                      <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>Privacy Policy & Security Guarantee</h2>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>Last Updated: July 2026 • Local-First Architecture Guarantee</p>
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.2)', padding: '1rem 1.25rem', borderRadius: '12px', fontSize: '0.88rem', lineHeight: 1.6, color: '#e2e8f0' }}>
+                    🔒 <strong>Zero Server Storage Promise:</strong> MyFinanceOS does not run central servers that collect, store, inspect, or sell your account balances, salary details, portfolios, or tax records.
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--accent-1)' }}>1. Local-First Computing Model</h3>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
+                      All mathematical models, Net Worth aggregates, XIRR returns, tax slab comparisons, and Sankey money flow graphics execute locally on your machine. Your data remains strictly on your device.
+                    </p>
+
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--accent-1)' }}>2. Personal Google Drive Sync (`appDataFolder`)</h3>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
+                      When cloud sync is active, MyFinanceOS reads and writes a single file (<code>financeos_db.json</code>) inside your personal Google Drive application data folder. Our software physically cannot view, read, or alter any of your other Google Drive files.
+                    </p>
+
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--accent-1)' }}>3. AES-256 On-Device Vault Encryption</h3>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
+                      Database payloads can be locked with a custom passcode using AES-256 GCM encryption. Your secret key is never sent across any network.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '1rem' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(168, 85, 247, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
+                      📜
+                    </div>
+                    <div>
+                      <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>Terms of Service</h2>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>Last Updated: July 2026 • User Data Sovereignty License</p>
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'rgba(168, 85, 247, 0.08)', border: '1px solid rgba(168, 85, 247, 0.2)', padding: '1rem 1.25rem', borderRadius: '12px', fontSize: '0.88rem', lineHeight: 1.6, color: '#e2e8f0' }}>
+                    👑 <strong>User Sovereignty:</strong> You own 100% of your data. MyFinanceOS is a client-side computation tool designed to help you organize and plan your financial life.
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--accent-2)' }}>1. Financial & Tax Advice Disclaimer</h3>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
+                      MyFinanceOS is a computational software tool, NOT a certified Chartered Accountant (CA) or SEBI-registered advisor. Calculations regarding Old vs New Tax Regimes, GST billing, and FIRE milestones are for modeling purposes.
+                    </p>
+
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--accent-2)' }}>2. User Backup Responsibilities</h3>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
+                      Because we do not store your data on remote servers, we cannot restore lost passcodes or deleted files if you clear your browser storage or delete your Google Drive backup. Use built-in 1-click JSON exports for offline safety.
+                    </p>
+
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--accent-2)' }}>3. Software License & Warranty</h3>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
+                      The software is provided "AS IS" without warranties of any kind. Developers shall not be liable for direct or indirect damages resulting from software use or tax calculation variances.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes pulse {
