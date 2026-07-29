@@ -257,7 +257,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
       .slice(-6)
       .map(([monthPrefix, totals]) => {
         const [year, month] = monthPrefix.split('-');
-        const monthName = monthsNames[parseInt(month, 10) - 1];
+        const monthName = monthsNames[parseInt(month, 10) - 1] || monthPrefix;
         return {
           name: monthName,
           Income: totals.Income,
