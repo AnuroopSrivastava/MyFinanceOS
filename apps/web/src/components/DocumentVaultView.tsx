@@ -81,26 +81,29 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
       style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
     >
       {/* Page Title & Header Actions */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Encrypted Document Vault</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ flex: '1 1 240px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <h2 style={{ fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }}>
+              Encrypted Document Vault
+            </h2>
             <span style={{
-              background: 'rgba(59, 130, 246, 0.15)',
+              background: 'rgba(59, 130, 246, 0.12)',
               color: 'var(--accent-1)',
               border: '1px solid rgba(59, 130, 246, 0.3)',
-              padding: '0.2rem 0.6rem',
-              borderRadius: '9999px',
+              padding: '0.25rem 0.65rem',
+              borderRadius: '2rem',
               fontSize: '0.75rem',
               fontWeight: 600,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.3rem'
+              gap: '0.35rem',
+              whiteSpace: 'nowrap'
             }}>
               <Lock size={12} /> AES-256 Local Encrypted
             </span>
           </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.35rem', lineHeight: 1.5 }}>
             Store PAN, Aadhaar, Property Deeds, Tax returns, and Policy docs with local encryption & AI indexing
           </p>
         </div>
@@ -108,7 +111,7 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
         <button
           className="btn btn-primary"
           onClick={() => setIsUploading(!isUploading)}
-          style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+          style={{ padding: '0.55rem 1.15rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.45rem', borderRadius: '2rem', whiteSpace: 'nowrap' }}
         >
           <Upload size={16} />
           <span>Upload Document</span>
@@ -224,35 +227,37 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
       </AnimatePresence>
 
       {/* Filter and Search Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <div style={{ position: 'relative', width: '280px' }}>
-          <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.85rem', width: '100%' }}>
+        <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '200px', width: '100%' }}>
+          <Search size={14} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
           <input
             type="text"
             placeholder="Search documents, tags, OCR..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="form-input"
-            style={{ paddingLeft: '2.2rem', fontSize: '0.85rem' }}
+            style={{ paddingLeft: '2.4rem', fontSize: '0.85rem', borderRadius: '2rem', height: '38px', width: '100%' }}
           />
         </div>
 
-        {/* Category Pills */}
-        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+        {/* Category Pills with Horizontal Touch Scroll */}
+        <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', paddingBottom: '0.2rem', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               style={{
-                padding: '0.35rem 0.75rem',
-                borderRadius: 'var(--radius-sm)',
+                padding: '0.4rem 0.85rem',
+                borderRadius: '2rem',
                 fontSize: '0.8rem',
                 fontWeight: selectedCategory === cat ? 600 : 400,
-                border: 'none',
-                background: selectedCategory === cat ? 'var(--accent-1)' : 'rgba(255, 255, 255, 0.05)',
+                border: selectedCategory === cat ? '1px solid var(--accent-1)' : '1px solid rgba(255, 255, 255, 0.08)',
+                background: selectedCategory === cat ? 'var(--accent-1)' : 'rgba(255, 255, 255, 0.04)',
                 color: selectedCategory === cat ? '#fff' : 'var(--text-secondary)',
                 cursor: 'pointer',
-                transition: 'all 0.15s ease'
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s ease',
+                flexShrink: 0
               }}
             >
               {cat}
@@ -369,12 +374,39 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
         ))}
 
         {filteredDocs.length === 0 && (
-          <div className="glass-panel" style={{ gridColumn: '1 / -1', padding: '3rem', textAlign: 'center' }}>
-            <FileCode size={36} color="var(--text-secondary)" style={{ margin: '0 auto 0.75rem' }} />
-            <h4 style={{ fontSize: '1rem', fontWeight: 600 }}>No documents found</h4>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-              Upload financial documents to store them with local AES-256 encryption.
+          <div className="glass-panel" style={{
+            gridColumn: '1 / -1',
+            padding: '2.5rem 1.5rem',
+            textAlign: 'center',
+            borderRadius: '1.25rem',
+            border: '1px dashed rgba(59, 130, 246, 0.25)',
+            background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.3) 0%, rgba(15, 23, 42, 0.5) 100%)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}>
+            <div style={{
+              padding: '1rem',
+              borderRadius: '50%',
+              background: 'rgba(59, 130, 246, 0.1)',
+              color: 'var(--accent-1)',
+              border: '1px solid rgba(59, 130, 246, 0.2)',
+              marginBottom: '0.25rem'
+            }}>
+              <FileCode size={32} />
+            </div>
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>No documents found</h4>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0, maxWidth: '420px', lineHeight: 1.5 }}>
+              Upload financial documents to store them with hardware-accelerated local AES-256 encryption.
             </p>
+            <button
+              className="btn btn-primary"
+              onClick={() => setIsUploading(true)}
+              style={{ marginTop: '0.5rem', padding: '0.5rem 1.25rem', fontSize: '0.85rem', borderRadius: '2rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <Upload size={14} /> Upload First Document
+            </button>
           </div>
         )}
       </div>

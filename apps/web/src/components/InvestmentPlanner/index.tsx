@@ -106,65 +106,81 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
         </div>
 
         {/* Tab Switcher */}
-        <div className="mobile-tabs-scroll" style={{ background: 'rgba(255,255,255,0.05)', padding: '0.3rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+        <div style={{
+          display: 'flex',
+          width: '100%',
+          maxWidth: '520px',
+          gap: '0.25rem',
+          background: 'rgba(255, 255, 255, 0.04)',
+          padding: '0.25rem',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-color)',
+          boxSizing: 'border-box'
+        }}>
           <button
             className="btn"
             onClick={() => setActiveTab('allocator')}
             style={{
-              padding: '0.45rem 0.9rem',
-              fontSize: '0.85rem',
+              flex: 1,
+              padding: '0.45rem 0.4rem',
+              fontSize: 'clamp(0.72rem, 2.4vw, 0.85rem)',
               borderRadius: 'var(--radius-sm)',
               border: 'none',
               background: activeTab === 'allocator' ? 'var(--accent-grad)' : 'transparent',
               color: activeTab === 'allocator' ? '#fff' : 'var(--text-secondary)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem',
-              flexShrink: 0,
-              whiteSpace: 'nowrap'
+              justifyContent: 'center',
+              gap: '0.35rem',
+              whiteSpace: 'nowrap',
+              fontWeight: activeTab === 'allocator' ? 600 : 400
             }}
           >
-            <PieChart size={16} />
+            <PieChart size={14} style={{ flexShrink: 0 }} />
             <span>Asset Allocator</span>
           </button>
           <button
             className="btn"
             onClick={() => setActiveTab('fire')}
             style={{
-              padding: '0.45rem 0.9rem',
-              fontSize: '0.85rem',
+              flex: 1,
+              padding: '0.45rem 0.4rem',
+              fontSize: 'clamp(0.72rem, 2.4vw, 0.85rem)',
               borderRadius: 'var(--radius-sm)',
               border: 'none',
               background: activeTab === 'fire' ? 'var(--accent-grad)' : 'transparent',
               color: activeTab === 'fire' ? '#fff' : 'var(--text-secondary)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem',
-              flexShrink: 0,
-              whiteSpace: 'nowrap'
+              justifyContent: 'center',
+              gap: '0.35rem',
+              whiteSpace: 'nowrap',
+              fontWeight: activeTab === 'fire' ? 600 : 400
             }}
           >
-            <Flame size={16} />
-            <span>FIRE & SIP Goal Lab</span>
+            <Flame size={14} style={{ flexShrink: 0 }} />
+            <span>FIRE & SIP Lab</span>
           </button>
           <button
             className="btn"
             onClick={() => setActiveTab('emi')}
             style={{
-              padding: '0.45rem 0.9rem',
-              fontSize: '0.85rem',
+              flex: 1,
+              padding: '0.45rem 0.4rem',
+              fontSize: 'clamp(0.72rem, 2.4vw, 0.85rem)',
               borderRadius: 'var(--radius-sm)',
               border: 'none',
               background: activeTab === 'emi' ? 'var(--accent-grad)' : 'transparent',
               color: activeTab === 'emi' ? '#fff' : 'var(--text-secondary)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem',
-              flexShrink: 0,
-              whiteSpace: 'nowrap'
+              justifyContent: 'center',
+              gap: '0.35rem',
+              whiteSpace: 'nowrap',
+              fontWeight: activeTab === 'emi' ? 600 : 400
             }}
           >
-            <Calculator size={16} />
+            <Calculator size={14} style={{ flexShrink: 0 }} />
             <span>EMI Calculator</span>
           </button>
         </div>

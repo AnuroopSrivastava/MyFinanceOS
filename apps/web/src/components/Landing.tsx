@@ -750,60 +750,54 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
       <nav className="animate-fade-in responsive-nav" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         borderBottom: '1px solid var(--border-color)',
-        background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(10px)',
-        position: 'relative', zIndex: 10
+        background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(16px)',
+        position: 'sticky', top: 0, zIndex: 100
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{ background: 'var(--accent-grad)', padding: '2px', borderRadius: '50%', display: 'flex' }}>
-            <img src="/logo.png" alt="MyFinanceOS Logo" style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid var(--bg-primary)' }} />
+            <img src="/logo.png" alt="MyFinanceOS Logo" style={{ width: '34px', height: '34px', borderRadius: '50%', border: '2px solid var(--bg-primary)' }} />
           </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px' }}>
+          <h1 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px' }}>
             MyFinanceOS
           </h1>
         </div>
-        <div className="responsive-flex-wrap" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
-          <a href="#how-it-works" onClick={scrollToHowItWorks} style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.9rem', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-secondary)'}>How It Works</a>
-          <a href="/privacy.html" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.9rem', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-secondary)'}>Privacy</a>
-          <a href="/terms.html" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.9rem', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-secondary)'}>Terms</a>
-          <button onClick={() => login()} className="btn btn-secondary" style={{ padding: '0.5rem 1.5rem', fontSize: '0.9rem', borderRadius: '2rem' }} disabled={isLoading}>
+        <div className="responsive-flex-wrap" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <div className="nav-links-desktop" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <a href="#how-it-works" onClick={scrollToHowItWorks} className="nav-link">How It Works</a>
+            <a href="/privacy.html" className="nav-link">Privacy</a>
+            <a href="/terms.html" className="nav-link">Terms</a>
+          </div>
+          <button onClick={() => login()} className="btn btn-secondary nav-signin-btn" disabled={isLoading}>
             {isLoading ? 'Connecting...' : 'Sign In'}
           </button>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <main style={{
+      <main className="responsive-hero-main" style={{
         flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-        padding: '6rem 2rem 4rem', textAlign: 'center', position: 'relative', zIndex: 1
+        textAlign: 'center', position: 'relative', zIndex: 1, width: '100%'
       }}>
 
         <Reveal delay={0.1}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.75rem',
-            background: 'rgba(59, 130, 246, 0.1)',
-            padding: '0.6rem 1.5rem', borderRadius: '3rem',
-            border: '1px solid rgba(59, 130, 246, 0.2)',
-            marginBottom: '2.5rem', fontSize: '0.9rem', color: 'var(--accent-1)', fontWeight: 600,
-          }}>
-            <ShieldCheck size={18} />
-            <span style={{ letterSpacing: '0.5px' }}>Privacy-First Finance System for India 🇮🇳</span>
+          <div className="privacy-badge">
+            <ShieldCheck size={16} color="var(--accent-1)" />
+            <span>Privacy-First Finance System for India 🇮🇳</span>
           </div>
         </Reveal>
 
         <Reveal delay={0.2}>
-          <h2 style={{ fontSize: 'clamp(3rem, 6vw, 5rem)', fontWeight: 800, lineHeight: 1.1, marginBottom: '2rem', fontFamily: 'var(--font-display)', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+          <h2 className="hero-title">
             All Your Money.<br />
-            <span style={{
-              background: 'var(--accent-grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            }}>
+            <span className="hero-title-gradient">
               One Secure Workspace.
             </span>
           </h2>
         </Reveal>
 
         <Reveal delay={0.3}>
-          <p style={{ fontSize: '1.25rem', color: 'var(--text-secondary)', marginBottom: '3rem', maxWidth: '700px', margin: '0 auto 3.5rem', lineHeight: 1.6 }}>
-            A comprehensive, local-first operating system for your wealth. 
+          <p className="hero-description">
+            A comprehensive, local-first operating system for your wealth.
             Track income, expenses, taxes, and investments with absolute privacy—syncing directly to your personal Drive. We never see your data.
           </p>
         </Reveal>
@@ -819,8 +813,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
         <Reveal delay={0.4}>
           <button
             onClick={() => login()}
-            className="btn btn-primary shimmer-btn"
-            style={{ padding: '1.1rem 3rem', fontSize: '1.15rem', borderRadius: '3rem', gap: '0.75rem', boxShadow: '0 10px 30px hsla(203, 100%, 50%, 0.3)', transition: 'all 0.3s ease', transform: isLoading ? 'scale(0.98)' : 'scale(1)', position: 'relative', overflow: 'hidden' }}
+            className="btn btn-primary shimmer-btn hero-cta-btn"
             disabled={isLoading}
           >
             {isLoading ? (
@@ -831,7 +824,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
             ) : (
               <>
                 Get Started with Google
-                <ArrowRight size={22} />
+                <ArrowRight size={20} />
               </>
             )}
           </button>
@@ -839,21 +832,18 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
 
         {/* Trust Section */}
         <Reveal delay={0.5}>
-          <div style={{
-            display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '2.5rem', marginTop: '3.5rem',
-            color: 'var(--text-muted)', fontSize: '0.95rem', fontWeight: 500
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <ShieldCheck size={18} color="var(--accent-1)" /> 100% Local-First
+          <div className="trust-badges-container">
+            <div className="trust-badge-item">
+              <ShieldCheck size={16} color="#10b981" /> <span>100% Local-First</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Lock size={18} color="var(--accent-1)" /> AES-256 Encryption
+            <div className="trust-badge-item">
+              <Lock size={16} color="#38bdf8" /> <span>AES-256 Encryption</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Target size={18} color="var(--accent-1)" /> India-Ready Tax & SIP
+            <div className="trust-badge-item">
+              <Target size={16} color="#818cf8" /> <span>India-Ready Tax & SIP</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Building2 size={18} color="var(--accent-1)" /> Personal + Business
+            <div className="trust-badge-item">
+              <Building2 size={16} color="#f59e0b" /> <span>Personal + Business</span>
             </div>
           </div>
         </Reveal>
@@ -957,8 +947,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
 
         {/* Data Usage Transparency Section */}
         <Reveal style={{ display: 'flex', justifyContent: 'center' }}>
-          <div className="glass-panel feature-card" style={{
-            marginTop: '8rem', maxWidth: '800px', width: '100%', padding: '2.5rem',
+          <div className="glass-panel feature-card landing-section-panel" style={{
             background: 'var(--bg-panel)',
             borderTop: '1px solid var(--border-color)', textAlign: 'left',
             zIndex: 1, position: 'relative', overflow: 'hidden', transition: 'box-shadow 0.3s ease, border-color 0.3s ease'
@@ -978,7 +967,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
               <Lock size={24} color="var(--accent-1)" style={{ filter: 'drop-shadow(0 0 8px hsla(186, 100%, 50%, 0.5))' }} />
               Privacy & Security Guarantee
             </h3>
-            <ul style={{ color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.7, margin: 0, paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <ul style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.7, margin: 0, paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <li><strong>Zero Server Storage:</strong> Your financial data is never stored on our servers. You retain 100% ownership and control over your information at all times.</li>
               <li><strong>Google Drive Sync:</strong> We request the restricted <code>drive.appdata</code> scope solely to create and sync a hidden <code>financeos_db.json</code> file directly inside your personal Google Drive.</li>
               <li><strong>Isolated Access:</strong> Our application can only access its own specific configuration file. We physically cannot see, read, or modify any of your other personal Google Drive files.</li>
@@ -987,10 +976,10 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
         </Reveal>
 
         {/* FAQ Section */}
-        <Reveal style={{ display: 'flex', justifyContent: 'center' }}>
-          <div style={{ maxWidth: '800px', width: '100%', marginTop: '8rem', textAlign: 'left', zIndex: 1, position: 'relative' }}>
-            <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '2rem', textAlign: 'center' }}>Frequently Asked Questions</h2>
-            <div className="glass-panel" style={{ padding: '0 2rem' }}>
+        <Reveal style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+          <div className="faq-section-container">
+            <h2 className="faq-title">Frequently Asked Questions</h2>
+            <div className="glass-panel faq-card-panel">
               <FaqItem
                 question="Is MyFinanceOS free to use?"
                 answer="Yes! Because we don't host your data on our servers, our infrastructure costs are extremely low, allowing us to provide this tool to you completely free of charge."
@@ -1008,14 +997,10 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
         </Reveal>
 
         {/* Help & Feedback Section */}
-        <Reveal style={{ display: 'flex', justifyContent: 'center' }}>
-          <div className="glass-panel" style={{
-            marginTop: '8rem', maxWidth: '800px', width: '100%', padding: '2.5rem',
-            background: 'linear-gradient(180deg, hsla(224, 20%, 14%, 0.4) 0%, hsla(224, 20%, 10%, 0.7) 100%)',
-            textAlign: 'center', zIndex: 1, position: 'relative'
-          }}>
-            <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-              <MessageSquare size={24} color="var(--accent-1)" />
+        <Reveal style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+          <div className="glass-panel feedback-section-panel">
+            <h3 style={{ fontSize: '1.35rem', color: 'var(--text-primary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', fontWeight: 700 }}>
+              <MessageSquare size={22} color="var(--accent-1)" />
               Help & Feedback
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
@@ -1027,20 +1012,19 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
                 Thanks! Your feedback has been securely submitted.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '500px', margin: '0 auto', textAlign: 'left' }}>
+              <div className="feedback-form-container">
                 <textarea
                   className="form-input"
                   placeholder="How can we help you improve MyFinanceOS?"
                   rows={4}
                   value={feedbackText}
                   onChange={(e) => setFeedbackText(e.target.value)}
-                  style={{ resize: 'vertical' }}
+                  style={{ resize: 'vertical', width: '100%', borderRadius: '1rem' }}
                   disabled={isSendingFeedback}
                 />
                 <button
-                  className="btn btn-secondary"
+                  className="btn btn-secondary feedback-submit-btn"
                   onClick={handleFeedbackSubmit}
-                  style={{ alignSelf: 'flex-end' }}
                   disabled={isSendingFeedback || !feedbackText.trim()}
                 >
                   {isSendingFeedback ? 'Sending...' : 'Send Feedback'}
@@ -1053,17 +1037,17 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
       </main>
 
       {/* Footer */}
-      <footer style={{
-        padding: '2rem', textAlign: 'center', borderTop: '1px solid var(--border-color)',
-        background: 'var(--bg-secondary)', color: 'var(--text-muted)', fontSize: '0.9rem',
-        position: 'relative', zIndex: 10, marginTop: '4rem'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-          <a href="#how-it-works" onClick={scrollToHowItWorks} style={{ color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>How It Works</a>
-          <button onClick={() => setActiveLegalModal('privacy')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.9rem', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>Privacy Policy</button>
-          <button onClick={() => setActiveLegalModal('terms')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.9rem', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>Terms of Service</button>
+      <footer className="landing-footer">
+        <div className="footer-links-container">
+          <a href="#how-it-works" onClick={scrollToHowItWorks} className="footer-link">How It Works</a>
+          <span className="footer-dot">•</span>
+          <button onClick={() => setActiveLegalModal('privacy')} className="footer-btn">Privacy Policy</button>
+          <span className="footer-dot">•</span>
+          <button onClick={() => setActiveLegalModal('terms')} className="footer-btn">Terms of Service</button>
         </div>
-        © {new Date().getFullYear()} MyFinanceOS. All rights reserved.
+        <div className="footer-copyright">
+          © {new Date().getFullYear()} MyFinanceOS. All rights reserved.
+        </div>
       </footer>
 
       {/* Interactive Smooth Glassmorphism Legal Modal */}
@@ -1236,29 +1220,292 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
           100% { left: 200%; }
         }
 
+        /* Landing Page Enhanced Layout & Typography */
+        .responsive-hero-main {
+          padding: 4.5rem 2rem 3.5rem;
+        }
+        .privacy-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: rgba(59, 130, 246, 0.08);
+          padding: 0.5rem 1.25rem;
+          border-radius: 3rem;
+          border: 1px solid rgba(59, 130, 246, 0.25);
+          margin-bottom: 1.75rem;
+          font-size: 0.85rem;
+          color: var(--accent-1);
+          font-weight: 600;
+          white-space: nowrap;
+          max-width: 100%;
+          box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+          backdrop-filter: blur(8px);
+        }
+        .hero-title {
+          font-size: clamp(2.2rem, 6vw, 4.75rem);
+          font-weight: 800;
+          line-height: 1.12;
+          margin-bottom: 1.5rem;
+          font-family: var(--font-display);
+          color: var(--text-primary);
+          letter-spacing: -0.02em;
+        }
+        .hero-title-gradient {
+          background: linear-gradient(135deg, #38bdf8 0%, #3b82f6 40%, #10b981 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+        .hero-description {
+          font-size: clamp(0.95rem, 3.2vw, 1.2rem);
+          color: rgba(226, 232, 240, 0.82);
+          max-width: 660px;
+          margin: 0 auto 2.5rem;
+          line-height: 1.6;
+        }
+        .hero-cta-btn {
+          padding: 1rem 2.5rem;
+          font-size: 1.1rem;
+          font-weight: 600;
+          border-radius: 3rem;
+          gap: 0.75rem;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          box-shadow: 0 10px 30px -5px rgba(16, 185, 129, 0.4), 0 0 20px rgba(56, 189, 248, 0.2);
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          position: relative;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .hero-cta-btn:hover {
+          transform: translateY(-2px) scale(1.02);
+          box-shadow: 0 14px 35px -5px rgba(16, 185, 129, 0.5), 0 0 25px rgba(56, 189, 248, 0.3);
+        }
+        .trust-badges-container {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 1.25rem;
+          margin-top: 2.75rem;
+          color: rgba(226, 232, 240, 0.75);
+          font-size: 0.875rem;
+          font-weight: 500;
+        }
+        .trust-badge-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.07);
+          padding: 0.45rem 1rem;
+          border-radius: 2rem;
+          backdrop-filter: blur(6px);
+          transition: all 0.2s ease;
+        }
+        .trust-badge-item:hover {
+          background: rgba(255, 255, 255, 0.06);
+          border-color: rgba(255, 255, 255, 0.15);
+          transform: translateY(-1px);
+        }
+
         /* Responsive Overrides */
         .responsive-nav {
-          padding: 1.5rem 3rem;
+          padding: 1.25rem 2.5rem;
         }
-        .responsive-flex-wrap {
-          gap: 2rem;
+        .nav-links-desktop {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+        }
+        .nav-link {
+          color: var(--text-secondary);
+          text-decoration: none;
+          font-size: 0.9rem;
+          transition: color 0.2s;
+        }
+        .nav-link:hover {
+          color: var(--text-primary);
+        }
+        .nav-signin-btn {
+          padding: 0.5rem 1.5rem;
+          font-size: 0.875rem;
+          border-radius: 2rem;
         }
         @media (max-width: 768px) {
           .responsive-nav {
-            padding: 1rem;
-            flex-direction: column;
-            gap: 1rem;
-            justify-content: center !important;
+            padding: 0.75rem 1.25rem;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            gap: 0 !important;
+          }
+          .nav-links-desktop {
+            display: none !important;
           }
           .responsive-flex-wrap {
-            gap: 1rem;
-            justify-content: center;
+            gap: 0.5rem !important;
+          }
+          .nav-signin-btn {
+            padding: 0.4rem 1.1rem;
+            font-size: 0.8rem;
+          }
+          .responsive-hero-main {
+            padding: 2.25rem 1.25rem 2rem;
+          }
+          .hero-title {
+            margin-bottom: 1rem;
+          }
+          .hero-description {
+            margin-bottom: 1.75rem;
+            padding: 0 0.5rem;
           }
           .feature-text-content {
             order: 1 !important;
           }
           .feature-demo-content {
             order: 2 !important;
+          }
+        }
+        /* Section Panels & Containers */
+        .landing-section-panel {
+          margin-top: 5rem;
+          max-width: 800px;
+          width: 100%;
+          padding: 2.25rem 2.5rem;
+          border-radius: 1.5rem;
+        }
+        .faq-section-container {
+          max-width: 800px;
+          width: 100%;
+          margin-top: 5rem;
+          text-align: left;
+          z-index: 1;
+          position: relative;
+        }
+        .faq-title {
+          font-size: clamp(1.4rem, 4vw, 2.25rem);
+          font-weight: 800;
+          margin-bottom: 2rem;
+          text-align: center;
+          font-family: var(--font-display);
+        }
+        .faq-card-panel {
+          padding: 0.5rem 2rem;
+          border-radius: 1.5rem;
+        }
+        .feedback-section-panel {
+          margin-top: 5rem;
+          max-width: 800px;
+          width: 100%;
+          padding: 2.25rem 2.5rem;
+          background: linear-gradient(180deg, hsla(224, 20%, 14%, 0.5) 0%, hsla(224, 20%, 10%, 0.8) 100%);
+          text-align: center;
+          z-index: 1;
+          position: relative;
+          border-radius: 1.5rem;
+        }
+        .feedback-form-container {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          max-width: 520px;
+          margin: 0 auto;
+          text-align: left;
+        }
+        .feedback-submit-btn {
+          align-self: flex-end;
+          padding: 0.6rem 1.75rem;
+          border-radius: 2rem;
+        }
+
+        /* Footer Responsive Styles */
+        .landing-footer {
+          padding: 2.5rem 1.5rem 2rem;
+          text-align: center;
+          border-top: 1px solid var(--border-color);
+          background: var(--bg-secondary);
+          color: var(--text-muted);
+          font-size: 0.875rem;
+          position: relative;
+          z-index: 10;
+          margin-top: 5rem;
+        }
+        .footer-links-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 1.25rem;
+          margin-bottom: 1.25rem;
+          flex-wrap: wrap;
+        }
+        .footer-link, .footer-btn {
+          color: var(--text-muted);
+          text-decoration: none;
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: 0.875rem;
+          font-weight: 500;
+          transition: color 0.2s ease;
+        }
+        .footer-link:hover, .footer-btn:hover {
+          color: var(--text-primary);
+        }
+        .footer-dot {
+          color: rgba(255, 255, 255, 0.2);
+          font-size: 0.75rem;
+        }
+        .footer-copyright {
+          color: rgba(226, 232, 240, 0.5);
+          font-size: 0.8rem;
+        }
+
+        @media (max-width: 768px) {
+          .landing-section-panel, .feedback-section-panel {
+            margin-top: 3rem;
+            padding: 1.5rem 1.25rem;
+            border-radius: 1rem;
+          }
+          .faq-section-container {
+            margin-top: 3rem;
+          }
+          .faq-title {
+            margin-bottom: 1.25rem;
+          }
+          .faq-card-panel {
+            padding: 0 1.25rem;
+            border-radius: 1rem;
+          }
+          .feedback-submit-btn {
+            width: 100%;
+            align-self: stretch;
+            padding: 0.75rem;
+          }
+        }
+        @media (max-width: 640px) {
+          .landing-footer {
+            padding: 1.75rem 1rem 1.5rem;
+            margin-top: 3rem;
+          }
+          .footer-links-container {
+            gap: 0.75rem 1.25rem;
+          }
+          .footer-dot {
+            display: none;
+          }
+          .footer-link, .footer-btn {
+            font-size: 0.825rem;
+          }
+        }
+        @media (max-width: 480px) {
+          .privacy-badge {
+            padding: 0.4rem 0.85rem;
+            font-size: 0.75rem;
+            margin-bottom: 1.25rem;
+          }
+          .hero-cta-btn {
+            padding: 0.85rem 1.85rem;
+            font-size: 1rem;
+            width: 100%;
+            max-width: 320px;
+            justify-content: center;
           }
         }
 

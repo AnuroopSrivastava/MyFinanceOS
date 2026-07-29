@@ -63,26 +63,29 @@ export const AutomationView: React.FC<AutomationViewProps> = ({ profileId }) => 
       style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
     >
       {/* Page Title & Actions */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Automation Rules & Reminders</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ flex: '1 1 240px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <h2 style={{ fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }}>
+              Automation Rules & Reminders
+            </h2>
             <span style={{
-              background: 'rgba(59, 130, 246, 0.15)',
+              background: 'rgba(59, 130, 246, 0.12)',
               color: 'var(--accent-1)',
               border: '1px solid rgba(59, 130, 246, 0.3)',
-              padding: '0.2rem 0.6rem',
-              borderRadius: '9999px',
+              padding: '0.25rem 0.65rem',
+              borderRadius: '2rem',
               fontSize: '0.75rem',
               fontWeight: 600,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.3rem'
+              gap: '0.35rem',
+              whiteSpace: 'nowrap'
             }}>
               <Sparkles size={12} /> Auto-Pilot Active
             </span>
           </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.35rem', lineHeight: 1.5 }}>
             Configure smart auto-categorization rules, SIP/EMI schedules, recurring transaction bots, and GST reminders
           </p>
         </div>
@@ -90,7 +93,7 @@ export const AutomationView: React.FC<AutomationViewProps> = ({ profileId }) => 
         <button
           className="btn btn-primary"
           onClick={() => setIsCreatingRule(!isCreatingRule)}
-          style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+          style={{ padding: '0.55rem 1.15rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.45rem', borderRadius: '2rem', whiteSpace: 'nowrap' }}
         >
           <Plus size={16} />
           <span>Create Rule</span>
@@ -178,19 +181,48 @@ export const AutomationView: React.FC<AutomationViewProps> = ({ profileId }) => 
           }}
           style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
               <Zap size={18} color="var(--accent-1)" /> Categorization & Tagging Rules
             </h3>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', background: 'rgba(255, 255, 255, 0.04)', padding: '0.2rem 0.6rem', borderRadius: '1rem', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
               {rules.filter(r => r.isActive).length} Active Rules
             </span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {rules.length === 0 ? (
-              <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                No automation rules created yet. Click "Create Rule" above to add your first rule.
+              <div style={{
+                padding: '2rem 1.25rem',
+                textAlign: 'center',
+                borderRadius: '1rem',
+                border: '1px dashed rgba(59, 130, 246, 0.25)',
+                background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.25) 0%, rgba(15, 23, 42, 0.45) 100%)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <div style={{
+                  padding: '0.75rem',
+                  borderRadius: '50%',
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  color: 'var(--accent-1)',
+                  border: '1px solid rgba(59, 130, 246, 0.2)'
+                }}>
+                  <Zap size={24} />
+                </div>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>No automation rules created</h4>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', margin: 0, maxWidth: '340px', lineHeight: 1.5 }}>
+                  Click "Create Rule" above to auto-categorize incoming transactions automatically.
+                </p>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setIsCreatingRule(true)}
+                  style={{ marginTop: '0.4rem', padding: '0.45rem 1rem', fontSize: '0.8rem', borderRadius: '2rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <Plus size={14} /> Create First Rule
+                </button>
               </div>
             ) : rules.map(rule => (
               <div
@@ -265,19 +297,41 @@ export const AutomationView: React.FC<AutomationViewProps> = ({ profileId }) => 
           }}
           style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
               <Bell size={18} color="var(--accent-1)" /> Scheduled Reminders & Obligations
             </h3>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginLeft: 'auto' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', background: 'rgba(255, 255, 255, 0.04)', padding: '0.2rem 0.6rem', borderRadius: '1rem', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
               {reminders.length} Scheduled
             </span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {reminders.length === 0 ? (
-              <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                No active recurring reminders or obligations scheduled.
+              <div style={{
+                padding: '2rem 1.25rem',
+                textAlign: 'center',
+                borderRadius: '1rem',
+                border: '1px dashed rgba(59, 130, 246, 0.25)',
+                background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.25) 0%, rgba(15, 23, 42, 0.45) 100%)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <div style={{
+                  padding: '0.75rem',
+                  borderRadius: '50%',
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  color: 'var(--accent-1)',
+                  border: '1px solid rgba(59, 130, 246, 0.2)'
+                }}>
+                  <Bell size={24} />
+                </div>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>No active reminders</h4>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', margin: 0, maxWidth: '340px', lineHeight: 1.5 }}>
+                  Recurring SIPs, loan EMIs, and tax deadlines will appear here automatically.
+                </p>
               </div>
             ) : reminders.map(rem => (
               <div

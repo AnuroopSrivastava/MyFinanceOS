@@ -588,18 +588,95 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
       </div>
 
       {/* Sub tabs */}
-      <div className="mobile-tabs-scroll" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-        <button className={`btn ${activeSubTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onClick={() => setActiveSubTab('invoices')}>
-          <FileText size={14} /> GST Invoices & Clients
+      <div style={{
+        display: 'flex',
+        width: '100%',
+        gap: '0.25rem',
+        background: 'rgba(255, 255, 255, 0.04)',
+        padding: '0.3rem',
+        borderRadius: '2rem',
+        border: '1px solid var(--border-color)',
+        boxSizing: 'border-box',
+        marginBottom: '0.75rem'
+      }}>
+        <button
+          className={`btn ${activeSubTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{
+            flex: 1,
+            padding: '0.45rem 0.3rem',
+            fontSize: 'clamp(0.7rem, 2.2vw, 0.825rem)',
+            borderRadius: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.3rem',
+            whiteSpace: 'nowrap',
+            fontWeight: activeSubTab === 'invoices' ? 600 : 400
+          }}
+          onClick={() => setActiveSubTab('invoices')}
+        >
+          <FileText size={14} style={{ flexShrink: 0 }} />
+          <span>Invoices</span>
         </button>
-        <button className={`btn ${activeSubTab === 'gst' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onClick={() => setActiveSubTab('gst')}>
-          <Coins size={14} /> GSTR Liability Register
+
+        <button
+          className={`btn ${activeSubTab === 'gst' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{
+            flex: 1,
+            padding: '0.45rem 0.3rem',
+            fontSize: 'clamp(0.7rem, 2.2vw, 0.825rem)',
+            borderRadius: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.3rem',
+            whiteSpace: 'nowrap',
+            fontWeight: activeSubTab === 'gst' ? 600 : 400
+          }}
+          onClick={() => setActiveSubTab('gst')}
+        >
+          <Coins size={14} style={{ flexShrink: 0 }} />
+          <span>GSTR</span>
         </button>
-        <button className={`btn ${activeSubTab === 'inventory' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onClick={() => setActiveSubTab('inventory')}>
-          <Archive size={14} /> FIFO Inventory Ledger
+
+        <button
+          className={`btn ${activeSubTab === 'inventory' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{
+            flex: 1,
+            padding: '0.45rem 0.3rem',
+            fontSize: 'clamp(0.7rem, 2.2vw, 0.825rem)',
+            borderRadius: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.3rem',
+            whiteSpace: 'nowrap',
+            fontWeight: activeSubTab === 'inventory' ? 600 : 400
+          }}
+          onClick={() => setActiveSubTab('inventory')}
+        >
+          <Archive size={14} style={{ flexShrink: 0 }} />
+          <span>Inventory</span>
         </button>
-        <button className={`btn ${activeSubTab === 'statements' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onClick={() => setActiveSubTab('statements')}>
-          <BarChart2 size={14} /> Financial Statements
+
+        <button
+          className={`btn ${activeSubTab === 'statements' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{
+            flex: 1,
+            padding: '0.45rem 0.3rem',
+            fontSize: 'clamp(0.7rem, 2.2vw, 0.825rem)',
+            borderRadius: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.3rem',
+            whiteSpace: 'nowrap',
+            fontWeight: activeSubTab === 'statements' ? 600 : 400
+          }}
+          onClick={() => setActiveSubTab('statements')}
+        >
+          <BarChart2 size={14} style={{ flexShrink: 0 }} />
+          <span>Statements</span>
         </button>
       </div>
 
@@ -618,61 +695,66 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
 
             {customers.length === 0 || inventory.length === 0 ? (
               <div style={{
-                color: 'var(--text-muted)', fontSize: '0.82rem', border: '1px dashed var(--border-color)',
-                padding: '2rem', borderRadius: 'var(--radius-sm)', textAlign: 'center'
+                color: 'var(--text-secondary)', fontSize: '0.85rem', border: '1px dashed rgba(59, 130, 246, 0.3)',
+                padding: '1.25rem 1rem', borderRadius: 'var(--radius-sm)', textAlign: 'center',
+                background: 'rgba(59, 130, 246, 0.05)', marginBottom: '1rem', lineHeight: 1.5
               }}>
-                Please create at least **1 Customer** and **1 Inventory Item** before drafting an invoice.
+                Please create at least <strong style={{ color: 'var(--text-primary)' }}>1 Customer</strong> and <strong style={{ color: 'var(--text-primary)' }}>1 Inventory Item</strong> before drafting an invoice.
               </div>
             ) : null}
 
-            <table className="custom-table" style={{ marginTop: '0.5rem' }}>
-              <thead>
-                <tr>
-                  <th>Invoice #</th>
-                  <th>Date</th>
-                  <th>Client Name</th>
-                  <th>Grand Total</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: 'center' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.length > 0 ? (
-                  invoices.map(inv => (
-                    <tr key={inv.id}>
-                      <td style={{ fontWeight: 650 }}>{inv.invoiceNumber}</td>
-                      <td>{inv.date}</td>
-                      <td style={{ fontWeight: 550 }}>{inv.customerName}</td>
-                      <td style={{ fontWeight: 650, color: 'var(--accent-1)' }}>{formatRupee(inv.grandTotal)}</td>
-                      <td>
-                        <span style={{
-                          fontSize: '0.75rem', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: '4px',
-                          color: inv.status === 'Paid' ? 'var(--success)' : 'var(--warning)',
-                          background: inv.status === 'Paid' ? 'var(--success-bg)' : 'var(--warning-bg)'
-                        }}>{inv.status}</span>
-                      </td>
-                      <td style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                        <button className="btn btn-secondary" style={{ padding: '0.35rem', fontSize: '0.75rem' }} onClick={() => handleUpdateInvoiceStatus(inv.id, inv.status)}>
-                          Status
-                        </button>
-                        <button className="btn btn-secondary" style={{ padding: '0.35rem' }} onClick={() => setViewingInvoice(inv)}>
-                          <Eye size={13} /> View
-                        </button>
-                        <button className="btn btn-danger" style={{ padding: '0.35rem' }} onClick={() => handleDeleteInvoice(inv.id)}>
-                          <Trash2 size={13} />
-                        </button>
+            <div style={{ overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
+              <table className="custom-table" style={{ marginTop: '0.5rem', width: '100%', minWidth: '550px' }}>
+                <thead>
+                  <tr>
+                    <th>Invoice #</th>
+                    <th>Date</th>
+                    <th>Client Name</th>
+                    <th>Grand Total</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'center' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoices.length > 0 ? (
+                    invoices.map(inv => (
+                      <tr key={inv.id}>
+                        <td style={{ fontWeight: 650 }}>{inv.invoiceNumber}</td>
+                        <td>{inv.date}</td>
+                        <td style={{ fontWeight: 550 }}>{inv.customerName}</td>
+                        <td style={{ fontWeight: 650, color: 'var(--accent-1)' }}>{formatRupee(inv.grandTotal)}</td>
+                        <td>
+                          <span style={{
+                            fontSize: '0.75rem', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: '4px',
+                            color: inv.status === 'Paid' ? 'var(--success)' : 'var(--warning)',
+                            background: inv.status === 'Paid' ? 'var(--success-bg)' : 'var(--warning-bg)'
+                          }}>
+                            {inv.status}
+                          </span>
+                        </td>
+                        <td style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                          <button className="btn btn-secondary" style={{ padding: '0.25rem 0.4rem', fontSize: '0.75rem' }} onClick={() => handleUpdateInvoiceStatus(inv.id, inv.status)}>
+                            Status
+                          </button>
+                          <button className="btn btn-secondary" style={{ padding: '0.25rem 0.4rem', fontSize: '0.75rem' }} onClick={() => setViewingInvoice(inv)}>
+                            <Eye size={13} /> View
+                          </button>
+                          <button className="btn btn-danger" style={{ padding: '0.25rem 0.4rem', fontSize: '0.75rem' }} onClick={() => handleDeleteInvoice(inv.id)}>
+                            <Trash2 size={13} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                        No invoices drafted.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-                      No invoices drafted.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </motion.div>
 
           {/* Manage Clients List */}
@@ -707,8 +789,27 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
               ))}
 
               {contacts.length === 0 && (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '2rem' }}>
-                  No contacts linked yet. Click "Add" to save clients and vendors.
+                <div style={{
+                  padding: '1.5rem 1rem',
+                  textAlign: 'center',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px dashed rgba(59, 130, 246, 0.25)',
+                  background: 'rgba(59, 130, 246, 0.03)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+                    No contacts linked yet. Click "Add" to save clients and vendors.
+                  </div>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setShowAddContact(true)}
+                    style={{ padding: '0.35rem 0.85rem', fontSize: '0.78rem', borderRadius: '2rem', marginTop: '0.25rem' }}
+                  >
+                    <Plus size={12} /> Add First Contact
+                  </button>
                 </div>
               )}
             </div>
@@ -963,7 +1064,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
             <form onSubmit={handleAddContact}>
               <div className="form-group">
                 <label className="form-label">Full Name / Trading Label</label>
-                <input type="text" className="form-input" value={contName} onChange={(e) => setContName(e.target.value)} placeholder="e.g. Sharma Enterprise" required />
+                <input type="text" className="form-input" value={contName} onChange={(e) => setContName(e.target.value)} placeholder="ABCD Trading Corp" required />
               </div>
               <div className="form-group">
                 <label className="form-label">GSTIN (Optional)</label>
@@ -1010,7 +1111,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
             <form onSubmit={handleAddInventory}>
               <div className="form-group">
                 <label className="form-label">Stock Code</label>
-                <input type="text" className="form-input" value={invCode} onChange={(e) => setInvCode(e.target.value)} placeholder="e.g. LED-40" required />
+                <input type="text" className="form-input" value={invCode} onChange={(e) => setInvCode(e.target.value)} placeholder="ABCD-STOCK-01" required />
               </div>
               <div className="form-group">
                 <label className="form-label">Item Description</label>

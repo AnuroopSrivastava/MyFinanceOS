@@ -59,46 +59,58 @@ export const PortfolioDistribution: React.FC<PortfolioDistributionProps> = ({
           )}
 
           {portfolio.map((cat, index) => (
-            <div key={cat.id} style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
-              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: COLORS[index % COLORS.length] }} />
-              
-              <div style={{ flex: 1.5 }}>
+            <div
+              key={cat.id}
+              style={{
+                display: 'flex',
+                gap: '0.75rem',
+                alignItems: 'center',
+                marginBottom: '0.85rem',
+                background: 'rgba(255, 255, 255, 0.02)',
+                padding: '0.75rem 0.85rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+                flexWrap: 'wrap'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flex: '1 1 180px' }}>
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: COLORS[index % COLORS.length], flexShrink: 0 }} />
                 <input
                   type="text"
                   className="form-input"
                   value={cat.name}
                   onChange={e => handleUpdate(cat.id, { name: e.target.value })}
                   placeholder="Category (e.g., Mutual Funds)"
-                  style={{ width: '100%' }}
+                  style={{ flex: 1, minWidth: '130px', fontSize: '0.9rem' }}
                 />
               </div>
 
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'space-between', flex: '1 1 180px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <input
                     type="number"
                     className="form-input"
                     value={cat.percentage}
                     onChange={e => handleUpdate(cat.id, { percentage: Number(e.target.value) })}
                     min="0" max="100"
-                    style={{ width: '70px' }}
+                    style={{ width: '65px', textAlign: 'center', fontSize: '0.85rem' }}
                   />
-                  <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>%</span>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>%</span>
                 </div>
-              </div>
 
-              <div style={{ flex: 1.2, fontSize: '0.95rem', fontWeight: 'bold' }}>
-                {formatRupee((totalInvestmentAmount * cat.percentage) / 100)}
-              </div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                  {formatRupee((totalInvestmentAmount * cat.percentage) / 100)}
+                </div>
 
-              <button
-                className="btn btn-secondary"
-                style={{ padding: '0.5rem' }}
-                onClick={() => handleRemove(cat.id)}
-                title="Remove Category"
-              >
-                <Trash2 size={16} color="var(--error)" />
-              </button>
+                <button
+                  className="btn btn-secondary"
+                  style={{ padding: '0.45rem', borderRadius: '50%', flexShrink: 0 }}
+                  onClick={() => handleRemove(cat.id)}
+                  title="Remove Category"
+                >
+                  <Trash2 size={15} color="var(--error)" />
+                </button>
+              </div>
             </div>
           ))}
 
