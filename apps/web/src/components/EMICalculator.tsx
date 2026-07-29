@@ -75,9 +75,13 @@ export const EMICalculator: React.FC<EMICalculatorProps> = ({ activeProfileId })
     let totalPrincipal = 0;
 
     for (let m = 1; m <= tenureMonths && balance > 0; m++) {
+      let currentPrepayment = 0;
+      let openingBalance = balance;
+      
       // Apply prepayment at specified month
       if (prepayment > 0 && m === prepaymentMonth) {
-        balance = Math.max(0, balance - prepayment);
+        currentPrepayment = Math.min(balance, prepayment);
+        balance = Math.max(0, balance - currentPrepayment);
       }
 
       const interestPart = balance * monthlyRate;
@@ -87,13 +91,13 @@ export const EMICalculator: React.FC<EMICalculatorProps> = ({ activeProfileId })
       const closingBalance = Math.max(0, balance - principalPart);
 
       totalInterest += interestPart;
-      totalPrincipal += principalPart;
+      totalPrincipal += (principalPart + currentPrepayment);
 
       rows.push({
         month: m,
-        openingBalance: Math.round(balance),
-        emi: Math.round(emi),
-        principal: Math.round(principalPart),
+        openingBalance: Math.round(openingBalance),
+        emi: Math.round(emi + currentPrepayment),
+        principal: Math.round(principalPart + currentPrepayment),
         interest: Math.round(interestPart),
         closingBalance: Math.round(closingBalance)
       });

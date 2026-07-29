@@ -276,6 +276,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
     e.preventDefault();
     if (!contName) return;
     await dbService.addContact({
+      profileId: activeProfileId,
       name: contName,
       gstin: contGstin || undefined,
       phone: contPhone || undefined,
@@ -325,6 +326,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
     e.preventDefault();
     if (!invCode || !invName || !invQty || !invPurchasePrice || !invSalesPrice) return;
     await dbService.addInventoryItem({
+      profileId: activeProfileId,
       code: invCode.toUpperCase(),
       name: invName,
       quantity: parseFloat(invQty),
@@ -435,6 +437,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
     const grandTotal = subtotal + cgstTotal + sgstTotal + igstTotal;
 
     await dbService.addInvoice({
+      profileId: activeProfileId,
       invoiceNumber,
       date: new Date().toISOString().split('T')[0],
       dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -478,15 +481,16 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
     if (!regDate || !regPartyName || !regTaxableAmount) return;
     
     const entryData = {
+      profileId: activeProfileId,
       date: regDate,
       type: regType,
       refNumber: regRefNumber,
       partyName: regPartyName,
-      taxableAmount: parseFloat(regTaxableAmount),
+      taxableAmount: parseFloat(regTaxableAmount) || 0,
       cgst: parseFloat(regCgst) || 0,
       sgst: parseFloat(regSgst) || 0,
       igst: parseFloat(regIgst) || 0,
-      totalAmount: parseFloat(regTaxableAmount) + (parseFloat(regCgst) || 0) + (parseFloat(regSgst) || 0) + (parseFloat(regIgst) || 0),
+      totalAmount: (parseFloat(regTaxableAmount) || 0) + (parseFloat(regCgst) || 0) + (parseFloat(regSgst) || 0) + (parseFloat(regIgst) || 0),
       gstRate: parseFloat(regGstRate) || 18
     };
 

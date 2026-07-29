@@ -7,7 +7,8 @@ import {
   ProvidentFundHolding, VendorCustomer, InventoryItem, BusinessInvoice,
   BusinessRegisterEntry, AuditLog, SystemSettings, RecurringTransaction,
   TDSSummary, InvestmentPlan, SavingsGoal, TaxViewInputs, EMICalculatorInputs,
-  BusinessDrafts, FireCalculatorInputs, AIChatMessage
+  BusinessDrafts, FireCalculatorInputs, AIChatMessage,
+  encryptData, decryptData
 } from '@financeos/shared';
 
 interface DatabaseSchema {
@@ -45,9 +46,56 @@ class DatabaseService {
   private isSyncing = false;
   private lastSavedPayload: string | null = null;
   private cloudSyncTimer: any = null;
-  
+  private activeProfileId: string | null = null;
+
   public hasUnsavedChanges = false;
   public lastSaveError: string | null = null;
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (e) => {
+        if (e.key === this.storageKey && e.newValue) {
+          if (e.newValue !== this.lastSavedPayload) {
+            console.log('Cross-tab sync: Storage changed externally, reloading...');
+            this.handleCrossTabSync(e.newValue);
+          }
+        }
+      });
+    }
+  }
+
+  public setSessionProfile(profileId: string) {
+    this.activeProfileId = profileId;
+  }
+
+  private async handleCrossTabSync(payload: string) {
+    this.lastSavedPayload = payload;
+    let parsedDb: DatabaseSchema | null = null;
+
+    // Check if it's AES-GCM encrypted
+    if (payload.includes(':') && payload.split(':').length === 3) {
+      const pin = authSession.getUserProfile()?.pin || 'default-pin';
+      try {
+        const decrypted = await decryptData(payload, pin);
+        parsedDb = JSON.parse(decrypted);
+      } catch (e) {
+        console.error('Cross-tab sync decryption failed', e);
+        return;
+      }
+    } else {
+      try {
+        parsedDb = JSON.parse(payload);
+      } catch (e) {
+        console.error('Cross-tab sync payload parsing failed', e);
+      }
+    }
+
+    if (parsedDb) {
+      this.db = parsedDb;
+      // Re-trigger any UI updates if necessary. (React components should fetch on focus, 
+      // but ideally we'd have a pub-sub. For now, in-memory state is synchronized).
+    }
+  }
 
   private unsavedChangesListeners: ((hasUnsaved: boolean) => void)[] = [];
   private saveErrorListeners: ((error: string | null) => void)[] = [];
@@ -129,7 +177,7 @@ class DatabaseService {
     try {
       const token = authSession.getAccessToken();
       const fileId = await this.fetchDriveFileId();
-      
+
       if (!authSession.isAuthenticated()) {
         this.setSaveError('Cloud auth token expired. Local data is auto-saved on disk.');
         this.setUnsavedChanges(false);
@@ -156,11 +204,11 @@ class DatabaseService {
           name: 'financeos_db.json',
           parents: ['appDataFolder']
         };
-        
+
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
         form.append('file', new Blob([payload], { type: 'application/json' }));
-        
+
         const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
@@ -176,7 +224,7 @@ class DatabaseService {
         const data = await res.json();
         if (data.id) this.driveFileId = data.id;
       }
-      
+
       // Clear unsaved changes flag and save error on successful upload
       this.setSaveError(null);
       this.setUnsavedChanges(false);
@@ -230,7 +278,7 @@ class DatabaseService {
 
   public async unlock(): Promise<boolean> {
     if (!authSession.isAuthenticated()) return false;
-    
+
     let dbPayload = null;
     try {
       dbPayload = await this.fetchFromDrive();
@@ -243,13 +291,72 @@ class DatabaseService {
     }
 
     if (dbPayload) {
-      localStorage.setItem(this.storageKey, dbPayload);
       this.lastSavedPayload = dbPayload;
-      try {
-        this.db = JSON.parse(dbPayload);
-      } catch (e) {
-        console.error('Failed to parse database JSON', e);
-        return false;
+      let parsedDb: DatabaseSchema | null = null;
+
+      // Handle Encryption / Migration
+      if (dbPayload.includes(':') && dbPayload.split(':').length === 3) {
+        // AES-GCM format
+        const pin = authSession.getUserProfile()?.pin || 'default-pin';
+        try {
+          const decrypted = await decryptData(dbPayload, pin);
+          parsedDb = JSON.parse(decrypted);
+        } catch (e) {
+          console.error('Failed to decrypt database. Wrong PIN or corrupted.', e);
+          return false;
+        }
+      } else {
+        // Migration from plaintext JSON
+        try {
+          parsedDb = JSON.parse(dbPayload);
+          console.log('Migrating plaintext database to ciphertext on next save.');
+        } catch (e) {
+          console.error('Failed to parse database JSON', e);
+          return false;
+        }
+      }
+
+      if (parsedDb) {
+        // Ensure all arrays/objects are initialized to prevent undefined errors
+        parsedDb.settings = parsedDb.settings || {
+          theme: 'glass-cyan',
+          currency: 'INR',
+          backupSchedule: 'weekly',
+          isCloudBackupEnabled: true
+        };
+        parsedDb.profiles = parsedDb.profiles || [];
+        parsedDb.accounts = parsedDb.accounts || [];
+        parsedDb.transactions = parsedDb.transactions || [];
+        parsedDb.budgets = parsedDb.budgets || [];
+        parsedDb.fds = parsedDb.fds || [];
+        parsedDb.stocks = parsedDb.stocks || [];
+        parsedDb.mutualfunds = parsedDb.mutualfunds || [];
+        parsedDb.gold = parsedDb.gold || [];
+        parsedDb.nps = parsedDb.nps || [];
+        parsedDb.pf = parsedDb.pf || [];
+        parsedDb.contacts = parsedDb.contacts || [];
+        parsedDb.inventory = parsedDb.inventory || [];
+        parsedDb.invoices = parsedDb.invoices || [];
+        parsedDb.register = parsedDb.register || [];
+        parsedDb.auditLogs = parsedDb.auditLogs || [];
+        parsedDb.recurringTransactions = parsedDb.recurringTransactions || [];
+        parsedDb.tdsRecords = parsedDb.tdsRecords || [];
+        parsedDb.investmentPlans = parsedDb.investmentPlans || [];
+        parsedDb.goals = parsedDb.goals || [];
+        parsedDb.taxInputs = parsedDb.taxInputs || {};
+        parsedDb.emiInputs = parsedDb.emiInputs || {};
+        parsedDb.businessDrafts = parsedDb.businessDrafts || {};
+        parsedDb.fireInputs = parsedDb.fireInputs || {};
+        parsedDb.chatHistory = parsedDb.chatHistory || {};
+
+        // Data Migration: Inject profileId into business records if missing
+        const defaultProfileId = parsedDb.profiles?.[0]?.id || 'p_default';
+        parsedDb.contacts.forEach(c => { if (!c.profileId) c.profileId = defaultProfileId; });
+        parsedDb.inventory.forEach(i => { if (!i.profileId) i.profileId = defaultProfileId; });
+        parsedDb.invoices.forEach(inv => { if (!inv.profileId) inv.profileId = defaultProfileId; });
+        parsedDb.register.forEach(r => { if (!r.profileId) r.profileId = defaultProfileId; });
+
+        this.db = parsedDb;
       }
     } else {
       const profile = authSession.getUserProfile();
@@ -270,16 +377,26 @@ class DatabaseService {
   public async save(): Promise<void> {
     if (!this.db) return;
     try {
-      const payload = JSON.stringify(this.db);
-      this.lastSavedPayload = payload;
-      
+      const plainPayload = JSON.stringify(this.db);
+
+      // Encrypt At-Rest
+      const pin = authSession.getUserProfile()?.pin || 'default-pin';
+      let storagePayload = plainPayload;
+      try {
+        storagePayload = await encryptData(plainPayload, pin);
+      } catch (e) {
+        console.error('Encryption failed, falling back to plaintext', e);
+      }
+
+      this.lastSavedPayload = storagePayload;
+
       if (typeof window !== 'undefined') {
         // Instant local persistence (<1ms)
-        localStorage.setItem(this.storageKey, payload);
-        
+        localStorage.setItem(this.storageKey, storagePayload);
+
         // Save local backup if running inside Electron
         if ((window as any).electronAPI) {
-          (window as any).electronAPI.saveDbBackup(payload).catch((err: any) => {
+          (window as any).electronAPI.saveDbBackup(storagePayload).catch((err: any) => {
             console.error('Electron local backup save error:', err);
           });
         }
@@ -292,7 +409,7 @@ class DatabaseService {
         if (authSession.isAuthenticated()) {
           if (this.cloudSyncTimer) clearTimeout(this.cloudSyncTimer);
           this.cloudSyncTimer = setTimeout(() => {
-            this.pushToDrive(payload).catch((err: any) => {
+            this.pushToDrive(storagePayload).catch((err: any) => {
               console.error('Cloud drive sync error:', err);
             });
           }, 800);
@@ -310,7 +427,7 @@ class DatabaseService {
     if (!this.db || typeof window === 'undefined' || !authSession.isAuthenticated()) return false;
     // Don't overwrite local data with cloud data if we have pending local unsaved changes
     if (this.hasUnsavedChanges) return false;
-    
+
     let payload = null;
     try {
       payload = await this.fetchFromDrive();
@@ -321,15 +438,15 @@ class DatabaseService {
     if (payload && payload !== this.lastSavedPayload) {
       try {
         const remoteDb: DatabaseSchema = JSON.parse(payload);
-        
+
         // Compare timestamps to avoid overwriting newer local data with stale cloud data
-        const localLatest = (this.db && this.db.auditLogs && this.db.auditLogs.length > 0) 
-          ? new Date(this.db.auditLogs[0].timestamp).getTime() 
+        const localLatest = (this.db && this.db.auditLogs && this.db.auditLogs.length > 0)
+          ? new Date(this.db.auditLogs[0].timestamp).getTime()
           : 0;
-        const remoteLatest = (remoteDb.auditLogs && remoteDb.auditLogs.length > 0) 
-          ? new Date(remoteDb.auditLogs[0].timestamp).getTime() 
+        const remoteLatest = (remoteDb.auditLogs && remoteDb.auditLogs.length > 0)
+          ? new Date(remoteDb.auditLogs[0].timestamp).getTime()
           : 0;
-        
+
         if (remoteLatest > localLatest) {
           this.lastSavedPayload = payload;
           localStorage.setItem(this.storageKey, payload);
@@ -348,7 +465,7 @@ class DatabaseService {
   }
 
   public listenForSync(callback: () => void): () => void {
-    if (typeof window === 'undefined') return () => {};
+    if (typeof window === 'undefined') return () => { };
     // Poll every 30 seconds for cloud sync
     const interval = setInterval(async () => {
       if (this.isSyncing) return;
@@ -430,6 +547,8 @@ class DatabaseService {
   public async deleteProfile(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
     this.db.profiles = this.db.profiles.filter(p => p.id !== id);
+
+    // BUG-002 Cascade Purge
     this.db.accounts = this.db.accounts.filter(a => a.profileId !== id);
     this.db.transactions = this.db.transactions.filter(t => t.profileId !== id);
     this.db.budgets = this.db.budgets.filter(b => b.profileId !== id);
@@ -439,17 +558,29 @@ class DatabaseService {
     this.db.gold = this.db.gold.filter(g => g.profileId !== id);
     this.db.nps = this.db.nps.filter(n => n.profileId !== id);
     this.db.pf = this.db.pf.filter(p => p.profileId !== id);
-    if (this.db.recurringTransactions) {
-      this.db.recurringTransactions = this.db.recurringTransactions.filter(r => r.profileId !== id);
-    }
 
-    this.logAction('PROFILE_DELETE', `Deleted profile ID ${id} and all associated personal data`);
+    if (this.db.contacts) this.db.contacts = this.db.contacts.filter(c => c.profileId !== id);
+    if (this.db.inventory) this.db.inventory = this.db.inventory.filter(i => i.profileId !== id);
+    if (this.db.invoices) this.db.invoices = this.db.invoices.filter(i => i.profileId !== id);
+    if (this.db.register) this.db.register = this.db.register.filter(r => r.profileId !== id);
+    if (this.db.recurringTransactions) this.db.recurringTransactions = this.db.recurringTransactions.filter(r => r.profileId !== id);
+    if (this.db.goals) this.db.goals = this.db.goals.filter(g => g.profileId !== id);
+    if (this.db.investmentPlans) this.db.investmentPlans = this.db.investmentPlans.filter(p => p.profileId !== id);
+    if (this.db.tdsRecords) this.db.tdsRecords = this.db.tdsRecords.filter(t => false); // no profileId on tds yet?
+    if (this.db.taxInputs) delete this.db.taxInputs[id];
+    if (this.db.emiInputs) delete this.db.emiInputs[id];
+    if (this.db.businessDrafts) delete this.db.businessDrafts[id];
+    if (this.db.fireInputs) delete this.db.fireInputs[id];
+    if (this.db.chatHistory) delete this.db.chatHistory[id];
+
+    this.logAction('PROFILE_DELETE', `Deleted profile ID ${id} and cascaded all associated personal data`);
     await this.save();
   }
 
   // Bank Accounts
   public getAccounts(): BankAccount[] {
     if (!this.db) throw new Error('Database is locked');
+    if (this.activeProfileId) return this.db.accounts.filter(a => a.profileId === this.activeProfileId);
     return this.db.accounts;
   }
 
@@ -480,7 +611,7 @@ class DatabaseService {
   // Transactions Ledger
   public getTransactions(): Transaction[] {
     if (!this.db) throw new Error('Database is locked');
-    return this.db.transactions.sort((a, b) => b.date.localeCompare(a.date));
+    return (this.activeProfileId ? this.db.transactions.filter(x => x.profileId === this.activeProfileId) : this.db.transactions).sort((a, b) => b.date.localeCompare(a.date));
   }
 
   public async addTransaction(tx: Omit<Transaction, 'id'>): Promise<Transaction> {
@@ -533,7 +664,7 @@ class DatabaseService {
   // Budgets
   public getBudgets(): Budget[] {
     if (!this.db) throw new Error('Database is locked');
-    return this.db.budgets;
+    return (this.activeProfileId ? this.db.budgets.filter(x => x.profileId === this.activeProfileId) : this.db.budgets);
   }
 
   public async addBudget(budget: Omit<Budget, 'id'>): Promise<Budget> {
@@ -553,7 +684,7 @@ class DatabaseService {
   // FDs
   public getFDs(): FixedDeposit[] {
     if (!this.db) throw new Error('Database is locked');
-    return this.db.fds;
+    return (this.activeProfileId ? this.db.fds.filter(x => x.profileId === this.activeProfileId) : this.db.fds);
   }
 
   public async addFD(fd: Omit<FixedDeposit, 'id'>): Promise<FixedDeposit> {
@@ -579,7 +710,7 @@ class DatabaseService {
   // Stocks
   public getStocks(): StockHolding[] {
     if (!this.db) throw new Error('Database is locked');
-    return this.db.stocks;
+    return (this.activeProfileId ? this.db.stocks.filter(x => x.profileId === this.activeProfileId) : this.db.stocks);
   }
 
   public async updateStock(id: string, updates: Partial<StockHolding>): Promise<void> {
@@ -605,7 +736,7 @@ class DatabaseService {
   // Mutual Funds
   public getMutualFunds(): MutualFundHolding[] {
     if (!this.db) throw new Error('Database is locked');
-    return this.db.mutualfunds;
+    return (this.activeProfileId ? this.db.mutualfunds.filter(x => x.profileId === this.activeProfileId) : this.db.mutualfunds);
   }
 
   public async addMutualFund(mf: Omit<MutualFundHolding, 'id'>): Promise<MutualFundHolding> {
@@ -631,7 +762,7 @@ class DatabaseService {
   // Gold Holdings
   public getGold(): GoldHolding[] {
     if (!this.db) throw new Error('Database is locked');
-    return this.db.gold;
+    return (this.activeProfileId ? this.db.gold.filter(x => x.profileId === this.activeProfileId) : this.db.gold);
   }
 
   public async addGold(gold: Omit<GoldHolding, 'id'>): Promise<GoldHolding> {
@@ -657,7 +788,7 @@ class DatabaseService {
   // NPS
   public getNPS(): NPSHolding[] {
     if (!this.db) throw new Error('Database is locked');
-    return this.db.nps;
+    return (this.activeProfileId ? this.db.nps.filter(x => x.profileId === this.activeProfileId) : this.db.nps);
   }
 
   public async addNPS(nps: Omit<NPSHolding, 'id'>): Promise<NPSHolding> {
@@ -683,7 +814,7 @@ class DatabaseService {
   // Provident Fund (EPF/PPF)
   public getPF(): ProvidentFundHolding[] {
     if (!this.db) throw new Error('Database is locked');
-    return this.db.pf;
+    return (this.activeProfileId ? this.db.pf.filter(x => x.profileId === this.activeProfileId) : this.db.pf);
   }
 
   public async addPF(pf: Omit<ProvidentFundHolding, 'id'>): Promise<ProvidentFundHolding> {
@@ -709,7 +840,7 @@ class DatabaseService {
   // Business: Contacts
   public getContacts(): VendorCustomer[] {
     if (!this.db) throw new Error('Database is locked');
-    return this.db.contacts;
+    return (this.activeProfileId ? this.db.contacts.filter(x => x.profileId === this.activeProfileId) : this.db.contacts);
   }
 
   public async addContact(contact: Omit<VendorCustomer, 'id'>): Promise<VendorCustomer> {
@@ -735,7 +866,7 @@ class DatabaseService {
   // Business: Inventory
   public getInventory(): InventoryItem[] {
     if (!this.db) throw new Error('Database is locked');
-    return this.db.inventory;
+    return (this.activeProfileId ? this.db.inventory.filter(x => x.profileId === this.activeProfileId) : this.db.inventory);
   }
 
   public async addInventoryItem(item: Omit<InventoryItem, 'id'>): Promise<InventoryItem> {
@@ -772,7 +903,7 @@ class DatabaseService {
   // Business: Invoices
   public getInvoices(): BusinessInvoice[] {
     if (!this.db) throw new Error('Database is locked');
-    return this.db.invoices;
+    return (this.activeProfileId ? this.db.invoices.filter(x => x.profileId === this.activeProfileId) : this.db.invoices);
   }
 
   public async addInvoice(invoice: Omit<BusinessInvoice, 'id'>): Promise<BusinessInvoice> {
@@ -782,6 +913,7 @@ class DatabaseService {
 
     // Log to register
     const reg: Omit<BusinessRegisterEntry, 'id'> = {
+      profileId: invoice.profileId,
       date: invoice.date,
       type: 'Sales',
       refNumber: invoice.invoiceNumber,
@@ -825,14 +957,14 @@ class DatabaseService {
 
     // Remove invoice
     this.db.invoices = this.db.invoices.filter(i => i.id !== id);
-    
+
     await this.save();
   }
 
   // Business: Purchase/Sales Register
   public getRegister(): BusinessRegisterEntry[] {
     if (!this.db) throw new Error('Database is locked');
-    return this.db.register.sort((a, b) => b.date.localeCompare(a.date));
+    return (this.activeProfileId ? this.db.register.filter(x => x.profileId === this.activeProfileId) : this.db.register).sort((a, b) => b.date.localeCompare(a.date));
   }
 
   public async addRegisterEntry(entry: Omit<BusinessRegisterEntry, 'id'>): Promise<BusinessRegisterEntry> {
@@ -900,7 +1032,7 @@ class DatabaseService {
   // Seed sample demo data for new users
   public async seedSampleData(profileId: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
-    
+
     // Add sample accounts
     const acc1 = await this.addAccount({
       profileId, name: 'HDFC Salary Account', bankName: 'HDFC Bank',

@@ -7,7 +7,7 @@ test.describe('FinanceOS Onboarding & Auth', () => {
 
     // 2. Expect to be on the Setup page because DB is uninitialized
     // Assuming Setup.tsx renders a 'Welcome to FinanceOS' heading
-    await expect(page.locator('text=FinanceOS')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'MyFinanceOS' })).toBeVisible();
 
     // 3. Fill in setup details
     const nameInput = page.locator('input[placeholder*="Name" i]');
@@ -37,7 +37,7 @@ test.describe('FinanceOS Onboarding & Auth', () => {
 
     // 5. App should redirect to Login or auto-login to Dashboard
     // Wait for either the Dashboard 'Net Worth' text or a Login prompt
-    const dashboardText = page.locator('text=Net Worth');
+    const dashboardText = page.getByText('Net Worth', { exact: true });
     const loginText = page.locator('text=Enter PIN');
 
     await Promise.race([
@@ -52,7 +52,7 @@ test.describe('FinanceOS Onboarding & Auth', () => {
     }
 
     // 6. Verify we are in the dashboard
-    await expect(page.locator('text=Net Worth')).toBeVisible();
-    await expect(page.locator('text=Accounts')).toBeVisible();
+    await expect(page.getByText('Net Worth', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Accounts' })).toBeVisible();
   });
 });

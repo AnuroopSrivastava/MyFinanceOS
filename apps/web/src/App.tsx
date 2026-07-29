@@ -74,6 +74,11 @@ const App: React.FC = () => {
   const profiles = dbService.isInitialized() && isUnlocked ? dbService.getProfiles() : [];
   const activeProfile = profiles.find(p => p.id === activeProfileId);
 
+  // Sync profile to database service synchronously so getters are scoped
+  if (activeProfileId) {
+    dbService.setSessionProfile(activeProfileId);
+  }
+
   const handleProfileSwitch = (targetId: string) => {
     if (hasUnsavedChanges || saveError) {
       setShowSavePopup(true);

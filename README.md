@@ -6,7 +6,7 @@
 
   **Premium Local-First Personal & Business Finance Suite for India**
 
-  *Absolute Data Privacy • AES-256-GCM Encrypted • 60fps Smooth Micro-Animations • Zero Cloud Footprint • India-Specific Tax Intelligence*
+  *Absolute Data Privacy • AES-256-GCM Hardware Encryption • 60fps Glassmorphism UI • Zero Cloud Footprint • India Tax Intelligence*
 
   ---
 
@@ -17,11 +17,12 @@
   [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF.svg?style=for-the-badge&logo=vite)](https://vitejs.org/)
   [![Security](https://img.shields.io/badge/Encryption-AES--256--GCM-success.svg?style=for-the-badge&logo=shield)](https://en.wikipedia.org/wiki/Galois/Counter_Mode)
   [![Vitest](https://img.shields.io/badge/Tested%20With-Vitest-yellow.svg?style=for-the-badge&logo=vitest)](https://vitest.dev/)
+  [![Node.js](https://img.shields.io/badge/Node.js-22.x-339933.svg?style=for-the-badge&logo=nodedotjs)](https://nodejs.org/)
   [![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 
   <br />
 
-  [✨ Key Features](#-key-features) • [🎨 Visuals & Animations](#-smooth-animations--glassmorphism-ui) • [🏗️ Architecture](#%EF%B8%8F-system-architecture) • [🔐 Security](#-security--privacy-model) • [💻 Tech Stack](#-technology-stack) • [⚡ Quick Start](#-quick-start-guide)
+  [✨ Key Features](#-key-features) • [💡 Deep-Dive Modules](#-deep-dive-financial-modules) • [🎨 Visuals & Animations](#-smooth-animations--glassmorphism-ui) • [🏗️ Architecture](#%EF%B8%8F-system-architecture) • [🔐 Security](#-security--privacy-model) • [💻 Tech Stack](#-technology-stack) • [⚡ Quick Start](#-quick-start-guide)
 
 </div>
 
@@ -29,7 +30,7 @@
 
 ## 📖 Overview
 
-**MyFinanceOS** is an ultra-secure, local-first financial management platform engineered specifically for the Indian financial landscape. Built for high-net-worth individuals, freelancers, and small business owners, MyFinanceOS combines **bank-grade local encryption** with a **state-of-the-art glassmorphism user interface** featuring 60fps micro-animations, dynamic theme engines, and seamless navigation.
+**MyFinanceOS** is an ultra-secure, local-first financial management platform engineered specifically for the Indian financial landscape. Built for high-net-worth individuals, freelancers, and small business owners, MyFinanceOS combines **bank-grade local AES-256-GCM encryption** with a **state-of-the-art glassmorphism user interface** featuring 60fps micro-animations, dynamic theme engines, and seamless keyboard-driven navigation.
 
 From tracking personal liquid net worth across Indian mutual funds, equities, FDs, gold, and real estate, to managing dual-entry business ledgers with GST & income tax forecasts, MyFinanceOS provides real-time analytical clarity with zero cloud exposure.
 
@@ -40,17 +41,40 @@ From tracking personal liquid net worth across Indian mutual funds, equities, FD
 | Feature | Description | UX & Performance Highlight |
 | :--- | :--- | :--- |
 | 🛡️ **Zero Cloud Storage** | All transaction ledgers, bank records, and vault assets remain strictly on your local disk. | 100% Privacy & Zero Latency |
-| 🔐 **AES-256-GCM Encryption** | Authenticated hardware-accelerated encryption using PBKDF2/Argon2 derived keys from your Security PIN. | Hardware-Accelerated Security |
+| 🔐 **AES-256-GCM Encryption** | Authenticated hardware-accelerated encryption using PBKDF2 (100,000 iterations) derived from your Security PIN. | Hardware-Accelerated Security |
+| 🔄 **Cross-Tab Encrypted Sync** | Real-time BroadcastChannel synchronization across multiple browser tabs with AES-256 payload protection. | Instant Multi-Tab State Sync |
 | 🎨 **Glassmorphism & Smooth Motion** | Fluid interface with backdrop blur filters, 60fps tab transitions, and animated glass cards powered by Framer Motion. | Premium Visual Experience |
 | ⚡ **Command Palette (`Ctrl+K`)** | Instant keyboard-driven global search across modules, recent transactions, actions, and settings. | Lightning Fast Navigation |
 | 💼 **Dual Business & Personal Suites** | Seamlessly toggle between personal wealth management and business accounting with segregated ledgers. | Multi-Entity Management |
 | 📊 **Sankey Cash Flow Graph** | Interactive node visualizer tracing complete income-to-expense allocations and capital distributions. | Real-Time Visual Insights |
 | 🏛️ **India Tax Optimizer** | Real-time comparison between **Old vs. New Indian Tax Regimes** with 80C, HRA, 80D, and capital gains tracking. | Tailored for India |
 | 📈 **Multi-Asset Portfolio Manager** | Unified net worth tracking across Indian Equities, Mutual Funds, FDs, Gold, Real Estate, US Stocks, and Crypto. | Comprehensive Portfolio View |
-| 🎯 **Goal & FIRE Planner** | Interactive retirement, SIP goal, and loan EMI amortization calculators with dynamic progress visuals. | Financial Freedom Tools |
+| 📐 **EMI & Amortization Engine** | Interactive loan EMI calculator, pre-payment impact visualizer, and interest breakdown schedule. | Smart Debt Optimization |
+| 🎯 **Goal & FIRE Planner** | Retirement readiness calculator, SIP target trackers, and loan payoff progress monitors. | Financial Freedom Tools |
 | 🔐 **Encrypted Vault** | Securely store sensitive documents (PAN, Aadhaar, Property Deeds, ITR filings) inside the encrypted data payload. | Document Privacy |
-| 🤖 **Local AI Financial Analyst** | Natural language financial queries executed 100% offline against local memory models. | Smart Offline AI |
-| 📱 **Cross-Platform & Mobile Responsive** | Native Windows desktop app via Electron shell, plus web app with touch navigation drawers and bottom navbar. | Desktop & Web Ready |
+| 📱 **Cross-Platform & Mobile Ready** | Native Windows desktop app via Electron shell, plus web app with touch navigation drawers and responsive navbar. | Desktop & Web Ready |
+
+---
+
+## 💡 Deep-Dive Financial Modules
+
+### 🏦 1. Personal Wealth & Net Worth Tracker
+- **Multi-Asset Portfolio**: Real-time aggregation of Indian Mutual Funds, Equities (NSE/BSE), Fixed Deposits, Physical Gold/SGBs, Real Estate, US Equities, and Cryptocurrency.
+- **Visual Analytics**: Interactive Recharts graphs showing historical net worth growth, asset allocation pie charts, and monthly liquid capital metrics.
+
+### 🏛️ 2. India Tax Optimizer Engine (FY 2024-25 / AY 2025-26)
+- **Regime Comparison**: Dynamic side-by-side computation of tax liability under the **Old Tax Regime** vs. **New Tax Regime**.
+- **Deductions Support**: Automatically calculates Section 80C (₹1.5L cap), 80D (Health Insurance), 80CCD(1B) (NPS ₹50k), HRA (House Rent Allowance exemption), and Standard Deduction (₹75k for New / ₹50k for Old).
+- **Capital Gains Forecast**: Short-Term (STCG) vs. Long-Term (LTCG) tax calculations for Indian equities and mutual funds.
+
+### 📐 3. EMI & Loan Amortization Calculator
+- **Schedule Breakdown**: Generate complete monthly payment schedules splitting principal vs. interest components.
+- **Pre-Payment Impact**: Simulate lump-sum or recurring extra principal payments to calculate total interest saved and tenure reduction.
+
+### 🏢 4. Business Ledger & GST Accounting Suite
+- **Dual-Entry Bookkeeping**: Segregated business ledgers for freelancers and small businesses.
+- **GST Invoicing**: Generate GST-compliant invoices with CGST, SGST, and IGST breakdowns.
+- **Profit & Loss**: Real-time business revenue tracking, operational expense categorization, and estimated quarterly advance tax calculations.
 
 ---
 
@@ -93,8 +117,8 @@ flowchart TD
         direction LR
         UI["🎨 <b>@financeos/ui</b><br/>Glassmorphism & Motion Engine"]:::uiSys
         Auth["🔑 <b>@financeos/auth</b><br/>PIN & PBKDF2 Session Security"]:::authPkg
-        DB["💾 <b>@financeos/database</b><br/>AES-256 Encrypted Engine"]:::corePkg
-        Shared["🛠️ <b>@financeos/shared</b><br/>INR Math & Data Schemas"]:::corePkg
+        DB["💾 <b>@financeos/database</b><br/>AES-256 Encrypted Engine & Sync"]:::corePkg
+        Shared["🛠️ <b>@financeos/shared</b><br/>Crypto, INR Math & Schemas"]:::corePkg
     end
 
     subgraph StorageLayer["🔒 Local Hardware Encrypted Storage Engine"]
@@ -154,7 +178,7 @@ flowchart LR
 
 ## 🔐 Security & Privacy Model
 
-Your Security PIN never leaves local RAM and is never saved in plain text. Encryption tags verify data integrity on every write and read operation.
+Your Security PIN never leaves local RAM and is never saved in plain text. Hardware Web Crypto API drives PBKDF2 key derivation and AES-256-GCM encryption.
 
 ```mermaid
 sequenceDiagram
@@ -162,20 +186,20 @@ sequenceDiagram
     actor User as 👤 User
     participant App as 📱 Web / Desktop App
     participant Auth as 🔑 Auth Package
-    participant Engine as 🛡️ AES-256 Engine
+    participant Engine as 🛡️ AES-256 Engine (@financeos/shared)
     participant Storage as 💾 Local File System
 
     User->>App: Input Security PIN
-    App->>Auth: Derive Master Key (PBKDF2 / Salt)
+    App->>Auth: Derive Master Key (PBKDF2 SHA-256, 100,000 Iterations)
     Auth-->>App: Key Derived Successfully
     App->>Storage: Read Encrypted Payload (financeos_data.json)
-    Storage-->>Engine: Raw Ciphertext + Auth Tag Payload
-    Engine->>Engine: Decrypt Payload with Master Key (AES-GCM)
+    Storage-->>Engine: Payload Format (salt:iv:ciphertext)
+    Engine->>Engine: Authenticate & Decrypt (AES-256-GCM)
 
     alt Valid Security PIN & Unaltered Data
         Engine-->>App: Decrypted JSON Ledger Payload
         App-->>User: Grant Access & Render Animated Dashboard
-    else Invalid PIN or Data Tampered Tag Mismatch
+    else Invalid PIN or Tampered Tag Mismatch
         Engine-->>App: Throw Cryptographic Verification Error
         App-->>User: Access Denied (Data Remains Locked)
     end
@@ -196,13 +220,14 @@ sequenceDiagram
 
 ### **Desktop Platform & Security**
 - **Electron 43**: Native Windows desktop shell with secure IPC channels.
+- **Web Crypto API**: Hardware-accelerated AES-256-GCM cipher engine (`@financeos/shared/crypto`).
+- **BroadcastChannel API**: Encrypted cross-tab state sync across browser windows.
 - **IndexedDB & LocalStorage**: Fast client-side cache and theme state storage.
-- **Web Crypto API**: Native browser hardware-accelerated AES-256-GCM cipher engine.
 
 ### **Testing & QA**
-- **Vitest**: Fast unit test runner.
-- **Playwright**: End-to-end user workflow testing.
-- **ESLint & TypeScript**: Static code analysis.
+- **Vitest**: Fast unit test runner for monorepo packages.
+- **Playwright**: End-to-end integration and onboarding test suite (`e2e/`).
+- **ESLint & TypeScript**: Static code analysis and strict type verification.
 
 ---
 
@@ -216,9 +241,9 @@ MyFinanceOS/
 │
 ├── 📁 packages/
 │   ├── 🎨 ui/                   # Shared Glassmorphism System, Animations & Themes
-│   ├── 💾 database/             # AES-256 Encrypted Local Storage Engine & Schemas
+│   ├── 💾 database/             # AES-256 Encrypted Local Storage Engine & Cross-Tab Sync
 │   ├── 🔑 auth/                 # Local PIN Hashing & PBKDF2 Session Security
-│   └── 🛠️ shared/               # INR Math Engine, Formatters & Type Definitions
+│   └── 🛠️ shared/               # AES-GCM Crypto, INR Math Engine & Type Definitions
 │
 ├── 📁 e2e/                      # Playwright End-to-End Integration Suite
 └── 📄 package.json              # Monorepo Workspace Configuration
@@ -229,7 +254,7 @@ MyFinanceOS/
 ## ⚡ Quick Start Guide
 
 ### Prerequisites
-- **Node.js**: `v18.0.0` or higher
+- **Node.js**: `v18.0.0` or higher (Fully optimized for **Node 22.x LTS**)
 - **npm**: `v9.0.0` or higher
 
 ### Installation

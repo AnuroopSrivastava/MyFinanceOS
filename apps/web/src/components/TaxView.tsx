@@ -164,7 +164,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
     // Slabs: Up to 2.5L: Nil | 2.5-5L: 5% | 5-10L: 20% | >10L: 30%
     if (taxableOld > 1000000) {
       taxOld += (taxableOld - 1000000) * 0.30 + 100000 + 12500;
-    } else if (taxableOld > 50000) {
+    } else if (taxableOld > 500000) {
       taxOld += (taxableOld - 500000) * 0.20 + 12500;
     } else if (taxableOld > 250000) {
       taxOld += (taxableOld - 250000) * 0.05;

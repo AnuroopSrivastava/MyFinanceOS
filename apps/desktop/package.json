@@ -6,7 +6,7 @@
   "type": "module",
   "main": "./dist/main.js",
   "scripts": {
-    "dev": "tsc && node ../../node_modules/electron/cli.js .",
+    "dev": "tsc && electron .",
     "build": "tsc",
     "package": "electron-builder"
   },

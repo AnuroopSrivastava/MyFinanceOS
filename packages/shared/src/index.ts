@@ -244,6 +244,7 @@ export interface TDSSummary {
 // Business Bookkeeping Models
 export interface VendorCustomer {
   id: string;
+  profileId: string;
   name: string;
   gstin?: string;
   phone?: string;
@@ -254,6 +255,7 @@ export interface VendorCustomer {
 
 export interface InventoryItem {
   id: string;
+  profileId: string;
   code: string;
   name: string;
   quantity: number;
@@ -265,6 +267,7 @@ export interface InventoryItem {
 
 export interface BusinessInvoice {
   id: string;
+  profileId: string;
   invoiceNumber: string;
   date: string;
   dueDate: string;
@@ -292,6 +295,7 @@ export interface InvoiceItem {
 
 export interface BusinessRegisterEntry {
   id: string;
+  profileId: string;
   date: string;
   type: 'Sales' | 'Purchase';
   refNumber: string; // Invoice / Bill number

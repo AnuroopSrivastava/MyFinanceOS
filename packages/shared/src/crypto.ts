@@ -133,3 +133,20 @@ export const hashPin = async (pin: string, saltHex: string): Promise<string> => 
   const hashBuffer = await subtle.digest('SHA-256', encoded as any);
   return bufferToHex(hashBuffer);
 };
+
+// Encrypt string with PIN to salt:iv:ciphertext format
+export const encryptData = async (plainText: string, pin: string): Promise<string> => {
+  const salt = generateSalt(16);
+  const key = await deriveKey(pin, salt);
+  const { ciphertext, iv } = await encrypt(plainText, key);
+  return `${salt}:${iv}:${ciphertext}`;
+};
+
+// Decrypt salt:iv:ciphertext format string with PIN
+export const decryptData = async (payload: string, pin: string): Promise<string> => {
+  const parts = payload.split(':');
+  if (parts.length !== 3) throw new Error('Invalid payload format');
+  const [salt, iv, ciphertext] = parts;
+  const key = await deriveKey(pin, salt);
+  return await decrypt(ciphertext, iv, key);
+};
