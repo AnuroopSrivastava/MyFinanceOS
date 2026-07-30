@@ -133,14 +133,13 @@ h6 {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   /* Default to subtle modern shadow */
-  transition: all var(--transition-normal);
+  transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1), background var(--transition-normal), border-color 200ms ease-out, box-shadow 250ms ease-out;
 }
 
 .glass-panel:hover {
   background: var(--bg-panel-hover);
   border-color: hsla(0, 0%, 100%, 0.12);
   /* Very subtle hover outline */
-  transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
 
@@ -753,7 +752,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   padding: 1.5rem;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1), background 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms ease-out, box-shadow 250ms ease-out;
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
   position: relative;
   overflow: hidden;
@@ -761,7 +760,6 @@ body {
 
 .glass-widget:hover {
   border-color: rgba(99, 102, 241, 0.35);
-  transform: translateY(-2px);
   box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.2);
 }
 
@@ -892,4 +890,126 @@ body {
 
 .spinning-gear-rev {
   animation: spinGearReverse 8s linear infinite;
+}
+
+/* Shared interactive card system ------------------------------------------------
+   The hook in apps/web/src/components/ui/InteractiveCard.tsx supplies only the
+   pointer values and a transient active class. Keeping visual treatment here
+   lets every existing glass surface participate without component-level state. */
+.glass-panel:not([data-interactive-card='off']),
+.glass-widget:not([data-interactive-card='off']),
+.glass-card:not([data-interactive-card='off']),
+[data-interactive-card]:not([data-interactive-card='off']) {
+  position: relative;
+  isolation: isolate;
+  transform-style: preserve-3d;
+}
+
+.glass-panel:not([data-interactive-card='off'])::before,
+.glass-widget:not([data-interactive-card='off'])::before,
+.glass-card:not([data-interactive-card='off'])::before,
+[data-interactive-card]:not([data-interactive-card='off'])::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0;
+  background: radial-gradient(460px circle at var(--interactive-pointer-x, 50%) var(--interactive-pointer-y, 50%),
+      color-mix(in srgb, var(--accent-1) 10%, transparent),
+      transparent 52%);
+  transition: opacity 180ms ease-out;
+}
+
+.glass-panel:not([data-interactive-card='off']).is-interactive-card-active,
+.glass-widget:not([data-interactive-card='off']).is-interactive-card-active,
+.glass-card:not([data-interactive-card='off']).is-interactive-card-active,
+[data-interactive-card]:not([data-interactive-card='off']).is-interactive-card-active {
+  border-color: var(--accent-1) !important;
+  box-shadow: 0 10px 40px -10px color-mix(in srgb, var(--accent-1) 25%, transparent) !important;
+  /* Match TiltCard's exact CSS transition timing: 0.1s ease-out for transform */
+  transition: transform 0.1s ease-out, box-shadow 0.3s ease, border-color 0.3s ease !important;
+  will-change: transform;
+}
+
+.glass-panel:not([data-interactive-card='off']).is-interactive-card-active::before,
+.glass-widget:not([data-interactive-card='off']).is-interactive-card-active::before,
+.glass-card:not([data-interactive-card='off']).is-interactive-card-active::before,
+[data-interactive-card]:not([data-interactive-card='off']).is-interactive-card-active::before {
+  opacity: 1;
+}
+
+/* Match TiltCard's inner 3D parallax depth: elevate children in Z space */
+.glass-panel:not([data-interactive-card='off']) > *,
+.glass-widget:not([data-interactive-card='off']) > *,
+.glass-card:not([data-interactive-card='off']) > *,
+[data-interactive-card]:not([data-interactive-card='off']) > * {
+  transform: translateZ(30px);
+  transform-style: preserve-3d;
+  transition: transform 0.2s ease-out;
+}
+
+/* Lucide iconography extra elevation & glow on active hover */
+.glass-panel:not([data-interactive-card='off']).is-interactive-card-active .lucide,
+.glass-widget:not([data-interactive-card='off']).is-interactive-card-active .lucide,
+.glass-card:not([data-interactive-card='off']).is-interactive-card-active .lucide,
+[data-interactive-card]:not([data-interactive-card='off']).is-interactive-card-active .lucide {
+  transform: translateZ(38px) translateY(-2px) scale(1.05);
+  filter: brightness(1.15) drop-shadow(0 0 6px color-mix(in srgb, var(--accent-1) 32%, transparent));
+}
+
+.is-interactive-card-focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-1) 76%, transparent);
+  outline-offset: 3px;
+}
+
+/* Optional reveal utility for a manual <InteractiveCard>. It composes with the
+   JS tilt because the engine restores the element's original inline transform. */
+.interactive-card--reveal {
+  transform: translateY(var(--interactive-card-entry-y, 0));
+}
+
+@media (hover: none),
+(pointer: coarse) {
+
+  .glass-panel:not([data-interactive-card='off']).is-interactive-card-pressed,
+  .glass-widget:not([data-interactive-card='off']).is-interactive-card-pressed,
+  .glass-card:not([data-interactive-card='off']).is-interactive-card-pressed,
+  [data-interactive-card]:not([data-interactive-card='off']).is-interactive-card-pressed {
+    transform: scale(0.98) !important;
+    transition-duration: 120ms, 120ms, 120ms, 120ms;
+  }
+
+  .glass-panel:not([data-interactive-card='off'])::before,
+  .glass-widget:not([data-interactive-card='off'])::before,
+  .glass-card:not([data-interactive-card='off'])::before,
+  [data-interactive-card]:not([data-interactive-card='off'])::before {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .glass-panel:not([data-interactive-card='off']),
+  .glass-widget:not([data-interactive-card='off']),
+  .glass-card:not([data-interactive-card='off']),
+  [data-interactive-card]:not([data-interactive-card='off']) {
+    transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+  }
+
+  .glass-panel:not([data-interactive-card='off'])::before,
+  .glass-widget:not([data-interactive-card='off'])::before,
+  .glass-card:not([data-interactive-card='off'])::before,
+  [data-interactive-card]:not([data-interactive-card='off'])::before {
+    display: none;
+  }
+
+  .glass-panel:not([data-interactive-card='off']).is-interactive-card-active,
+  .glass-widget:not([data-interactive-card='off']).is-interactive-card-active,
+  .glass-card:not([data-interactive-card='off']).is-interactive-card-active,
+  [data-interactive-card]:not([data-interactive-card='off']).is-interactive-card-active {
+    box-shadow: var(--shadow-md) !important;
+    will-change: auto;
+  }
 }

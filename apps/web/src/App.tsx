@@ -15,6 +15,7 @@ import { AIChatView } from './components/AIChatView.js';
 import { SettingsView } from './components/SettingsView.js';
 import { InvestmentPlanner } from './components/InvestmentPlanner/index.js';
 import { CommandPalette } from './components/CommandPalette.js';
+import { useInteractiveCardSystem } from './components/ui/InteractiveCard.js';
 
 import { SaveStatusPopup } from './components/SaveStatusPopup.js';
 
@@ -47,6 +48,7 @@ const PAGE_TITLES: Record<ActivePage, string> = {
 };
 
 const App: React.FC = () => {
+  useInteractiveCardSystem();
   const [isBooting, setIsBooting] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
