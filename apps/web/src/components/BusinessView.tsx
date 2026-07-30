@@ -8,7 +8,7 @@ import {
 } from '@financeos/shared';
 import {
   Printer, Coins, ShoppingBag, Eye, Trash2, Edit2,
-  FileText, Archive, BarChart2, Plus, Download
+  FileText, Archive, BarChart2, Plus, Download, Briefcase
 } from 'lucide-react';
 import { formatRupee } from '../utils/currency.js';
 import { CurrencyInput } from './ui/CurrencyInput.js';
@@ -546,14 +546,45 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
   return (
     <motion.div initial="hidden" animate="visible" variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.15 } } }} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-      {/* Title */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 600, fontFamily: 'var(--font-display)' }}>Corporate & Bookkeeping Engine</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>GST Billing, purchase/sales journals, FIFO stock sheets, and financial statements</p>
+      {/* Page Header Banner */}
+      <div className="glass-panel" style={{
+        padding: '1.25rem 1.5rem',
+        borderRadius: 'var(--radius-md)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1.25rem',
+        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+        border: '1px solid var(--border-color)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', flex: '1 1 min-content', minWidth: '280px' }}>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            background: 'var(--accent-grad)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px hsla(220, 80%, 50%, 0.25)',
+            flexShrink: 0,
+            marginTop: '0.2rem'
+          }}>
+            <Briefcase size={22} color="#ffffff" />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0, lineHeight: 1.25 }}>
+              Corporate & Bookkeeping Engine
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.35rem', margin: 0, lineHeight: 1.4 }}>
+              GST Billing, purchase/sales journals, FIFO stock sheets, and financial statements
+            </p>
+          </div>
         </div>
 
-        <button
+        <motion.button
+          whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
           className="btn btn-secondary"
           onClick={() => {
             if (activeSubTab === 'gst') {
@@ -580,11 +611,11 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
               ], invoices);
             }
           }}
-          style={{ padding: '0.45rem 0.8rem', fontSize: '0.8rem', gap: '0.4rem', display: 'flex', alignItems: 'center' }}
+          style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', gap: '0.4rem', display: 'flex', alignItems: 'center', flexShrink: 0 }}
         >
-          <Download size={14} />
+          <Download size={16} />
           <span>Export {activeSubTab === 'gst' ? 'GSTR Register' : 'Invoices'} CSV</span>
-        </button>
+        </motion.button>
       </div>
 
       {/* Sub tabs */}
@@ -593,11 +624,12 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
         width: '100%',
         gap: '0.25rem',
         background: 'rgba(255, 255, 255, 0.04)',
-        padding: '0.3rem',
+        padding: '0.4rem',
         borderRadius: '2rem',
         border: '1px solid var(--border-color)',
         boxSizing: 'border-box',
-        marginBottom: '0.75rem'
+        marginBottom: '0.75rem',
+        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)'
       }}>
         <button
           className={`btn ${activeSubTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}`}
@@ -686,18 +718,18 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
 
           {/* Active Invoices List */}
           <motion.div className="glass-panel" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }} style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Active Invoices</h3>
-              <button className="btn btn-primary" onClick={() => setShowCreateInvoice(true)} disabled={customers.length === 0 || inventory.length === 0}>
-                <Plus size={16} /> New GST Invoice
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 650 }}>Active Invoices</h3>
+              <button className="btn btn-primary" onClick={() => setShowCreateInvoice(true)} disabled={customers.length === 0 || inventory.length === 0} style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)' }}>
+                <Plus size={14} /> New GST Invoice
               </button>
             </div>
 
             {customers.length === 0 || inventory.length === 0 ? (
               <div style={{
-                color: 'var(--text-secondary)', fontSize: '0.85rem', border: '1px dashed rgba(59, 130, 246, 0.3)',
-                padding: '1.25rem 1rem', borderRadius: 'var(--radius-sm)', textAlign: 'center',
-                background: 'rgba(59, 130, 246, 0.05)', marginBottom: '1rem', lineHeight: 1.5
+                color: 'var(--text-secondary)', fontSize: '0.85rem', border: '1px dashed var(--border-focus)',
+                padding: '1.25rem 1rem', borderRadius: 'var(--radius-md)', textAlign: 'center',
+                background: 'rgba(255, 255, 255, 0.02)', marginBottom: '1.25rem', lineHeight: 1.5
               }}>
                 Please create at least <strong style={{ color: 'var(--text-primary)' }}>1 Customer</strong> and <strong style={{ color: 'var(--text-primary)' }}>1 Inventory Item</strong> before drafting an invoice.
               </div>
@@ -759,9 +791,9 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
 
           {/* Manage Clients List */}
           <motion.div className="glass-panel" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }} style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Contacts Directory</h3>
-              <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }} onClick={() => setShowAddContact(true)}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 650 }}>Contacts Directory</h3>
+              <button className="btn btn-secondary" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)' }} onClick={() => setShowAddContact(true)}>
                 <Plus size={14} /> Add
               </button>
             </div>
@@ -769,20 +801,20 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '400px', overflowY: 'auto' }}>
               {contacts.map(c => (
                 <div key={c.id} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem',
                   background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.82rem',
                   border: '1px solid var(--border-color)'
                 }}>
                   <div>
-                    <div style={{ fontWeight: 600 }}>{c.name}</div>
+                    <div style={{ fontWeight: 650, color: 'var(--text-primary)', marginBottom: '0.15rem' }}>{c.name}</div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Type: {c.type} {c.gstin ? `| GSTIN: ${c.gstin}` : ''}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.4rem' }}>
-                    <button className="btn btn-secondary" style={{ padding: '0.25rem', borderRadius: '4px' }} onClick={() => openEditContact(c)}>
-                      <Edit2 size={12} />
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button className="btn btn-secondary" style={{ padding: '0.35rem', borderRadius: '6px' }} onClick={() => openEditContact(c)}>
+                      <Edit2 size={13} />
                     </button>
-                    <button className="btn btn-danger" style={{ padding: '0.25rem', borderRadius: '4px' }} onClick={() => handleDeleteContact(c.id)}>
-                      <Trash2 size={12} />
+                    <button className="btn btn-danger" style={{ padding: '0.35rem', borderRadius: '6px' }} onClick={() => handleDeleteContact(c.id)}>
+                      <Trash2 size={13} />
                     </button>
                   </div>
                 </div>
@@ -792,23 +824,23 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                 <div style={{
                   padding: '1.5rem 1rem',
                   textAlign: 'center',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px dashed rgba(59, 130, 246, 0.25)',
-                  background: 'rgba(59, 130, 246, 0.03)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px dashed var(--border-focus)',
+                  background: 'rgba(255, 255, 255, 0.02)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '0.4rem'
+                  gap: '0.5rem'
                 }}>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                     No contacts linked yet. Click "Add" to save clients and vendors.
                   </div>
                   <button
                     className="btn btn-secondary"
                     onClick={() => setShowAddContact(true)}
-                    style={{ padding: '0.35rem 0.85rem', fontSize: '0.78rem', borderRadius: '2rem', marginTop: '0.25rem' }}
+                    style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', borderRadius: '2rem', marginTop: '0.5rem' }}
                   >
-                    <Plus size={12} /> Add First Contact
+                    <Plus size={14} /> Add First Contact
                   </button>
                 </div>
               )}

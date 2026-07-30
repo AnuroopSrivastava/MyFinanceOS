@@ -80,42 +80,70 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
       }}
       style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
     >
-      {/* Page Title & Header Actions */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ flex: '1 1 240px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-            <h2 style={{ fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }}>
-              Encrypted Document Vault
-            </h2>
-            <span style={{
-              background: 'rgba(59, 130, 246, 0.12)',
-              color: 'var(--accent-1)',
-              border: '1px solid rgba(59, 130, 246, 0.3)',
-              padding: '0.25rem 0.65rem',
-              borderRadius: '2rem',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              whiteSpace: 'nowrap'
-            }}>
-              <Lock size={12} /> AES-256 Local Encrypted
-            </span>
+      {/* Page Header Banner */}
+      <div className="glass-panel" style={{
+        padding: '1.25rem 1.5rem',
+        borderRadius: 'var(--radius-md)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1.25rem',
+        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+        border: '1px solid var(--border-color)',
+        marginBottom: '0.5rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', flex: '1 1 min-content', minWidth: '280px' }}>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            background: 'var(--accent-grad)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px hsla(220, 80%, 50%, 0.25)',
+            flexShrink: 0,
+            marginTop: '0.2rem'
+          }}>
+            <Lock size={22} color="#ffffff" />
           </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.35rem', lineHeight: 1.5 }}>
-            Store PAN, Aadhaar, Property Deeds, Tax returns, and Policy docs with local encryption & AI indexing
-          </p>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
+              <h1 style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0, lineHeight: 1.25 }}>
+                Encrypted Document Vault
+              </h1>
+              <span style={{
+                background: 'rgba(59, 130, 246, 0.12)',
+                color: 'var(--accent-1)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                padding: '0.2rem 0.5rem',
+                borderRadius: '2rem',
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                whiteSpace: 'nowrap'
+              }}>
+                <ShieldCheck size={12} /> AES-256 Encrypted
+              </span>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
+              Store PAN, Aadhaar, Property Deeds, Tax returns, and Policy docs with local encryption & AI indexing
+            </p>
+          </div>
         </div>
 
-        <button
+        <motion.button
+          whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
           className="btn btn-primary"
           onClick={() => setIsUploading(!isUploading)}
-          style={{ padding: '0.55rem 1.15rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.45rem', borderRadius: '2rem', whiteSpace: 'nowrap' }}
+          style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: 'var(--radius-sm)', flexShrink: 0 }}
         >
           <Upload size={16} />
           <span>Upload Document</span>
-        </button>
+        </motion.button>
       </div>
 
       {notification && (
@@ -378,9 +406,9 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
             gridColumn: '1 / -1',
             padding: '2.5rem 1.5rem',
             textAlign: 'center',
-            borderRadius: '1.25rem',
-            border: '1px dashed rgba(59, 130, 246, 0.25)',
-            background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.3) 0%, rgba(15, 23, 42, 0.5) 100%)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px dashed var(--border-focus)',
+            background: 'rgba(255, 255, 255, 0.02)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',

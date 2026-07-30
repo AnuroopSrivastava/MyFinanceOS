@@ -173,7 +173,7 @@ button,
 }
 
 .btn-primary:hover {
-  transform: translateY(-1px);
+  /* transform: translateY(-1px); */
   box-shadow: 0 6px 16px hsla(220, 80%, 40%, 0.25), var(--shadow-glow);
 }
 
@@ -546,7 +546,7 @@ body {
   }
 
   .mobile-nav-item.active svg {
-    transform: translateY(-1px);
+    /* transform: translateY(-1px); */
     filter: drop-shadow(0 0 6px var(--border-color-glow));
   }
 

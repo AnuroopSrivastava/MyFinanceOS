@@ -81,9 +81,10 @@ export const useInteractiveCardSystem = (): void => {
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
 
-      // Exact TiltCard 10deg tilt and -8px lift formula
-      const rotateX = ((y - centerY) / centerY) * -10;
-      const rotateY = ((x - centerX) / centerX) * 10;
+      const config = INTENSITY[getIntensity(card)];
+
+      const rotateX = ((y - centerY) / centerY) * -config.tilt;
+      const rotateY = ((x - centerX) / centerX) * config.tilt;
 
       const xPercent = (x / rect.width) * 100;
       const yPercent = (y / rect.height) * 100;
@@ -91,7 +92,7 @@ export const useInteractiveCardSystem = (): void => {
       card.style.setProperty('--interactive-pointer-x', `${xPercent.toFixed(1)}%`);
       card.style.setProperty('--interactive-pointer-y', `${yPercent.toFixed(1)}%`);
 
-      card.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translateY(-8px)`;
+      card.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translateY(-${config.lift}px)`;
     };
 
     const activateCard = (card: HTMLElement, event: PointerEvent) => {

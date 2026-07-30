@@ -420,6 +420,7 @@ class DatabaseService {
       const errMsg = e?.message ? `Local storage save failed: ${e.message}` : 'Local database save failed';
       this.setSaveError(errMsg);
       this.setUnsavedChanges(true);
+      throw e;
     }
   }
 

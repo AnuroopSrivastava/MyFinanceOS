@@ -1010,9 +1010,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                   }}
                 >
                   <div style={{
-                    width: '8px', height: '8px', borderRadius: '50%',
-                    background: p.role === 'Admin' ? 'var(--accent-1)' : 'var(--text-muted)'
-                  }} />
+                    width: p.avatar ? '20px' : '8px', height: p.avatar ? '20px' : '8px', borderRadius: '50%',
+                    background: p.role === 'Admin' ? 'var(--accent-1)' : 'var(--text-muted)',
+                    overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    {p.avatar ? (
+                      <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : null}
+                  </div>
                   <span style={{ fontWeight: 600 }}>{p.name}</span>
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>({p.relationship})</span>
                 </motion.div>

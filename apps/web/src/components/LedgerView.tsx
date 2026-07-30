@@ -6,7 +6,7 @@ import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
 import {
   Plus, Upload, Download, Landmark, Search, Trash2, CreditCard,
   HelpCircle, AlertCircle, RefreshCw, Edit2, Tag, Filter, PieChart as PieIcon, ArrowUpRight,
-  ArrowDownLeft, MoreHorizontal, ArrowRightLeft, Calendar
+  ArrowDownLeft, MoreHorizontal, ArrowRightLeft, Calendar, FileText
 } from 'lucide-react';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip
@@ -542,17 +542,47 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
       style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
     >
 
-      {/* Page Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Banking & Double-Entry Ledger</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Manage personal accounts, journal records, and statement syncs</p>
+      {/* Page Header Banner */}
+      <div className="glass-panel" style={{
+        padding: '1.25rem 1.5rem',
+        borderRadius: 'var(--radius-md)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+        border: '1px solid var(--border-color)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            background: 'var(--accent-grad)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px hsla(220, 80%, 50%, 0.25)',
+            flexShrink: 0
+          }}>
+            <Landmark size={22} color="#ffffff" />
+          </div>
+          <div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0 }}>
+              Banking & Double-Entry Ledger
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.83rem', marginTop: '0.15rem', margin: 0 }}>
+              Manage personal accounts, journal records, and statement syncs
+            </p>
+          </div>
         </div>
+
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-secondary" onClick={exportLedgerToCSV}>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="btn btn-secondary" onClick={exportLedgerToCSV} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
             <Download size={16} /> Export CSV
           </motion.button>
-          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-primary" onClick={() => setShowAddTx(true)}>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="btn btn-primary" onClick={() => setShowAddTx(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
             <Plus size={16} /> Add Transaction
           </motion.button>
         </div>
@@ -568,11 +598,13 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
             hidden: { opacity: 0, y: 20 },
             visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 80 } }
           }}
-          style={{ padding: '1.25rem' }}
+          style={{ padding: '1.5rem' }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Linked Accounts</h3>
-            <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onClick={() => setShowAddAccount(true)}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 650, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Landmark size={18} color="var(--accent-1)" /> Linked Accounts
+            </h3>
+            <button className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.85rem', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)' }} onClick={() => setShowAddAccount(true)}>
               <Plus size={14} /> Add Account
             </button>
           </div>
@@ -584,31 +616,38 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.1 + (idx * 0.05), type: "spring" }}
-                whileHover={{ y: -4, scale: 1.02 }}
-                className="glass-panel"
-                style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)' }}
+                whileHover={{ y: -2, scale: 1.01 }}
+                style={{ 
+                  padding: '1.15rem', 
+                  background: 'linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)', 
+                  border: '1px solid var(--border-color)', 
+                  borderRadius: 'var(--radius-md)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--accent-grad)' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.6rem' }}>
                   <div>
-                    <h4 style={{ fontSize: '0.9rem', fontWeight: 600 }}>{acc.name}</h4>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{acc.bankName}</span>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 650, color: 'var(--text-primary)', marginBottom: '0.1rem' }}>{acc.name}</h4>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{acc.bankName}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                    <button onClick={() => openEditAccount(acc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-1)' }} title="Edit Account">
-                      <Edit2 size={14} />
+                  <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                    <button onClick={() => openEditAccount(acc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} title="Edit Account">
+                      <Edit2 size={15} />
                     </button>
                     <button onClick={() => handleDeleteAccount(acc.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)' }} title="Delete Account">
-                      <Trash2 size={14} />
+                      <Trash2 size={15} />
                     </button>
                     {acc.accountType === 'CreditCard' ? <CreditCard size={18} color="var(--accent-1)" style={{ marginLeft: '0.2rem' }} /> : <Landmark size={18} color="var(--accent-2)" style={{ marginLeft: '0.2rem' }} />}
                   </div>
                 </div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 700, margin: '0.4rem 0' }}>
+                <div style={{ fontSize: '1.35rem', fontWeight: 700, margin: '0.6rem 0', fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
                   {formatRupee(acc.balance)}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  <span>{acc.accountNumber}</span>
-                  {acc.nomineeName && <span style={{ color: 'var(--success)' }}>✓ Nominee</span>}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                  <span style={{ fontFamily: 'monospace' }}>{acc.accountNumber}</span>
+                  {acc.nomineeName && <span style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.5rem', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '1rem' }}>✓ Nominee</span>}
                 </div>
               </motion.div>
             ))}
@@ -625,14 +664,14 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
               hidden: { opacity: 0, x: 20 },
               visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 80 } }
             }}
-            style={{ padding: '1.25rem' }}
+            style={{ padding: '1.5rem' }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <RefreshCw size={16} color="var(--accent-2)" /> Automated SIPs & Bills
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 650, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <RefreshCw size={18} color="var(--accent-2)" /> Automated SIPs & Bills
               </h3>
-              <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem' }} onClick={() => setShowAddRecurring(true)}>
-                + Scheduler
+              <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)' }} onClick={() => setShowAddRecurring(true)}>
+                <Plus size={14} style={{ display: 'inline', marginRight: '0.25rem' }} /> Scheduler
               </button>
             </div>
             <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
@@ -684,39 +723,41 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
               hidden: { opacity: 0, x: 20 },
               visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 80 } }
             }}
-            style={{ padding: '1.25rem' }}
+            style={{ padding: '1.5rem' }}
           >
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Upload size={16} color="var(--accent-1)" /> Statement Smart-Import
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 650, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Upload size={18} color="var(--accent-1)" /> Statement Smart-Import
             </h3>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem', lineHeight: 1.4 }}>
               Upload statement files or paste logs to automatically extract, categorize, and verify entries.
             </p>
 
             <form onSubmit={handleCSVImport}>
-              <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                <label className="form-label" style={{ fontSize: '0.72rem' }}>Upload Statement File (.csv, .txt)</label>
-                <input
-                  type="file"
-                  accept=".csv,.txt"
-                  onChange={handleFileUpload}
-                  style={{
-                    fontSize: '0.75rem', width: '100%', padding: '0.4rem',
-                    background: 'rgba(255,255,255,0.02)', border: '1px dashed var(--border-color)',
-                    borderRadius: 'var(--radius-sm)'
-                  }}
-                />
+              <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+                <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-primary)', fontWeight: 500 }}>Upload Statement File (.csv, .txt)</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="file"
+                    accept=".csv,.txt"
+                    onChange={handleFileUpload}
+                    style={{
+                      fontSize: '0.8rem', width: '100%', padding: '0.6rem',
+                      background: 'rgba(255,255,255,0.02)', border: '1px dashed var(--border-color)',
+                      borderRadius: 'var(--radius-sm)', cursor: 'pointer', color: 'var(--text-primary)'
+                    }}
+                  />
+                </div>
               </div>
-              <div style={{ textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-muted)', margin: '0.4rem 0' }}>— OR —</div>
+              <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.75rem 0' }}>— OR —</div>
               <textarea
                 className="form-input"
-                style={{ height: '70px', fontSize: '0.75rem', fontFamily: 'monospace', marginBottom: '0.5rem' }}
+                style={{ height: '80px', fontSize: '0.8rem', fontFamily: 'monospace', marginBottom: '1rem', padding: '0.75rem' }}
                 placeholder="Paste statement text here...&#10;15-Jul-2026 Swiggy Delivery -720&#10;16-Jul-2026 Salary Credit +150000"
                 value={csvContent}
                 onChange={(e) => setCsvContent(e.target.value)}
               />
-              <button type="submit" className="btn btn-secondary" style={{ width: '100%', fontSize: '0.8rem', padding: '0.5rem' }}>
-                Analyze Statement Text
+              <button type="submit" className="btn btn-secondary" style={{ width: '100%', fontSize: '0.85rem', padding: '0.65rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                <Search size={16} /> Analyze Statement Text
               </button>
             </form>
 
@@ -757,10 +798,10 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
               hidden: { opacity: 0, y: 30 },
               visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 70 } }
             }}
-            style={{ padding: '1.25rem' }}
+            style={{ padding: '1.5rem' }}
           >
-            <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <PieIcon size={16} color="var(--accent-2)" /> Expense Distribution by Category
+            <h4 style={{ fontSize: '1.1rem', fontWeight: 650, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <PieIcon size={18} color="var(--accent-2)" /> Expense Distribution by Category
             </h4>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap' }}>
               <div style={{ width: '140px', height: '140px' }}>
@@ -803,10 +844,10 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
               hidden: { opacity: 0, y: 30 },
               visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 70 } }
             }}
-            style={{ padding: '1.25rem' }}
+            style={{ padding: '1.5rem' }}
           >
-            <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <ArrowUpRight size={16} color="var(--error)" /> Highest Single Spends
+            <h4 style={{ fontSize: '1.1rem', fontWeight: 650, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <ArrowUpRight size={18} color="var(--error)" /> Highest Single Spends
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               {topSpends.map((t, idx) => (
@@ -843,8 +884,10 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
         className="glass-panel"
         style={{ padding: '0', overflow: 'hidden' }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.05)', flexWrap: 'wrap', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Ledger Journal Log</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', flexWrap: 'wrap', gap: '1.25rem', background: 'rgba(255,255,255,0.01)' }}>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 650, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <FileText size={18} color="var(--accent-1)" /> Ledger Journal Log
+          </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '0.15rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', borderRight: '1px solid rgba(255,255,255,0.08)', paddingRight: '0.4rem' }}>

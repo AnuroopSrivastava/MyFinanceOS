@@ -217,7 +217,10 @@ const App: React.FC = () => {
         <SettingsView
           key={`${activeProfileId}_${syncTrigger}`}
           activeProfileId={activeProfileId}
-          onActiveProfileChange={(id) => setActiveProfileId(id)}
+          onActiveProfileChange={(id) => {
+            setActiveProfileId(id);
+            setSyncTrigger(prev => prev + 1);
+          }}
         />
       );
       default: return <DashboardView key={`${activeProfileId}_${syncTrigger}`} activeProfileId={activeProfileId} dateRange={dateRange} />;
@@ -358,7 +361,13 @@ const App: React.FC = () => {
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', paddingLeft: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)' }}>
-              <Users size={12} />
+              {activeProfile?.avatar ? (
+                <div style={{ width: '16px', height: '16px', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img src={activeProfile.avatar} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              ) : (
+                <Users size={12} />
+              )}
               <span>Active Profile</span>
             </div>
             {profiles.length > 0 ? (

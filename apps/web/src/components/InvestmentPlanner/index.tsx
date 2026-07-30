@@ -6,7 +6,7 @@ import { PortfolioDistribution } from './PortfolioDistribution.js';
 import { SubCategoryDistribution } from './SubCategoryDistribution.js';
 import { FireSipCalculator } from './FireSipCalculator.js';
 import { EMICalculator } from '../EMICalculator.js';
-import { Flame, PieChart, Calculator } from 'lucide-react';
+import { Flame, PieChart, Calculator, TrendingUp } from 'lucide-react';
 
 interface InvestmentPlannerProps {
   activeProfileId: string;
@@ -95,14 +95,41 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
     <div className="animate-fade-in" style={{ maxWidth: '1200px', margin: '0 auto' }}>
       
       {/* Header & Sub-tab Navigation */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, fontFamily: 'var(--font-display)', marginBottom: '0.2rem' }}>
-            Investment & FIRE Planner
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            Map out monthly allocations, calculate step-up SIPs, and track FIRE readiness.
-          </p>
+      <div className="glass-panel" style={{
+        padding: '1.25rem 1.5rem',
+        borderRadius: 'var(--radius-md)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1.25rem',
+        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+        border: '1px solid var(--border-color)',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', flex: '1 1 min-content', minWidth: '280px' }}>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            background: 'var(--accent-grad)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px hsla(220, 80%, 50%, 0.25)',
+            flexShrink: 0,
+            marginTop: '0.2rem'
+          }}>
+            <TrendingUp size={22} color="#ffffff" />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0, lineHeight: 1.25 }}>
+              Investment & FIRE Planner
+            </h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.35rem', margin: 0, lineHeight: 1.4 }}>
+              Map out monthly allocations, calculate step-up SIPs, and track FIRE readiness.
+            </p>
+          </div>
         </div>
 
         {/* Tab Switcher */}
@@ -112,26 +139,24 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
           maxWidth: '520px',
           gap: '0.25rem',
           background: 'rgba(255, 255, 255, 0.04)',
-          padding: '0.25rem',
-          borderRadius: 'var(--radius-md)',
+          padding: '0.4rem',
+          borderRadius: '2rem',
           border: '1px solid var(--border-color)',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)'
         }}>
           <button
-            className="btn"
+            className={`btn ${activeTab === 'allocator' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setActiveTab('allocator')}
             style={{
               flex: 1,
-              padding: '0.45rem 0.4rem',
-              fontSize: 'clamp(0.72rem, 2.4vw, 0.85rem)',
-              borderRadius: 'var(--radius-sm)',
-              border: 'none',
-              background: activeTab === 'allocator' ? 'var(--accent-grad)' : 'transparent',
-              color: activeTab === 'allocator' ? '#fff' : 'var(--text-secondary)',
+              padding: '0.45rem 0.3rem',
+              fontSize: 'clamp(0.7rem, 2.2vw, 0.825rem)',
+              borderRadius: '1.5rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '0.35rem',
+              gap: '0.3rem',
               whiteSpace: 'nowrap',
               fontWeight: activeTab === 'allocator' ? 600 : 400
             }}
@@ -140,20 +165,17 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
             <span>Asset Allocator</span>
           </button>
           <button
-            className="btn"
+            className={`btn ${activeTab === 'fire' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setActiveTab('fire')}
             style={{
               flex: 1,
-              padding: '0.45rem 0.4rem',
-              fontSize: 'clamp(0.72rem, 2.4vw, 0.85rem)',
-              borderRadius: 'var(--radius-sm)',
-              border: 'none',
-              background: activeTab === 'fire' ? 'var(--accent-grad)' : 'transparent',
-              color: activeTab === 'fire' ? '#fff' : 'var(--text-secondary)',
+              padding: '0.45rem 0.3rem',
+              fontSize: 'clamp(0.7rem, 2.2vw, 0.825rem)',
+              borderRadius: '1.5rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '0.35rem',
+              gap: '0.3rem',
               whiteSpace: 'nowrap',
               fontWeight: activeTab === 'fire' ? 600 : 400
             }}
@@ -162,20 +184,17 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
             <span>FIRE & SIP Lab</span>
           </button>
           <button
-            className="btn"
+            className={`btn ${activeTab === 'emi' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setActiveTab('emi')}
             style={{
               flex: 1,
-              padding: '0.45rem 0.4rem',
-              fontSize: 'clamp(0.72rem, 2.4vw, 0.85rem)',
-              borderRadius: 'var(--radius-sm)',
-              border: 'none',
-              background: activeTab === 'emi' ? 'var(--accent-grad)' : 'transparent',
-              color: activeTab === 'emi' ? '#fff' : 'var(--text-secondary)',
+              padding: '0.45rem 0.3rem',
+              fontSize: 'clamp(0.7rem, 2.2vw, 0.825rem)',
+              borderRadius: '1.5rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '0.35rem',
+              gap: '0.3rem',
               whiteSpace: 'nowrap',
               fontWeight: activeTab === 'emi' ? 600 : 400
             }}
@@ -203,7 +222,7 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
 
           {plan.portfolio.length > 0 && (
             <div className="glass-panel" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
-              <h2 style={{ marginBottom: '1.5rem', fontSize: '1.2rem' }}>Step 3: Asset Specifics (SIP / Lumpsum)</h2>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 650, marginBottom: '1.25rem' }}>Step 3: Asset Specifics (SIP / Lumpsum)</h3>
               
               {plan.portfolio.map(category => (
                 <SubCategoryDistribution 

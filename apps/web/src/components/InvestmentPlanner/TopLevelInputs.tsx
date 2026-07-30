@@ -19,7 +19,7 @@ export const TopLevelInputs: React.FC<TopLevelInputsProps> = ({
 
   return (
     <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-      <h2 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>Step 1: Your Income & Goal</h2>
+      <h3 style={{ fontSize: '1.15rem', fontWeight: 650, marginBottom: '1.25rem' }}>Step 1: Your Income & Goal</h3>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
 

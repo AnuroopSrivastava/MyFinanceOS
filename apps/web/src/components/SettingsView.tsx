@@ -1,10 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { dbService } from '@financeos/database';
 import { setTheme, AppTheme } from '@financeos/ui';
 import { UserProfile, AuditLog, SystemSettings } from '@financeos/shared';
+import { ImageCropperModal } from './ImageCropperModal.js';
 import {
-  Settings, Users, Shield, Download, Upload, Clipboard,
-  Trash2, Plus, Sliders
+  Settings, Users, Shield, Download, Upload,
+  Trash2, Plus, Sliders, CheckCircle2, AlertTriangle,
+  Building2, FileText, Check, Lock, History, X,
+  ShieldCheck, RefreshCw, Key, Sparkles, Database, Save
 } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -15,11 +19,12 @@ interface SettingsViewProps {
 export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onActiveProfileChange }) => {
   const [settings, setSettings] = useState<SystemSettings>(() => dbService.getSettings());
   const [profiles, setProfiles] = useState<UserProfile[]>(() => dbService.getProfiles());
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => dbService.getAuditLogs());
+
 
   // Business settings states
   const [businessName, setBusinessName] = useState(settings.businessName || '');
   const [businessGSTIN, setBusinessGSTIN] = useState(settings.businessGSTIN || '');
+  const [isSavedBusiness, setIsSavedBusiness] = useState(false);
 
   // Add profile States
   const [showAddProfile, setShowAddProfile] = useState(false);
@@ -28,6 +33,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
   const [newProfRel, setNewProfRel] = useState('Spouse');
   const [newProfNominee, setNewProfNominee] = useState(false);
   const [newProfPin, setNewProfPin] = useState('');
+  const [newProfAvatar, setNewProfAvatar] = useState('');
 
   // Edit profile States
   const [editingProfile, setEditingProfile] = useState<UserProfile | null>(null);
@@ -36,17 +42,49 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
   const [editProfRel, setEditProfRel] = useState('Spouse');
   const [editProfNominee, setEditProfNominee] = useState(false);
   const [editProfPin, setEditProfPin] = useState('');
+  const [editProfAvatar, setEditProfAvatar] = useState('');
+
+  // Image Cropper State
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [activeAvatarSetter, setActiveAvatarSetter] = useState<((val: string) => void) | null>(null);
 
   // Backup Import State
   const [backupJson, setBackupJson] = useState('');
-  const [importStatus, setImportStatus] = useState('');
-
-
+  const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const [showRestoreBox, setShowRestoreBox] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const refreshData = () => {
     setProfiles(dbService.getProfiles());
     setSettings(dbService.getSettings());
-    setAuditLogs(dbService.getAuditLogs());
+
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setAvatarState: (val: string) => void) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size must be less than 5MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setCropImageSrc(base64String);
+      setActiveAvatarSetter(() => setAvatarState);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = ''; // Reset input so same file can be selected again
+  };
+
+  const handleCropComplete = (croppedBase64: string) => {
+    if (activeAvatarSetter) {
+      activeAvatarSetter(croppedBase64);
+    }
+    setCropImageSrc(null);
+    setActiveAvatarSetter(null);
   };
 
   const handleThemeChange = async (theme: AppTheme) => {
@@ -59,46 +97,39 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
     e.preventDefault();
     await dbService.updateSettings({ businessName, businessGSTIN });
     refreshData();
-    alert('Business settings updated successfully!');
+    setIsSavedBusiness(true);
+    setTimeout(() => setIsSavedBusiness(false), 3500);
   };
 
   const handleAddProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProfName) return;
-
-    await dbService.addProfile({
-      name: newProfName,
-      role: newProfRole,
-      relationship: newProfRel,
-      isNomineeProvided: newProfNominee,
-      pin: newProfPin || undefined
-    });
-
-    setNewProfName('');
-    setNewProfPin('');
-    setShowAddProfile(false);
-    refreshData();
-  };
-
-  const handleEditProfileSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingProfile || !editProfName) return;
-
-    await dbService.updateProfile(editingProfile.id, {
-      name: editProfName,
-      role: editProfRole,
-      relationship: editProfRel,
-      isNomineeProvided: editProfNominee,
-      pin: editProfPin || undefined
-    });
-
-    if (activeProfileId === editingProfile.id) {
-      onActiveProfileChange(editingProfile.id);
+    if (!newProfName.trim()) {
+      alert("Please enter a profile name.");
+      return;
     }
 
-    setEditingProfile(null);
-    refreshData();
+    try {
+      await dbService.addProfile({
+        name: newProfName.trim(),
+        role: newProfRole,
+        relationship: newProfRel,
+        isNomineeProvided: newProfNominee,
+        pin: newProfPin || undefined,
+        avatar: newProfAvatar || undefined
+      });
+
+      setNewProfName('');
+      setNewProfPin('');
+      setNewProfAvatar('');
+      setShowAddProfile(false);
+      refreshData();
+    } catch (err: any) {
+      console.error('Failed to add profile:', err);
+      alert('Error adding profile: ' + (err?.message || 'Unknown error'));
+    }
   };
+
+
 
   const handleDeleteProfile = async (profileId: string) => {
     const profile = profiles.find(p => p.id === profileId);
@@ -125,12 +156,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
   };
 
   const handleResetDatabase = async () => {
-    if (confirm('CRITICAL WARNING: Are you sure you want to RESET the entire system? This will permanently erase your PIN config, encryption keys, profiles, and all financial data. This action CANNOT be undone.')) {
-      if (confirm('Please confirm one more time. Do you want to wipe out all local data?')) {
-        localStorage.clear();
-        window.location.reload();
-      }
-    }
+    localStorage.clear();
+    window.location.reload();
   };
 
   // Backups: Download database JSON
@@ -157,279 +184,700 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
 
     const success = await dbService.importRawDb(backupJson);
     if (success) {
-      setImportStatus('Backup restored successfully! Refreshing details.');
+      setImportStatus({ type: 'success', msg: 'Backup restored successfully! Reloading application...' });
       setBackupJson('');
       setTimeout(() => {
         window.location.reload();
-      }, 800);
+      }, 900);
     } else {
-      setImportStatus('Invalid backup file. Please check format.');
+      setImportStatus({ type: 'error', msg: 'Invalid JSON payload. Please ensure file structure is correct.' });
     }
   };
 
-  return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+  const themeOptions: { id: AppTheme; label: string; tag: string; color: string; bg: string }[] = [
+    { id: 'dark', label: 'Vantablack', tag: 'Stealth Dark', color: '#64748b', bg: '#0f172a' },
+    { id: 'glass-cyan', label: 'Neon Cyan', tag: 'Cyber Modern', color: '#06b6d4', bg: '#083344' },
+    { id: 'glass-emerald', label: 'Emerald Green', tag: 'Institutional', color: '#10b981', bg: '#064e3b' },
+    { id: 'glass-gold', label: 'Chrome Gold', tag: 'Wealth Luxe', color: '#f59e0b', bg: '#451a03' },
+    { id: 'light', label: 'Solarized Light', tag: 'Clean Light Mode', color: '#2563eb', bg: '#eff6ff' }
+  ];
 
-      {/* Page Header */}
-      <div>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>System Settings & Security</h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Customize your themes, manage profiles, audits, and perform backups</p>
+  return (
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '2.5rem' }}>
+
+      {/* Page Header Banner */}
+      <div className="glass-panel" style={{
+        padding: '1.25rem 1.5rem',
+        borderRadius: 'var(--radius-md)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+        border: '1px solid var(--border-color)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            background: 'var(--accent-grad)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px hsla(220, 80%, 50%, 0.25)',
+            flexShrink: 0
+          }}>
+            <Settings size={22} color="#ffffff" />
+          </div>
+          <div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0 }}>
+              System Configuration & Security
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.83rem', marginTop: '0.15rem', margin: 0 }}>
+              Manage visual themes, organizational details, profile privileges, backups, and security activity.
+            </p>
+          </div>
+        </div>
+
+        {/* Quick System Stats Badges */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            padding: '0.35rem 0.75rem',
+            borderRadius: '2rem',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid var(--border-color)',
+            fontSize: '0.76rem',
+            color: 'var(--text-secondary)'
+          }}>
+            <ShieldCheck size={14} color="var(--success)" />
+            <span>AES-256 Offline Vault</span>
+          </div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            padding: '0.35rem 0.75rem',
+            borderRadius: '2rem',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid var(--border-color)',
+            fontSize: '0.76rem',
+            color: 'var(--text-secondary)'
+          }}>
+            <Users size={14} color="var(--accent-1)" />
+            <span>{profiles.length} Profiles Active</span>
+          </div>
+        </div>
       </div>
 
-      {/* Grid: Left - Custom Theme & Backup, Right - Profiles */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.25rem' }} className="responsive-stack">
+      {/* Main Responsive Grid Layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: '1.5rem' }} className="responsive-stack">
 
-        {/* Themes and Backup */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {/* LEFT COLUMN: Appearance, Business Info & Disaster Recovery */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-          {/* Theme customizer */}
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
-              <Sliders size={18} color="var(--accent-1)" /> System Interface & Slabs Theme
-            </h3>
+          {/* Theme Customizer Card */}
+          <div className="glass-panel" style={{ padding: '1.35rem 1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-display)', margin: 0 }}>
+                <Sliders size={18} color="var(--accent-1)" /> Appearance & Theme Engine
+              </h3>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
+                5 Presets Available
+              </span>
+            </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.6rem' }}>
-              {[
-                { id: 'glass-cyan', label: 'Neon Cyan', color: '#06b6d4' },
-                { id: 'glass-emerald', label: 'Emerald Green', color: '#10b981' },
-                { id: 'glass-gold', label: 'Chrome Gold', color: '#f59e0b' },
-                { id: 'dark', label: 'Vantablack', color: '#1e293b' },
-                { id: 'light', label: 'Solarized Light', color: '#f8fafc' }
-              ].map(t => {
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
+              {themeOptions.map(t => {
                 const isActive = settings.theme === t.id;
                 return (
                   <button
                     key={t.id}
                     className="btn"
+                    onClick={() => handleThemeChange(t.id)}
                     style={{
-                      padding: '0.55rem 0.75rem',
-                      fontSize: '0.8rem',
+                      padding: '0.75rem',
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      borderRadius: 'var(--radius-md)',
-                      border: isActive ? `1px solid ${t.color}` : '1px solid var(--border-color)',
-                      background: isActive ? `${t.color}18` : 'rgba(255,255,255,0.02)',
-                      color: isActive ? '#fff' : 'var(--text-secondary)',
-                      boxShadow: isActive ? `0 0 10px ${t.color}30` : 'none',
-                      transition: 'all 0.2s ease',
-                      fontWeight: isActive ? 600 : 400
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      borderRadius: 'var(--radius-sm)',
+                      border: isActive ? `1.5px solid ${t.color}` : '1px solid var(--border-color)',
+                      background: isActive ? `${t.color}15` : 'rgba(255,255,255,0.02)',
+                      color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      boxShadow: isActive ? `0 0 14px ${t.color}25` : 'none',
+                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                      textAlign: 'left',
+                      position: 'relative',
+                      minHeight: '80px'
                     }}
-                    onClick={() => handleThemeChange(t.id as AppTheme)}
                   >
-                    <div style={{
-                      width: '10px',
-                      height: '10px',
-                      borderRadius: '50%',
-                      background: t.color,
-                      boxShadow: `0 0 6px ${t.color}`,
-                      flexShrink: 0
-                    }} />
-                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.label}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                      <div style={{
+                        width: '14px',
+                        height: '14px',
+                        borderRadius: '50%',
+                        background: t.color,
+                        boxShadow: `0 0 8px ${t.color}`,
+                        border: '1px solid rgba(255,255,255,0.3)'
+                      }} />
+                      {isActive && <CheckCircle2 size={15} color={t.color} />}
+                    </div>
+
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: isActive ? 700 : 500, color: 'var(--text-primary)' }}>
+                        {t.label}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        {t.tag}
+                      </div>
+                    </div>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Business Details Settings */}
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
-              <Sliders size={18} color="var(--accent-1)" /> Business Details (for Invoicing)
+          {/* Business & Invoicing Details Card */}
+          <div className="glass-panel" style={{ padding: '1.35rem 1.5rem' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-display)', margin: 0 }}>
+              <Building2 size={18} color="var(--accent-1)" /> Business & GSTIN Profile
             </h3>
-            <form onSubmit={handleSaveBusinessSettings} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '1.1rem', marginTop: '0.2rem' }}>
+              Organizational info used to generate client invoices and tax reports.
+            </p>
+
+            <form onSubmit={handleSaveBusinessSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Business Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  placeholder="ABCD Enterprises Pvt Ltd"
-                  required
-                  style={{ width: '100%', fontSize: '0.88rem' }}
-                />
+                <label className="form-label" style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)' }}>
+                  Registered Entity / Business Name
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <Building2 size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem' }} />
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    placeholder="e.g. Acme Financial Technologies Pvt Ltd"
+                    required
+                    style={{ paddingLeft: '2.5rem', fontSize: '0.88rem' }}
+                  />
+                </div>
               </div>
+
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Business GSTIN</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={businessGSTIN}
-                  onChange={(e) => setBusinessGSTIN(e.target.value)}
-                  placeholder="27ABCDA1234A1Z5"
-                  required
-                  style={{ width: '100%', fontSize: '0.88rem' }}
-                />
+                <label className="form-label" style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)' }}>
+                  GSTIN Registration Number
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <FileText size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem' }} />
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={businessGSTIN}
+                    onChange={(e) => setBusinessGSTIN(e.target.value.toUpperCase())}
+                    placeholder="e.g. 27AAAAA0000A1Z5"
+                    required
+                    style={{ paddingLeft: '2.5rem', fontSize: '0.88rem', letterSpacing: '0.03em', fontFamily: 'monospace' }}
+                  />
+                </div>
               </div>
-              <button type="submit" className="btn btn-primary" style={{ padding: '0.55rem 1rem', fontSize: '0.85rem', width: '100%', marginTop: '0.25rem' }}>
-                Save Business Details
-              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginTop: '0.2rem' }}>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{
+                    padding: '0.6rem 1.25rem',
+                    fontSize: '0.85rem',
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <Save size={15} /> Save Business Profile
+                </button>
+
+                {isSavedBusiness && (
+                  <span style={{ fontSize: '0.78rem', color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600 }}>
+                    <CheckCircle2 size={15} /> Updated successfully
+                  </span>
+                )}
+              </div>
             </form>
           </div>
 
-          {/* Local Backups */}
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
-              <Download size={18} color="var(--accent-2)" /> Local Data Backup Vault
+          {/* Backup, Restore & Danger Zone Card */}
+          <div className="glass-panel" style={{ padding: '1.35rem 1.5rem' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-display)', margin: 0 }}>
+              <Database size={18} color="var(--accent-2)" /> Offline Data Backup & Vault
             </h3>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              Generate complete offline file copies of your ledgers.
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '1.1rem', marginTop: '0.2rem' }}>
+              Create encrypted offline backups or import external snapshot data.
             </p>
 
-            <button className="btn btn-secondary" style={{ width: '100%', padding: '0.55rem 1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }} onClick={handleExportBackup}>
-              <Download size={16} /> Download Backup (.json)
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
 
-            <form onSubmit={handleImportBackup} style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-              <label className="form-label" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Restore Data (Paste Backup JSON contents)</label>
-              <textarea
-                className="form-input"
-                style={{ height: '65px', fontSize: '0.75rem', fontFamily: 'monospace', marginBottom: '0.5rem', width: '100%' }}
-                placeholder='{"settings":{...},"profiles":[...]}'
-                value={backupJson}
-                onChange={(e) => setBackupJson(e.target.value)}
-                required
-              />
-              <button type="submit" className="btn btn-secondary" style={{ width: '100%', fontSize: '0.8rem', padding: '0.45rem' }}>
-                <Upload size={14} /> Restore Database
-              </button>
-            </form>
-
-            <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-              <button className="btn btn-secondary" style={{ width: '100%', borderColor: 'rgba(239,68,68,0.3)', color: 'var(--error)', background: 'rgba(239,68,68,0.06)', padding: '0.5rem', fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }} onClick={handleResetDatabase}>
-                <Trash2 size={14} color="var(--error)" /> Factory Reset System (Wipe All Data)
-              </button>
-            </div>
-
-            {importStatus && (
+              {/* Export Button */}
               <div style={{
-                marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--accent-1)', background: 'rgba(255,255,255,0.02)',
-                padding: '0.4rem', borderRadius: 'var(--radius-sm)'
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '0.85rem 1rem',
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-sm)'
               }}>
-                {importStatus}
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>Export Database (.JSON)</div>
+                  <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>Snapshot of all ledgers, accounts, portfolios & logs</div>
+                </div>
+                <button
+                  className="btn btn-secondary"
+                  onClick={handleExportBackup}
+                  style={{ padding: '0.5rem 0.9rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}
+                >
+                  <Download size={14} /> Download Backup
+                </button>
               </div>
-            )}
+
+              {/* Restore Toggle Button */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '0.85rem 1rem',
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-sm)'
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>Restore Database Vault</div>
+                  <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>Paste JSON payload to restore system state</div>
+                </div>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setShowRestoreBox(prev => !prev)}
+                  style={{ padding: '0.5rem 0.9rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}
+                >
+                  <Upload size={14} /> {showRestoreBox ? 'Hide Panel' : 'Restore Data'}
+                </button>
+              </div>
+
+              {/* Restore Form Box */}
+              {showRestoreBox && (
+                <form onSubmit={handleImportBackup} className="animate-fade-in" style={{
+                  padding: '1rem',
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-sm)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem'
+                }}>
+                  <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0 }}>
+                    Paste Raw Backup JSON Content
+                  </label>
+                  <textarea
+                    className="form-input"
+                    style={{ height: '90px', fontSize: '0.76rem', fontFamily: 'monospace', resize: 'vertical' }}
+                    placeholder='{"settings":{...},"profiles":[...]}'
+                    value={backupJson}
+                    onChange={(e) => setBackupJson(e.target.value)}
+                    required
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      style={{ padding: '0.45rem 1rem', fontSize: '0.8rem' }}
+                    >
+                      <Upload size={13} /> Confirm & Overwrite DB
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {importStatus && (
+                <div style={{
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.78rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  background: importStatus.type === 'success' ? 'var(--success-bg)' : 'var(--error-bg)',
+                  border: importStatus.type === 'success' ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(239,68,68,0.3)',
+                  color: importStatus.type === 'success' ? 'var(--success)' : 'var(--error)'
+                }}>
+                  {importStatus.type === 'success' ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
+                  <span>{importStatus.msg}</span>
+                </div>
+              )}
+
+              {/* Danger Zone */}
+              <div style={{
+                marginTop: '0.5rem',
+                padding: '1rem',
+                background: 'rgba(239, 68, 68, 0.04)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                borderRadius: 'var(--radius-sm)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1rem',
+                flexWrap: 'wrap'
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--error)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <AlertTriangle size={15} /> Danger Zone: Factory System Reset
+                  </div>
+                  <div style={{ fontSize: '0.73rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                    Wipes all local profiles, encryption keys, accounts, and journal entries.
+                  </div>
+                </div>
+
+                <button
+                  className="btn"
+                  onClick={() => setShowResetConfirm(true)}
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    color: 'var(--error)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    padding: '0.45rem 0.9rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <Trash2 size={14} /> Wipe All Data
+                </button>
+              </div>
+
+            </div>
           </div>
 
         </div>
 
-        {/* Family Profiles List */}
-        <div className="glass-panel" style={{ padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Users size={18} color="var(--accent-1)" /> Profile & Nominees Registry
-            </h3>
-            <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem', borderRadius: '1.5rem' }} onClick={() => setShowAddProfile(true)}>
-              <Plus size={14} /> Add Profile
-            </button>
-          </div>
+        {/* RIGHT COLUMN: Profiles Registry & Audit Security Logs */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {profiles.map(p => (
-              <div key={p.id} style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '0.75rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)', fontSize: '0.85rem'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <div style={{
-                    width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent-grad)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '0.85rem', flexShrink: 0
-                  }}>
-                    {p.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{p.name} <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 400 }}>({p.relationship})</span></div>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Role: {p.role}</span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  {p.isNomineeProvided ? (
-                    <span style={{ fontSize: '0.72rem', color: 'var(--success)', fontWeight: 600, background: 'var(--success-bg)', padding: '0.15rem 0.5rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>✓ Nominee</span>
-                  ) : (
-                    <span style={{ fontSize: '0.72rem', color: 'var(--warning)', fontWeight: 600, background: 'var(--warning-bg)', padding: '0.15rem 0.5rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>⚠️ No Nominee</span>
-                  )}
-                  <button
-                    onClick={() => {
-                      setEditingProfile(p);
-                      setEditProfName(p.name);
-                      setEditProfRole(p.role);
-                      setEditProfRel(p.relationship || 'Other');
-                      setEditProfNominee(p.isNomineeProvided);
-                      setEditProfPin(p.pin || '');
-                    }}
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', borderRadius: '50%', padding: '0.35rem', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    title="Edit Profile"
-                  >
-                    <Sliders size={13} />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteProfile(p.id)}
-                    style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '50%', padding: '0.35rem', cursor: 'pointer', color: 'var(--error)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    title="Delete Profile"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
+          {/* Family Profiles & Nominees Registry Card */}
+          <div className="glass-panel" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 650, display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-display)', margin: 0 }}>
+                  <Users size={20} color="var(--accent-1)" /> Profiles & Access Registry
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.4rem 0 0 2rem' }}>
+                  Manage family members, nominee mappings, and passcode protection.
+                </p>
               </div>
-            ))}
+
+              <button
+                className="btn btn-primary"
+                onClick={() => setShowAddProfile(true)}
+                style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', borderRadius: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <Plus size={14} /> Add Profile
+              </button>
+            </div>
+
+            {/* Profiles List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {profiles.map(p => {
+                const isAdmin = p.role === 'Admin';
+                const isCurrentSession = p.id === activeProfileId;
+
+                return (
+                  <div key={p.id} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1rem 1.25rem',
+                    background: isCurrentSession ? 'rgba(59, 130, 246, 0.08)' : 'rgba(255,255,255,0.02)',
+                    border: isCurrentSession ? '1px solid var(--accent-1)' : '1px dashed var(--border-focus)',
+                    borderRadius: 'var(--radius-md)',
+                    transition: 'all 0.2s ease',
+                    gap: '0.75rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        background: 'var(--accent-grad)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        fontWeight: 700,
+                        fontSize: '1.1rem',
+                        flexShrink: 0,
+                        boxShadow: '0 4px 12px rgba(6, 182, 212, 0.3)',
+                        overflow: 'hidden'
+                      }}>
+                        {p.avatar ? (
+                          <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          p.name.charAt(0).toUpperCase()
+                        )}
+                      </div>
+
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 650, fontSize: '0.88rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {p.name}
+                          </span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 400 }}>
+                            ({p.relationship || 'Self'})
+                          </span>
+                          {isCurrentSession && (
+                            <span style={{ fontSize: '0.72rem', background: 'var(--accent-1)', color: '#fff', padding: '0.15rem 0.5rem', borderRadius: '0.5rem', fontWeight: 600 }}>
+                              Active
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
+                          <span style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '0.4rem',
+                            background: isAdmin ? 'rgba(168, 85, 247, 0.15)' : 'rgba(255,255,255,0.06)',
+                            color: isAdmin ? '#c084fc' : 'var(--text-secondary)'
+                          }}>
+                            {p.role}
+                          </span>
+
+                          {p.pin ? (
+                            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                              <Lock size={10} /> PIN Protected
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                      {p.isNomineeProvided ? (
+                        <span style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--success)',
+                          fontWeight: 600,
+                          background: 'var(--success-bg)',
+                          padding: '0.25rem 0.65rem',
+                          borderRadius: '1rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          <ShieldCheck size={12} /> Nominee
+                        </span>
+                      ) : (
+                        <span style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--warning)',
+                          fontWeight: 600,
+                          background: 'var(--warning-bg)',
+                          padding: '0.25rem 0.65rem',
+                          borderRadius: '1rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          <AlertTriangle size={12} /> No Nominee
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => {
+                          setEditingProfile(p);
+                          setEditProfName(p.name);
+                          setEditProfRole(p.role);
+                          setEditProfRel(p.relationship || 'Self');
+                          setEditProfNominee(p.isNomineeProvided);
+                          setEditProfPin(p.pin || '');
+                          setEditProfAvatar(p.avatar || '');
+                        }}
+                        style={{
+                          background: 'rgba(255,255,255,0.05)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          padding: '0.35rem 0.75rem',
+                          fontSize: '0.75rem',
+                          borderRadius: '1.5rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          transition: 'all 0.2s ease',
+                          cursor: 'pointer'
+                        }}
+                        title="Edit Profile"
+                      >
+                        <Settings size={14} /> Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => handleDeleteProfile(p.id)}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          border: '1px solid rgba(239, 68, 68, 0.2)',
+                          color: 'var(--error)',
+                          padding: '0.35rem 0.75rem',
+                          fontSize: '0.75rem',
+                          borderRadius: '1.5rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          transition: 'all 0.2s ease',
+                          cursor: 'pointer'
+                        }}
+                        title="Delete Profile"
+                      >
+                        <Trash2 size={14} /> Remove
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
+
+
+
         </div>
 
       </div>
 
-
-
-      {/* Dialog: Add Profile */}
-      {showAddProfile && (
+      {/* DIALOG MODAL: Add Profile */}
+      {showAddProfile && createPortal(
         <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)',
-          backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem'
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)',
+          backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem'
         }}>
-          <div className="glass-panel" style={{
-            width: '92%', maxWidth: '380px', padding: '1.25rem', borderRadius: '1.25rem',
-            border: '1px solid rgba(255,255,255,0.12)', background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.98) 100%)',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
+          <div className="glass-panel animate-fade-in" style={{
+            width: '100%', maxWidth: '420px', padding: '1.5rem', borderRadius: '1.25rem',
+            border: '1px solid var(--border-color)', background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.98) 100%)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)'
           }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 650, marginBottom: '1rem', color: 'var(--text-primary)' }}>Add Family Profile</h3>
-            <form onSubmit={handleAddProfile} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-display)' }}>
+                Add Family Profile
+              </h3>
+              <button
+                onClick={() => setShowAddProfile(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddProfile} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Full Name</label>
-                <input type="text" className="form-input" value={newProfName} onChange={(e) => setNewProfName(e.target.value)} placeholder="ABCD Member" required style={{ width: '100%', fontSize: '0.85rem' }} />
-              </div>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Relationship</label>
-                <select
+                <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Full Name</label>
+                <input
+                  type="text"
                   className="form-input"
-                  value={newProfRel}
-                  onChange={(e) => setNewProfRel(e.target.value)}
-                  style={{ width: '100%', fontSize: '0.85rem', padding: '0.5rem 0.75rem', background: 'rgba(15, 23, 42, 0.9)', color: 'var(--text-primary)' }}
-                >
-                  <option value="Self" style={{ background: '#0f172a', color: '#e2e8f0' }}>Self</option>
-                  <option value="Spouse" style={{ background: '#0f172a', color: '#e2e8f0' }}>Spouse</option>
-                  <option value="Child" style={{ background: '#0f172a', color: '#e2e8f0' }}>Child</option>
-                  <option value="Parent" style={{ background: '#0f172a', color: '#e2e8f0' }}>Parent</option>
-                  <option value="Sibling" style={{ background: '#0f172a', color: '#e2e8f0' }}>Sibling</option>
-                  <option value="Other" style={{ background: '#0f172a', color: '#e2e8f0' }}>Other</option>
-                </select>
+                  value={newProfName}
+                  onChange={(e) => setNewProfName(e.target.value)}
+                  placeholder="e.g. Rahul Sharma"
+                  required
+                  style={{ width: '100%', fontSize: '0.85rem' }}
+                />
               </div>
+
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Access Role</label>
-                <select
-                  className="form-input"
-                  value={newProfRole}
-                  onChange={(e) => setNewProfRole(e.target.value as any)}
-                  style={{ width: '100%', fontSize: '0.85rem', padding: '0.5rem 0.75rem', background: 'rgba(15, 23, 42, 0.9)', color: 'var(--text-primary)' }}
-                >
-                  <option value="Member" style={{ background: '#0f172a', color: '#e2e8f0' }}>Member (Read & Write)</option>
-                  <option value="Viewer" style={{ background: '#0f172a', color: '#e2e8f0' }}>Viewer (Read-only)</option>
-                  <option value="Admin" style={{ background: '#0f172a', color: '#e2e8f0' }}>Admin (Full access)</option>
-                </select>
+                <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Profile Picture (Optional)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{
+                    width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                    border: '1px solid var(--border-color)'
+                  }}>
+                    {newProfAvatar ? (
+                      <img src={newProfAvatar} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <Users size={20} color="var(--text-muted)" />
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      id="addProfAvatarInput"
+                      style={{ display: 'none' }}
+                      onChange={(e) => handleImageUpload(e, setNewProfAvatar)}
+                    />
+                    <label
+                      htmlFor="addProfAvatarInput"
+                      className="btn btn-secondary"
+                      style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      <Upload size={14} /> Upload Image
+                    </label>
+                  </div>
+                  {newProfAvatar && (
+                    <button
+                      type="button"
+                      onClick={() => setNewProfAvatar('')}
+                      style={{ background: 'transparent', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center' }}
+                      title="Remove Image"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Relationship</label>
+                  <select
+                    className="form-input"
+                    value={newProfRel}
+                    onChange={(e) => setNewProfRel(e.target.value)}
+                    style={{ width: '100%', fontSize: '0.85rem' }}
+                  >
+                    <option value="Self">Self</option>
+                    <option value="Spouse">Spouse</option>
+                    <option value="Child">Child</option>
+                    <option value="Parent">Parent</option>
+                    <option value="Sibling">Sibling</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Access Role</label>
+                  <select
+                    className="form-input"
+                    value={newProfRole}
+                    onChange={(e) => setNewProfRole(e.target.value as any)}
+                    style={{ width: '100%', fontSize: '0.85rem' }}
+                  >
+                    <option value="Member">Member (Read & Write)</option>
+                    <option value="Viewer">Viewer (Read-only)</option>
+                    <option value="Admin">Admin (Full access)</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Profile passcode PIN (Optional 4 digits)</label>
+                <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Passcode PIN (Optional 4 digits)</label>
                 <input
                   type="password"
                   className="form-input"
@@ -439,70 +887,169 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                       setNewProfPin(e.target.value);
                     }
                   }}
-                  placeholder="••••"
+                  placeholder="â€¢â€¢â€¢â€¢"
                   style={{ width: '100%', fontSize: '0.85rem' }}
                 />
               </div>
-              <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.25rem 0' }}>
-                <input type="checkbox" checked={newProfNominee} onChange={(e) => setNewProfNominee(e.target.checked)} id="nomineeCheck" />
-                <label htmlFor="nomineeCheck" style={{ fontSize: '0.82rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>Is designated nominee on primary assets</label>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                padding: '0.65rem 0.85rem',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-sm)',
+                cursor: 'pointer'
+              }} onClick={() => setNewProfNominee(!newProfNominee)}>
+                <input
+                  type="checkbox"
+                  checked={newProfNominee}
+                  onChange={(e) => setNewProfNominee(e.target.checked)}
+                  id="nomineeCheck"
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+                <label htmlFor="nomineeCheck" style={{ fontSize: '0.8rem', cursor: 'pointer', color: 'var(--text-primary)', margin: 0 }}>
+                  Designate as nominee on primary accounts
+                </label>
               </div>
+
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" style={{ padding: '0.45rem 1rem', fontSize: '0.82rem', borderRadius: '1.5rem' }} onClick={() => setShowAddProfile(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" style={{ padding: '0.45rem 1rem', fontSize: '0.82rem', borderRadius: '1.5rem' }}>Add Member</button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '0.55rem 1.1rem', fontSize: '0.82rem' }}
+                  onClick={() => setShowAddProfile(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ padding: '0.55rem 1.25rem', fontSize: '0.82rem' }}
+                >
+                  Add Profile
+                </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-      {/* Dialog: Edit Profile */}
-      {editingProfile && (
+
+      {/* DIALOG MODAL: Edit Profile */}
+      {editingProfile && createPortal(
         <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)',
-          backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem'
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)',
+          backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem'
         }}>
-          <div className="glass-panel" style={{
-            width: '92%', maxWidth: '380px', padding: '1.25rem', borderRadius: '1.25rem',
-            border: '1px solid rgba(255,255,255,0.12)', background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.98) 100%)',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
+          <div className="glass-panel animate-fade-in" style={{
+            width: '100%', maxWidth: '420px', padding: '1.5rem', borderRadius: '1.25rem',
+            border: '1px solid var(--border-color)', background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.98) 100%)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)'
           }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 650, marginBottom: '1rem', color: 'var(--text-primary)' }}>Edit Profile Details</h3>
-            <form onSubmit={handleEditProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-display)' }}>
+                Edit Profile Details
+              </h3>
+              <button
+                onClick={() => setEditingProfile(null)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Full Name</label>
-                <input type="text" className="form-input" value={editProfName} onChange={(e) => setEditProfName(e.target.value)} required style={{ width: '100%', fontSize: '0.85rem' }} />
-              </div>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Relationship</label>
-                <select
+                <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Full Name</label>
+                <input
+                  type="text"
                   className="form-input"
-                  value={editProfRel}
-                  onChange={(e) => setEditProfRel(e.target.value)}
-                  style={{ width: '100%', fontSize: '0.85rem', padding: '0.5rem 0.75rem', background: 'rgba(15, 23, 42, 0.9)', color: 'var(--text-primary)' }}
-                >
-                  <option value="Self" style={{ background: '#0f172a', color: '#e2e8f0' }}>Self</option>
-                  <option value="Spouse" style={{ background: '#0f172a', color: '#e2e8f0' }}>Spouse</option>
-                  <option value="Child" style={{ background: '#0f172a', color: '#e2e8f0' }}>Child</option>
-                  <option value="Parent" style={{ background: '#0f172a', color: '#e2e8f0' }}>Parent</option>
-                  <option value="Sibling" style={{ background: '#0f172a', color: '#e2e8f0' }}>Sibling</option>
-                  <option value="Other" style={{ background: '#0f172a', color: '#e2e8f0' }}>Other</option>
-                </select>
+                  value={editProfName}
+                  onChange={(e) => setEditProfName(e.target.value)}
+                  style={{ width: '100%', fontSize: '0.85rem' }}
+                />
               </div>
+
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Access Role</label>
-                <select
-                  className="form-input"
-                  value={editProfRole}
-                  onChange={(e) => setEditProfRole(e.target.value as any)}
-                  style={{ width: '100%', fontSize: '0.85rem', padding: '0.5rem 0.75rem', background: 'rgba(15, 23, 42, 0.9)', color: 'var(--text-primary)' }}
-                >
-                  <option value="Member" style={{ background: '#0f172a', color: '#e2e8f0' }}>Member (Read & Write)</option>
-                  <option value="Viewer" style={{ background: '#0f172a', color: '#e2e8f0' }}>Viewer (Read-only)</option>
-                  <option value="Admin" style={{ background: '#0f172a', color: '#e2e8f0' }}>Admin (Full access)</option>
-                </select>
+                <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Profile Picture (Optional)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{
+                    width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                    border: '1px solid var(--border-color)'
+                  }}>
+                    {editProfAvatar ? (
+                      <img src={editProfAvatar} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <Users size={20} color="var(--text-muted)" />
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      id="editProfAvatarInput"
+                      style={{ display: 'none' }}
+                      onChange={(e) => handleImageUpload(e, setEditProfAvatar)}
+                    />
+                    <label
+                      htmlFor="editProfAvatarInput"
+                      className="btn btn-secondary"
+                      style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      <Upload size={14} /> Upload Image
+                    </label>
+                  </div>
+                  {editProfAvatar && (
+                    <button
+                      type="button"
+                      onClick={() => setEditProfAvatar('')}
+                      style={{ background: 'transparent', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center' }}
+                      title="Remove Image"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Relationship</label>
+                  <select
+                    className="form-input"
+                    value={editProfRel}
+                    onChange={(e) => setEditProfRel(e.target.value)}
+                    style={{ width: '100%', fontSize: '0.85rem' }}
+                  >
+                    <option value="Self">Self</option>
+                    <option value="Spouse">Spouse</option>
+                    <option value="Child">Child</option>
+                    <option value="Parent">Parent</option>
+                    <option value="Sibling">Sibling</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Access Role</label>
+                  <select
+                    className="form-input"
+                    value={editProfRole}
+                    onChange={(e) => setEditProfRole(e.target.value as any)}
+                    style={{ width: '100%', fontSize: '0.85rem' }}
+                  >
+                    <option value="Member">Member (Read & Write)</option>
+                    <option value="Viewer">Viewer (Read-only)</option>
+                    <option value="Admin">Admin (Full access)</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Profile passcode PIN (Optional 4 digits)</label>
+                <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Passcode PIN (Optional 4 digits)</label>
                 <input
                   type="password"
                   className="form-input"
@@ -512,21 +1059,154 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                       setEditProfPin(e.target.value);
                     }
                   }}
-                  placeholder="••••"
+                  placeholder="â€¢â€¢â€¢â€¢"
                   style={{ width: '100%', fontSize: '0.85rem' }}
                 />
               </div>
-              <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.25rem 0' }}>
-                <input type="checkbox" checked={editProfNominee} onChange={(e) => setEditProfNominee(e.target.checked)} id="editNomineeCheck" />
-                <label htmlFor="editNomineeCheck" style={{ fontSize: '0.82rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>Is designated nominee on primary assets</label>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                padding: '0.65rem 0.85rem',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-sm)',
+                cursor: 'pointer'
+              }} onClick={() => setEditProfNominee(!editProfNominee)}>
+                <input
+                  type="checkbox"
+                  checked={editProfNominee}
+                  onChange={(e) => setEditProfNominee(e.target.checked)}
+                  id="editNomineeCheck"
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+                <label htmlFor="editNomineeCheck" style={{ fontSize: '0.8rem', cursor: 'pointer', color: 'var(--text-primary)', margin: 0 }}>
+                  Designate as nominee on primary accounts
+                </label>
               </div>
+
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" style={{ padding: '0.45rem 1rem', fontSize: '0.82rem', borderRadius: '1.5rem' }} onClick={() => setEditingProfile(null)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" style={{ padding: '0.45rem 1rem', fontSize: '0.82rem', borderRadius: '1.5rem' }}>Save Changes</button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '0.55rem 1.1rem', fontSize: '0.82rem' }}
+                  onClick={() => setEditingProfile(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ padding: '0.55rem 1.25rem', fontSize: '0.82rem' }}
+                  onPointerDown={async (e) => {
+                    e.preventDefault();
+                    if (!editingProfile) {
+                      alert("No profile is currently selected for editing.");
+                      return;
+                    }
+                    if (!editProfName.trim()) {
+                      alert("Profile name cannot be empty.");
+                      return;
+                    }
+                    try {
+                      await dbService.updateProfile(editingProfile.id, {
+                        name: editProfName.trim(),
+                        role: editProfRole,
+                        relationship: editProfRel,
+                        isNomineeProvided: editProfNominee,
+                        pin: editProfPin && editProfPin !== '••••' ? editProfPin : editingProfile.pin,
+                        avatar: editProfAvatar || undefined
+                      });
+                      onActiveProfileChange(activeProfileId);
+                      setEditingProfile(null);
+                      refreshData();
+                    } catch (err: any) {
+                      alert('Error saving changes: ' + (err?.message || JSON.stringify(err)));
+                    }
+                  }}
+                >
+                  Save Changes
+                </button>
               </div>
-            </form>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {cropImageSrc && (
+        <ImageCropperModal
+          isOpen={true}
+          onClose={() => {
+            setCropImageSrc(null);
+            setActiveAvatarSetter(null);
+          }}
+          imageSrc={cropImageSrc}
+          onCropComplete={handleCropComplete}
+        />
+      )}
+
+      {/* DIALOG MODAL: Confirm Reset */}
+      {showResetConfirm && createPortal(
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)',
+          backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '1rem'
+        }}>
+          <div className="glass-panel animate-fade-in" style={{
+            width: '100%', maxWidth: '400px', padding: '1.5rem', borderRadius: '1.25rem',
+            border: '1px solid rgba(239, 68, 68, 0.3)', background: 'linear-gradient(180deg, rgba(30, 20, 20, 0.96) 0%, rgba(15, 10, 10, 0.98) 100%)',
+            boxShadow: '0 25px 50px -12px rgba(239, 68, 68, 0.3)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'rgba(239, 68, 68, 0.15)',
+                color: 'var(--error)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 0.75rem auto'
+              }}>
+                <AlertTriangle size={24} />
+              </div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                Confirm Factory Reset
+              </h3>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.5rem', lineHeight: '1.4' }}>
+                Are you sure you want to reset the system? All local data, profiles, and configuration settings will be <strong>permanently deleted</strong>. This action cannot be undone.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem' }}
+                onClick={() => setShowResetConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn"
+                style={{
+                  background: 'var(--error)',
+                  color: '#ffffff',
+                  padding: '0.55rem 1.25rem',
+                  fontSize: '0.85rem',
+                  fontWeight: 600
+                }}
+                onClick={handleResetDatabase}
+              >
+                Yes, Reset System
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
     </div>

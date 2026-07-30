@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { dbService } from '@financeos/database';
 import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
 import { formatRupee } from '../utils/currency.js';
-import { Info } from 'lucide-react';
+import { Info, TrendingUp } from 'lucide-react';
 
 interface SankeyNode {
   id: string;
@@ -161,21 +161,99 @@ export const SankeyView: React.FC<SankeyViewProps> = ({ activeProfileId, dateRan
 
   if (transactions.length === 0) {
     return (
-      <div className="glass-panel animate-fade-in" style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 650, marginBottom: '1rem', color: 'var(--text-primary)' }}>Sankey Cash Flow Diagram</h3>
-        <p>No transactions found. Add some income and expenses to see your cash flow diagram.</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {/* Page Header Banner */}
+        <div className="glass-panel" style={{
+          padding: '1.25rem 1.5rem',
+          borderRadius: 'var(--radius-md)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1.25rem',
+          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+          border: '1px solid var(--border-color)',
+          marginBottom: '0.5rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', flex: '1 1 min-content', minWidth: '280px' }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              background: 'var(--accent-grad)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 14px hsla(220, 80%, 50%, 0.25)',
+              flexShrink: 0,
+              marginTop: '0.2rem'
+            }}>
+              <TrendingUp size={22} color="#ffffff" />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
+                <h1 style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0, lineHeight: 1.25 }}>
+                  Sankey Cash Flow Diagram
+                </h1>
+              </div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
+                Trace money pathways from revenue channels down to ledger balances and savings pools
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="glass-panel animate-fade-in" style={{ padding: '2.5rem 1.5rem', textAlign: 'center', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-focus)', background: 'rgba(255, 255, 255, 0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 650, margin: 0, color: 'var(--text-primary)' }}>No transactions found</h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>Add some income and expenses to see your cash flow diagram.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="glass-panel animate-fade-in" style={{ padding: '1.5rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <div>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 650 }}>Sankey Cash Flow Diagram</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>Trace money pathways from revenue channels down to ledger balances and savings pools</p>
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Page Header Banner */}
+      <div className="glass-panel" style={{
+        padding: '1.25rem 1.5rem',
+        borderRadius: 'var(--radius-md)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1.25rem',
+        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+        border: '1px solid var(--border-color)',
+        marginBottom: '0.5rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', flex: '1 1 min-content', minWidth: '280px' }}>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            background: 'var(--accent-grad)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px hsla(220, 80%, 50%, 0.25)',
+            flexShrink: 0,
+            marginTop: '0.2rem'
+          }}>
+            <TrendingUp size={22} color="#ffffff" />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
+              <h1 style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0, lineHeight: 1.25 }}>
+                Sankey Cash Flow Diagram
+              </h1>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
+              Trace money pathways from revenue channels down to ledger balances and savings pools
+            </p>
+          </div>
         </div>
       </div>
+
+      <div className="glass-panel" style={{ padding: '1.5rem' }}>
 
       <div style={{
         display: 'flex', justifyContent: 'center', background: 'rgba(0,0,0,0.2)',
@@ -245,6 +323,7 @@ export const SankeyView: React.FC<SankeyViewProps> = ({ activeProfileId, dateRan
           The widths of the connecting lines (ribbons) represent the relative monetary amounts of your cash flow. 
           Green paths typically represent net positive inflows/savings, while other colors show operational allocations.
         </div>
+      </div>
       </div>
     </div>
   );

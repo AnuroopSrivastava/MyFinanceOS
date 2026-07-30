@@ -62,42 +62,70 @@ export const AutomationView: React.FC<AutomationViewProps> = ({ profileId }) => 
       }}
       style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
     >
-      {/* Page Title & Actions */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ flex: '1 1 240px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-            <h2 style={{ fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }}>
-              Automation Rules & Reminders
-            </h2>
-            <span style={{
-              background: 'rgba(59, 130, 246, 0.12)',
-              color: 'var(--accent-1)',
-              border: '1px solid rgba(59, 130, 246, 0.3)',
-              padding: '0.25rem 0.65rem',
-              borderRadius: '2rem',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              whiteSpace: 'nowrap'
-            }}>
-              <Sparkles size={12} /> Auto-Pilot Active
-            </span>
+      {/* Page Header Banner */}
+      <div className="glass-panel" style={{
+        padding: '1.25rem 1.5rem',
+        borderRadius: 'var(--radius-md)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1.25rem',
+        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+        border: '1px solid var(--border-color)',
+        marginBottom: '0.5rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', flex: '1 1 min-content', minWidth: '280px' }}>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            background: 'var(--accent-grad)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px hsla(220, 80%, 50%, 0.25)',
+            flexShrink: 0,
+            marginTop: '0.2rem'
+          }}>
+            <Sparkles size={22} color="#ffffff" />
           </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.35rem', lineHeight: 1.5 }}>
-            Configure smart auto-categorization rules, SIP/EMI schedules, recurring transaction bots, and GST reminders
-          </p>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
+              <h1 style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0, lineHeight: 1.25 }}>
+                Automation Rules & Reminders
+              </h1>
+              <span style={{
+                background: 'rgba(59, 130, 246, 0.12)',
+                color: 'var(--accent-1)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                padding: '0.2rem 0.5rem',
+                borderRadius: '2rem',
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                whiteSpace: 'nowrap'
+              }}>
+                <Zap size={12} /> Auto-Pilot Active
+              </span>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
+              Configure smart auto-categorization rules, SIP/EMI schedules, recurring transaction bots, and GST reminders
+            </p>
+          </div>
         </div>
 
-        <button
+        <motion.button
+          whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
           className="btn btn-primary"
           onClick={() => setIsCreatingRule(!isCreatingRule)}
-          style={{ padding: '0.55rem 1.15rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.45rem', borderRadius: '2rem', whiteSpace: 'nowrap' }}
+          style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: 'var(--radius-sm)', flexShrink: 0 }}
         >
           <Plus size={16} />
           <span>Create Rule</span>
-        </button>
+        </motion.button>
       </div>
 
       {/* New Rule Modal / Form Panel */}
@@ -195,9 +223,9 @@ export const AutomationView: React.FC<AutomationViewProps> = ({ profileId }) => 
               <div style={{
                 padding: '2rem 1.25rem',
                 textAlign: 'center',
-                borderRadius: '1rem',
-                border: '1px dashed rgba(59, 130, 246, 0.25)',
-                background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.25) 0%, rgba(15, 23, 42, 0.45) 100%)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px dashed var(--border-focus)',
+                background: 'rgba(255, 255, 255, 0.02)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -311,9 +339,9 @@ export const AutomationView: React.FC<AutomationViewProps> = ({ profileId }) => 
               <div style={{
                 padding: '2rem 1.25rem',
                 textAlign: 'center',
-                borderRadius: '1rem',
-                border: '1px dashed rgba(59, 130, 246, 0.25)',
-                background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.25) 0%, rgba(15, 23, 42, 0.45) 100%)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px dashed var(--border-focus)',
+                background: 'rgba(255, 255, 255, 0.02)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',

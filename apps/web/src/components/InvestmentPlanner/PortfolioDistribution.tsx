@@ -46,7 +46,7 @@ export const PortfolioDistribution: React.FC<PortfolioDistributionProps> = ({
 
   return (
     <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-      <h2 style={{ marginBottom: '1.5rem', fontSize: '1.2rem' }}>Step 2: Portfolio Distribution</h2>
+      <h3 style={{ fontSize: '1.15rem', fontWeight: 650, marginBottom: '1.25rem' }}>Step 2: Portfolio Distribution</h3>
       
       <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
         

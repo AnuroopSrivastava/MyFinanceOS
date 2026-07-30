@@ -185,33 +185,51 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
   };
 
   return (
-    <div className="glass-panel animate-fade-in" style={{
-      display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)', padding: '1.5rem',
-      borderRadius: 'var(--radius-lg)'
+    <div className="animate-fade-in" style={{
+      display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)', gap: '1.25rem'
     }}>
 
-      {/* Header */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.25rem'
+      {/* Page Header Banner */}
+      <div className="glass-panel" style={{
+        padding: '1.25rem 1.5rem',
+        borderRadius: 'var(--radius-md)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1.25rem',
+        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+        border: '1px solid var(--border-color)',
+        flexShrink: 0
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', flex: '1 1 min-content', minWidth: '280px' }}>
           <div style={{
-            width: '40px', height: '40px', borderRadius: '10px', background: 'var(--accent-grad)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(6, 182, 212, 0.3)'
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            background: 'var(--accent-grad)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px hsla(220, 80%, 50%, 0.25)',
+            flexShrink: 0,
+            marginTop: '0.2rem'
           }}>
-            <Sparkles size={22} color="#fff" />
+            <Sparkles size={22} color="#ffffff" />
           </div>
-          <div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>AI Financial Assistant</h3>
-            <span style={{ fontSize: '0.75rem', color: mode === 'local' ? 'var(--success)' : 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.15rem' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
+              <h1 style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0, lineHeight: 1.25 }}>
+                AI Financial Assistant
+              </h1>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, lineHeight: 1.4, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               {mode === 'local' ? (
-                <><ShieldCheck size={12} /> Local offline model active</>
+                <><ShieldCheck size={12} color="var(--success)" /> <span style={{ color: 'var(--success)' }}>Local offline model active</span></>
               ) : (
-                <><Cloud size={12} /> Cloud AI active (Gemini)</>
+                <><Cloud size={12} color="var(--warning)" /> <span style={{ color: 'var(--warning)' }}>Cloud AI active (Gemini)</span></>
               )}
-            </span>
+            </p>
           </div>
         </div>
 
@@ -262,6 +280,11 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
           </button>
         </div>
       </div>
+
+      <div className="glass-panel" style={{
+        display: 'flex', flexDirection: 'column', flex: 1, padding: '1rem',
+        borderRadius: 'var(--radius-lg)', overflow: 'hidden'
+      }}>
 
       {showSettings && (
         <div className="glass-panel" style={{
@@ -387,6 +410,7 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
         </button>
       </form>
 
+    </div>
     </div>
   );
 };
