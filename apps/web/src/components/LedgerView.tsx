@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { dbService } from '@financeos/database';
+import { useDbSyncCallback } from '../hooks/useDbSync.js';
 import { BankAccount, Transaction, AccountType, RecurringTransaction } from '@financeos/shared';
 import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
 import {
@@ -352,6 +353,8 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
     setMfs(dbService.getMutualFunds().filter(m => m.profileId === activeProfileId));
   };
 
+  useDbSyncCallback(refreshData);
+
   useEffect(() => {
     refreshData();
   }, [activeProfileId]);
@@ -542,20 +545,21 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
           transition: { staggerChildren: 0.1 }
         }
       }}
-      style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
+      style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
     >
 
       {/* Page Header Banner */}
       <div className="glass-panel" style={{
-        padding: '1.25rem 1.5rem',
-        borderRadius: 'var(--radius-md)',
+        padding: '2.5rem 3rem',
+        borderRadius: '1.5rem',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         flexWrap: 'wrap',
-        gap: '1rem',
-        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
-        border: '1px solid var(--border-color)'
+        gap: '2rem',
+        background: 'var(--header-banner-grad)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div style={{

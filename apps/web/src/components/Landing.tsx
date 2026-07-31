@@ -139,7 +139,7 @@ const FEATURE_BLOCKS = [
       'Live monthly cash flow synthesis'
     ],
     demo: (
-      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', minWidth: '300px', boxShadow: 'var(--shadow-md)' }}>
+      <div style={{ padding: '1.25rem', background: 'var(--bg-panel)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', minWidth: '300px', boxShadow: 'var(--shadow-md)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)', boxShadow: '0 0 8px var(--success)' }} />
@@ -185,7 +185,7 @@ const FEATURE_BLOCKS = [
       'Full CSV & Excel import & export'
     ],
     demo: (
-      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
+      <div style={{ padding: '1.25rem', background: 'var(--bg-panel)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.5rem' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>TRANSACTION LEDGER</div>
           <div style={{ display: 'flex', gap: '0.3rem' }}>
@@ -232,7 +232,7 @@ const FEATURE_BLOCKS = [
       'Nominee coverage audit'
     ],
     demo: (
-      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.85rem', width: '100%', minWidth: '300px' }}>
+      <div style={{ padding: '1.25rem', background: 'var(--bg-panel)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.85rem', width: '100%', minWidth: '300px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Portfolio Holdings</div>
@@ -275,7 +275,7 @@ const FEATURE_BLOCKS = [
       'TDS & Form 26AS reconciliation'
     ],
     demo: (
-      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
+      <div style={{ padding: '1.25rem', background: 'var(--bg-panel)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>FY26 TAX REGIME COMPARISON</span>
           <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: 'rgba(59, 130, 246, 0.15)', color: 'var(--accent-1)', borderRadius: '4px' }}>Auto-Optimized</span>
@@ -310,7 +310,7 @@ const FEATURE_BLOCKS = [
       'Automated Commercial P&L generation'
     ],
     demo: (
-      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
+      <div style={{ padding: '1.25rem', background: 'var(--bg-panel)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Active Commercial Entity</div>
@@ -348,7 +348,7 @@ const FEATURE_BLOCKS = [
       'Goal-based milestone progress mapping'
     ],
     demo: (
-      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.95)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.85rem', width: '100%', minWidth: '320px' }}>
+      <div style={{ padding: '1.25rem', background: 'var(--bg-panel)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.85rem', width: '100%', minWidth: '320px' }}>
         {/* Top Header & Mode Tabs */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: '0.4rem' }}>
@@ -426,7 +426,7 @@ const FEATURE_BLOCKS = [
       'Encrypted local key storage'
     ],
     demo: (
-      <div style={{ position: 'relative', padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', padding: '1.25rem', background: 'var(--bg-panel)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px', overflow: 'hidden' }}>
         <div className="scan-laser-line" />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -463,7 +463,7 @@ const FEATURE_BLOCKS = [
       'One-click automated execution'
     ],
     demo: (
-      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
+      <div style={{ padding: '1.25rem', background: 'var(--bg-panel)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>AUTOMATION WORKFLOW</span>
           <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)', borderRadius: '9999px', fontWeight: 600 }}>Active (148 Matched)</span>
@@ -488,7 +488,7 @@ const FEATURE_BLOCKS = [
       'Cryptographically verified hash ledger'
     ],
     demo: (
-      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
+      <div style={{ padding: '1.25rem', background: 'var(--bg-panel)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>COMMERCIAL REPORT ENGINE</span>
           <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)', borderRadius: '4px', fontWeight: 700 }}>100% Ready</span>
@@ -517,7 +517,7 @@ const FEATURE_BLOCKS = [
       'High-res diagram export'
     ],
     demo: (
-      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '320px' }}>
+      <div style={{ padding: '1.25rem', background: 'var(--bg-panel)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '320px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>SANKEY MONEY FLOW DIAGRAM</span>
           <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: 'rgba(6, 182, 212, 0.15)', color: '#67e8f9', borderRadius: '4px' }}>Live Tracing</span>
@@ -526,7 +526,7 @@ const FEATURE_BLOCKS = [
           <svg viewBox="0 0 340 140" style={{ width: '100%', height: '100%' }}>
             {/* Left Node: Total Inflow */}
             <rect x="10" y="25" width="75" height="90" rx="8" fill="rgba(59, 130, 246, 0.2)" stroke="#38bdf8" strokeWidth="1.5" />
-            <text x="47.5" y="62" fill="#ffffff" fontSize="10" fontWeight="bold" textAnchor="middle">INCOME</text>
+            <text x="47.5" y="62" fill="var(--text-primary)" fontSize="10" fontWeight="bold" textAnchor="middle">INCOME</text>
             <text x="47.5" y="78" fill="#38bdf8" fontSize="11" fontWeight="bold" textAnchor="middle">₹2,50,000</text>
 
             {/* Connecting Flow Paths */}
@@ -560,7 +560,7 @@ const FEATURE_BLOCKS = [
       'Zero third-party data leaks'
     ],
     demo: (
-      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
+      <div style={{ padding: '1.25rem', background: 'var(--bg-panel)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <Sparkles size={16} color="var(--accent-1)" />
@@ -586,7 +586,7 @@ const FEATURE_BLOCKS = [
       'Profile & security preference management'
     ],
     demo: (
-      <div style={{ padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
+      <div style={{ padding: '1.25rem', background: 'var(--bg-panel)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: '300px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>SYSTEM & CLOUD SYNC</span>
           <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)', borderRadius: '9999px', fontWeight: 700 }}>● Connected</span>
@@ -750,7 +750,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
       <nav className="animate-fade-in responsive-nav" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         borderBottom: '1px solid var(--border-color)',
-        background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(16px)',
+        background: 'var(--bg-panel)', backdropFilter: 'blur(16px)',
         position: 'sticky', top: 0, zIndex: 100
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -761,8 +761,8 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
             MyFinanceOS
           </h1>
         </div>
-        <div className="responsive-flex-wrap" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <div className="nav-links-desktop" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+        <div className="responsive-flex-wrap" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+          <div className="nav-links-desktop" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
             <a href="#how-it-works" onClick={scrollToHowItWorks} className="nav-link">How It Works</a>
             <a href="/privacy.html" className="nav-link">Privacy</a>
             <a href="/terms.html" className="nav-link">Terms</a>
@@ -850,7 +850,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
 
         {/* Feature Grid Highlights */}
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', maxWidth: '1100px', width: '100%', marginTop: '6rem', position: 'relative', zIndex: 1
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2.5rem', maxWidth: '1100px', width: '100%', marginTop: '6rem', position: 'relative', zIndex: 1
         }}>
           {[
             { icon: <Database size={28} />, title: "Your Private Vault", desc: "Data is stored strictly in your personal Google Drive 'appDataFolder'. We have no access to it." },
@@ -1059,7 +1059,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
         }}>
           <div className="glass-panel" style={{
             width: '100%', maxWidth: '850px', maxHeight: '85vh', display: 'flex', flexDirection: 'column',
-            borderRadius: '24px', border: '1px solid rgba(255, 255, 255, 0.1)', background: 'rgba(15, 23, 42, 0.95)',
+            borderRadius: '24px', border: '1px solid rgba(255, 255, 255, 0.1)', background: 'var(--bg-panel)',
             boxShadow: '0 25px 60px rgba(0, 0, 0, 0.6)', overflow: 'hidden'
           }}>
             {/* Modal Top Bar */}
@@ -1116,7 +1116,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
             </div>
 
             {/* Modal Body Scroll Area */}
-            <div style={{ padding: '2rem 2rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ padding: '2rem 2rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               {activeLegalModal === 'privacy' ? (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '1rem' }}>
@@ -1257,7 +1257,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
         }
         .hero-description {
           font-size: clamp(0.95rem, 3.2vw, 1.2rem);
-          color: rgba(226, 232, 240, 0.82);
+          color: var(--text-secondary);
           max-width: 660px;
           margin: 0 auto 2.5rem;
           line-height: 1.6;
@@ -1285,7 +1285,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
           justify-content: center;
           gap: 1.25rem;
           margin-top: 2.75rem;
-          color: rgba(226, 232, 240, 0.75);
+          color: var(--text-secondary);
           font-size: 0.875rem;
           font-weight: 500;
         }
@@ -1293,16 +1293,16 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.07);
+          background: var(--bg-panel);
+          border: var(--glass-border);
           padding: 0.45rem 1rem;
           border-radius: 2rem;
           backdrop-filter: blur(6px);
           transition: all 0.2s ease;
         }
         .trust-badge-item:hover {
-          background: rgba(255, 255, 255, 0.06);
-          border-color: rgba(255, 255, 255, 0.15);
+          background: var(--bg-panel-hover);
+          border: var(--glass-border);
           transform: translateY(-1px);
         }
 
@@ -1395,7 +1395,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
           max-width: 800px;
           width: 100%;
           padding: 2.25rem 2.5rem;
-          background: linear-gradient(180deg, hsla(224, 20%, 14%, 0.5) 0%, hsla(224, 20%, 10%, 0.8) 100%);
+          background: var(--bg-panel);
           text-align: center;
           z-index: 1;
           position: relative;

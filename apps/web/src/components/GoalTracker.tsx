@@ -4,6 +4,7 @@ import { SavingsGoal } from '@financeos/shared';
 import { Target, Plus, Trash2, Edit2, TrendingUp } from 'lucide-react';
 import { formatRupee } from '../utils/currency.js';
 import { CurrencyInput } from './ui/CurrencyInput.js';
+import { useDbSyncCallback } from '../hooks/useDbSync.js';
 
 interface GoalTrackerProps {
   activeProfileId: string;
@@ -50,6 +51,8 @@ export const GoalTracker: React.FC<GoalTrackerProps> = ({ activeProfileId }) => 
   const [color, setColor] = useState('#06b6d4');
 
   const refreshGoals = () => setGoals(dbService.getGoals().filter(g => g.profileId === activeProfileId));
+
+  useDbSyncCallback(refreshGoals);
 
   const resetForm = () => {
     setName(''); setTargetAmount(0); setCurrentAmount(0);

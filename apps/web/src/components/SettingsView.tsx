@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { dbService } from '@financeos/database';
+import { useDbSyncCallback } from '../hooks/useDbSync.js';
 import { setTheme, AppTheme } from '@financeos/ui';
 import { UserProfile, AuditLog, SystemSettings } from '@financeos/shared';
 import { ImageCropperModal } from './ImageCropperModal.js';
@@ -57,8 +58,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
   const refreshData = () => {
     setProfiles(dbService.getProfiles());
     setSettings(dbService.getSettings());
-
   };
+
+  useDbSyncCallback(refreshData);
+
+  // Fix: Sync local input state when db changes in background
+  React.useEffect(() => {
+    if (!isSavedBusiness) {
+      setBusinessName(settings.businessName || '');
+      setBusinessGSTIN(settings.businessGSTIN || '');
+    }
+  }, [settings.businessName, settings.businessGSTIN, isSavedBusiness]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setAvatarState: (val: string) => void) => {
     const file = e.target.files?.[0];
@@ -203,19 +213,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
   ];
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '4rem' }}>
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', paddingBottom: '4rem' }}>
 
       {/* Page Header Banner */}
       <div className="glass-panel" style={{
-        padding: '2rem 2.5rem',
-        borderRadius: 'var(--radius-lg)',
+        padding: '2.5rem 3rem',
+        borderRadius: '1.5rem',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         flexWrap: 'wrap',
-        gap: '1rem',
-        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
-        border: '1px solid var(--border-color)'
+        gap: '2rem',
+        background: 'var(--header-banner-grad)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div style={{
@@ -279,10 +290,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
       </div>
 
       {/* Main Responsive Grid Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2rem' }} className="responsive-stack">
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2.5rem' }} className="responsive-stack">
 
         {/* LEFT COLUMN: Appearance, Business Info & Disaster Recovery */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
 
           {/* Theme Customizer Card */}
           <div className="glass-panel" style={{ padding: '2rem', borderRadius: 'var(--radius-lg)' }}>
@@ -355,7 +366,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
               Organizational info used to generate client invoices and tax reports.
             </p>
 
-            <form onSubmit={handleSaveBusinessSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <form onSubmit={handleSaveBusinessSettings} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               <div className="form-group" style={{ margin: 0 }}>
                 <label className="form-label" style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)' }}>
                   Registered Entity / Business Name
@@ -570,7 +581,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
         </div>
 
         {/* RIGHT COLUMN: Profiles Registry & Audit Security Logs */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
 
           {/* Family Profiles & Nominees Registry Card */}
           <div className="glass-panel" style={{ padding: '2rem', borderRadius: 'var(--radius-lg)' }}>
@@ -604,13 +615,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    padding: '1.1rem 1.25rem',
+                    padding: '1.25rem 1.5rem',
                     background: isCurrentSession ? 'rgba(59, 130, 246, 0.08)' : 'rgba(255,255,255,0.02)',
-                    border: isCurrentSession ? '1px solid var(--accent-1)' : '1px dashed var(--border-focus)',
-                    borderRadius: 'var(--radius-md)',
-                    transition: 'all 0.2s ease',
-                    gap: '1rem',
-                    flexWrap: 'wrap'
+                    border: isCurrentSession ? '1px solid var(--accent-1)' : '1px solid rgba(255,255,255,0.05)',
+                    borderRadius: 'var(--radius-lg)',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                    gap: '1.25rem',
+                    flexWrap: 'wrap',
+                    boxShadow: isCurrentSession ? '0 0 20px rgba(59, 130, 246, 0.1)' : 'none'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: '1 1 220px', minWidth: 0 }}>
                       <div style={{

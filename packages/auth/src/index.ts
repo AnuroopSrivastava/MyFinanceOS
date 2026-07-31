@@ -5,16 +5,16 @@ export class AuthSessionManager {
   private userProfile: UserProfile | null = null;
 
   constructor() {
-    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-      const storedToken = localStorage.getItem('financeos_access_token');
-      const storedProfile = localStorage.getItem('financeos_user_profile');
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      const storedToken = sessionStorage.getItem('financeos_access_token');
+      const storedProfile = sessionStorage.getItem('financeos_user_profile');
       if (storedToken) {
         this.accessToken = storedToken;
         if (storedProfile) {
           try {
             this.userProfile = JSON.parse(storedProfile);
           } catch {
-            // Ignore malformed localStorage payload
+            // Ignore malformed sessionStorage payload
           }
         }
       }
@@ -24,10 +24,10 @@ export class AuthSessionManager {
   public login(token: string, profile?: UserProfile): void {
     this.accessToken = token;
     if (profile) this.userProfile = profile;
-    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-      localStorage.setItem('financeos_access_token', token);
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('financeos_access_token', token);
       if (profile) {
-        localStorage.setItem('financeos_user_profile', JSON.stringify(profile));
+        sessionStorage.setItem('financeos_user_profile', JSON.stringify(profile));
       }
     }
   }
@@ -35,9 +35,9 @@ export class AuthSessionManager {
   public logout(): void {
     this.accessToken = null;
     this.userProfile = null;
-    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-      localStorage.removeItem('financeos_access_token');
-      localStorage.removeItem('financeos_user_profile');
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem('financeos_access_token');
+      sessionStorage.removeItem('financeos_user_profile');
     }
   }
 

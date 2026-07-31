@@ -234,6 +234,7 @@ export interface TaxSlabBreakdown {
 
 export interface TDSSummary {
   id: string;
+  profileId: string;
   tanOfDeductor: string;
   deductorName: string;
   amountPaid: number;

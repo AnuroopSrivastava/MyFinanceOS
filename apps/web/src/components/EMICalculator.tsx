@@ -365,7 +365,7 @@ export const EMICalculator: React.FC<EMICalculatorProps> = ({ activeProfileId })
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', fontSize: '0.78rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', fontSize: '0.78rem' }}>
             {pieData.map((d, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color }} />

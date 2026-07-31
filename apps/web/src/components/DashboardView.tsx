@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { dbService } from '@financeos/database';
+import { useDbVersion } from '../hooks/useDbSync.js';
 import { FixedDeposit } from '@financeos/shared';
 import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
 import { formatRupee } from '../utils/currency.js';
@@ -42,17 +43,18 @@ interface DashboardViewProps {
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, dateRange }) => {
+  const dbVersion = useDbVersion();
   // Fetch dynamic database states
-  const accounts = useMemo(() => dbService.getAccounts().filter(a => a.profileId === activeProfileId), [activeProfileId]);
-  const rawTransactions = useMemo(() => dbService.getTransactions().filter(t => t.profileId === activeProfileId), [activeProfileId]);
+  const accounts = useMemo(() => dbService.getAccounts().filter(a => a.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const rawTransactions = useMemo(() => dbService.getTransactions().filter(t => t.profileId === activeProfileId), [activeProfileId, dbVersion]);
   const transactions = useMemo(() => filterByDateRange(rawTransactions, dateRange, t => t.date), [rawTransactions, dateRange]);
-  const stocks = useMemo(() => dbService.getStocks().filter(s => s.profileId === activeProfileId), [activeProfileId]);
-  const mfs = useMemo(() => dbService.getMutualFunds().filter(m => m.profileId === activeProfileId), [activeProfileId]);
-  const fds = useMemo(() => dbService.getFDs().filter(f => f.profileId === activeProfileId), [activeProfileId]);
-  const gold = useMemo(() => dbService.getGold().filter(g => g.profileId === activeProfileId), [activeProfileId]);
-  const nps = useMemo(() => dbService.getNPS().filter(n => n.profileId === activeProfileId), [activeProfileId]);
-  const pf = useMemo(() => dbService.getPF().filter(p => p.profileId === activeProfileId), [activeProfileId]);
-  const profiles = useMemo(() => dbService.getProfiles(), []);
+  const stocks = useMemo(() => dbService.getStocks().filter(s => s.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const mfs = useMemo(() => dbService.getMutualFunds().filter(m => m.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const fds = useMemo(() => dbService.getFDs().filter(f => f.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const gold = useMemo(() => dbService.getGold().filter(g => g.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const nps = useMemo(() => dbService.getNPS().filter(n => n.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const pf = useMemo(() => dbService.getPF().filter(p => p.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const profiles = useMemo(() => dbService.getProfiles(), [dbVersion]);
 
   // Compute Aggregates
   const bankBalances = useMemo(() => {
@@ -100,7 +102,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
   const netWorth = totalAssets - totalLiabilities;
 
   // Budgets & Spending Alerts
-  const budgets = useMemo(() => dbService.getBudgets().filter(b => b.profileId === activeProfileId), [activeProfileId]);
+  const budgets = useMemo(() => dbService.getBudgets().filter(b => b.profileId === activeProfileId), [activeProfileId, dbVersion]);
   const currentMonthStr = new Date().toISOString().substring(0, 7);
   const budgetAlerts = useMemo(() => {
     // Optimization: Build a category-to-spent map in a single pass O(T) instead of O(B * T)
@@ -747,7 +749,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                   }}
                   itemStyle={{ fontWeight: 600 }}
                 />
-                <Area type="monotone" dataKey="networth" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorNetWorth)" animationDuration={1500} />
+                <Area type="monotone" dataKey="networth" stroke="var(--accent-1)" strokeWidth={2} fillOpacity={1} fill="url(#colorNetWorth)" animationDuration={1500} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -784,8 +786,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                   cursor={{ fill: 'rgba(150,150,150,0.05)' }}
                 />
                 <Legend iconSize={10} wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                <Bar dataKey="Income" fill="#10b981" radius={[4, 4, 0, 0]} animationDuration={1500} />
-                <Bar dataKey="Expense" fill="#f43f5e" radius={[4, 4, 0, 0]} animationDuration={1500} />
+                <Bar dataKey="Income" fill="var(--success)" radius={[4, 4, 0, 0]} animationDuration={1500} />
+                <Bar dataKey="Expense" fill="var(--error)" radius={[4, 4, 0, 0]} animationDuration={1500} />
               </BarChart>
             </ResponsiveContainer>
           </div>

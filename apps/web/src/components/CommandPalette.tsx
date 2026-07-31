@@ -5,6 +5,7 @@ import {
   Briefcase, Network, Sparkles, Settings, Target, Lock,
   Download, Plus, Calculator, Zap, Command
 } from 'lucide-react';
+import { useDbVersion } from '../hooks/useDbSync.js';
 
 type ActivePage = 'dashboard' | 'ledger' | 'investments' | 'tax' | 'business' | 'sankey' | 'ai' | 'settings' | 'planner' | 'vault' | 'automation' | 'reports';
 
@@ -25,6 +26,7 @@ interface CommandItem {
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavigate, onAction }) => {
+  const dbVersion = useDbVersion();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -77,7 +79,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
     } catch { /* DB might be locked */ }
 
     return items;
-  }, [onNavigate, onAction]);
+  }, [onNavigate, onAction, dbVersion]);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return commands;
@@ -205,7 +207,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
 
         {/* Footer */}
         <div style={{
-          display: 'flex', justifyContent: 'center', gap: '1.5rem',
+          display: 'flex', justifyContent: 'center', gap: '2rem',
           padding: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.06)',
           fontSize: '0.68rem', color: 'var(--text-muted)'
         }}>

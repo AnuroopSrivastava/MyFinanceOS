@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { dbService } from '@financeos/database';
+import { useDbSyncCallback } from '../hooks/useDbSync.js';
 import { 
   TrendingUp, BarChart2, DollarSign, Award, Percent, 
   HelpCircle, RefreshCw, Layers, Sliders, Play, Trash2, Plus, Edit2
@@ -187,6 +188,8 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
     setNps(dbService.getNPS().filter(n => n.profileId === activeProfileId));
     setPf(dbService.getPF().filter(p => p.profileId === activeProfileId));
   };
+
+  useDbSyncCallback(refreshData);
 
   useEffect(() => {
     refreshData();
@@ -929,7 +932,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
             Adjust your target percentages below. We will calculate the target rupees and suggest purchase/sale triggers to return to your targets.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem' }} className="responsive-stack">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2.5rem' }} className="responsive-stack">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="form-group">
                 <label className="form-label">Equity Target (%)</label>
@@ -1001,7 +1004,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
             Simulate portfolio growth over time factoring in return volatility, inflation, and regular contributions. Displays outcome ranges in today's purchasing value.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.5fr', gap: '1.5rem' }} className="responsive-stack">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.5fr', gap: '2rem' }} className="responsive-stack">
             <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <h5 style={{ fontSize: '0.9rem', marginBottom: '0.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>Simulation Inputs</h5>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
@@ -1046,7 +1049,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
                           contentStyle={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
                         />
                         <Legend wrapperStyle={{ fontSize: '10px' }} />
-                        <Area type="monotone" dataKey="BestCase" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.05} name="Optimistic (90th Pct)" />
+                        <Area type="monotone" dataKey="BestCase" stroke="var(--accent-2)" fill="var(--accent-2)" fillOpacity={0.05} name="Optimistic (90th Pct)" />
                         <Area type="monotone" dataKey="Expected" stroke="var(--accent-1)" fill="var(--accent-1)" fillOpacity={0.1} name="Median (50th Pct)" />
                         <Area type="monotone" dataKey="WorstCase" stroke="var(--error)" fill="var(--error)" fillOpacity={0.05} name="Conservative (10th Pct)" />
                       </AreaChart>

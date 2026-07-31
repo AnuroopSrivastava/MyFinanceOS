@@ -11,6 +11,106 @@ import {
   encryptData, decryptData
 } from '@financeos/shared';
 
+// --- Web Worker for Database Serialization and Encryption ---
+let saveWorkerInstance: Worker | null = null;
+let saveMsgId = 0;
+const saveResolvers = new Map<number, { resolve: (val: string) => void, reject: (err: Error) => void }>();
+
+const getSaveWorker = (): Worker | null => {
+  if (typeof window === 'undefined' || !window.Worker) return null;
+  if (saveWorkerInstance) return saveWorkerInstance;
+  
+  const workerCode = `
+    const getSubtle = () => {
+      if (typeof self !== 'undefined' && self.crypto) return self.crypto.subtle;
+      throw new Error('Web Crypto API is not supported.');
+    };
+    const textEncode = (text) => new TextEncoder().encode(text);
+    const textDecode = (buffer) => new TextDecoder().decode(buffer);
+    const bufferToHex = (buffer) => Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    const hexToBuffer = (hex) => {
+      const cleanHex = hex.replace(/[^0-9a-fA-F]/g, '');
+      const buffer = new Uint8Array(cleanHex.length / 2);
+      for (let i = 0; i < cleanHex.length; i += 2) buffer[i / 2] = parseInt(cleanHex.substring(i, i + 2), 16);
+      return buffer.buffer;
+    };
+    const generateSalt = (bytes = 16) => {
+      const array = new Uint8Array(bytes);
+      self.crypto.getRandomValues(array);
+      return bufferToHex(array.buffer);
+    };
+    const deriveKey = async (password, saltHex) => {
+      const subtle = getSubtle();
+      const passwordBuffer = textEncode(password);
+      const saltBuffer = hexToBuffer(saltHex);
+      const baseKey = await subtle.importKey('raw', passwordBuffer, { name: 'PBKDF2' }, false, ['deriveKey']);
+      return await subtle.deriveKey({ name: 'PBKDF2', salt: saltBuffer, iterations: 100000, hash: 'SHA-256' }, baseKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    };
+    const encrypt = async (plainText, key) => {
+      const subtle = getSubtle();
+      const ivArray = new Uint8Array(12);
+      self.crypto.getRandomValues(ivArray);
+      const encoded = textEncode(plainText);
+      const encryptedBuffer = await subtle.encrypt({ name: 'AES-GCM', iv: ivArray }, key, encoded);
+      return { ciphertext: bufferToHex(encryptedBuffer), iv: bufferToHex(ivArray.buffer) };
+    };
+    const encryptData = async (plainText, pin) => {
+      const salt = generateSalt(16);
+      const key = await deriveKey(pin, salt);
+      const { ciphertext, iv } = await encrypt(plainText, key);
+      return \`\${salt}:\${iv}:\${ciphertext}\`;
+    };
+
+    self.onmessage = async (e) => {
+      try {
+        const { msgId, db, pin } = e.data;
+        const plainPayload = JSON.stringify(db);
+        let storagePayload = plainPayload;
+        if (pin) {
+          storagePayload = await encryptData(plainPayload, pin);
+        }
+        self.postMessage({ msgId, success: true, storagePayload });
+      } catch (err) {
+        self.postMessage({ msgId, success: false, error: err instanceof Error ? err.message : String(err) });
+      }
+    };
+  `;
+  
+  const blob = new Blob([workerCode], { type: 'application/javascript' });
+  saveWorkerInstance = new Worker(URL.createObjectURL(blob));
+  saveWorkerInstance.onmessage = (e) => {
+    const { msgId, success, storagePayload, error } = e.data;
+    const resolvers = saveResolvers.get(msgId);
+    if (resolvers) {
+      if (success) resolvers.resolve(storagePayload);
+      else resolvers.reject(new Error(error));
+      saveResolvers.delete(msgId);
+    }
+  };
+  saveWorkerInstance.onerror = (err) => {
+    console.error('Save worker error:', err);
+    saveResolvers.forEach((r) => r.reject(new Error('Worker error')));
+    saveResolvers.clear();
+    saveWorkerInstance?.terminate();
+    saveWorkerInstance = null;
+  };
+  return saveWorkerInstance;
+};
+
+const runWorkerSave = (db: any, pin: string | undefined): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const worker = getSaveWorker();
+    if (!worker) {
+      reject(new Error('Web Workers not supported'));
+      return;
+    }
+    const msgId = ++saveMsgId;
+    saveResolvers.set(msgId, { resolve, reject });
+    worker.postMessage({ msgId, db, pin });
+  });
+};
+// --------------------------------------------------------
+
 interface DatabaseSchema {
   settings: SystemSettings;
   profiles: UserProfile[];
@@ -48,9 +148,21 @@ class DatabaseService {
   private cloudSyncTimer: any = null;
   private localSaveTimer: any = null;
   private activeProfileId: string | null = null;
+  private subscribers: Array<() => void> = [];
 
   public hasUnsavedChanges = false;
   public lastSaveError: string | null = null;
+
+  public subscribe(callback: () => void): () => void {
+    this.subscribers.push(callback);
+    return () => {
+      this.subscribers = this.subscribers.filter(cb => cb !== callback);
+    };
+  }
+
+  public notifySubscribers() {
+    this.subscribers.forEach(cb => cb());
+  }
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -75,9 +187,9 @@ class DatabaseService {
 
     // Check if it's AES-GCM encrypted
     if (payload.includes(':') && payload.split(':').length === 3) {
-      const pin = authSession.getUserProfile()?.pin || 'default-pin';
+      const pin = authSession.getUserProfile()?.pin;
       try {
-        const decrypted = await decryptData(payload, pin);
+        const decrypted = await decryptData(payload, pin || 'default-pin');
         parsedDb = JSON.parse(decrypted);
       } catch (e) {
         console.error('Cross-tab sync decryption failed', e);
@@ -93,8 +205,7 @@ class DatabaseService {
 
     if (parsedDb) {
       this.db = parsedDb;
-      // Re-trigger any UI updates if necessary. (React components should fetch on focus, 
-      // but ideally we'd have a pub-sub. For now, in-memory state is synchronized).
+      this.notifySubscribers();
     }
   }
 
@@ -313,9 +424,12 @@ class DatabaseService {
       // Handle Encryption / Migration
       if (dbPayload.includes(':') && dbPayload.split(':').length === 3) {
         // AES-GCM format
-        const pin = authSession.getUserProfile()?.pin || 'default-pin';
+        const pin = authSession.getUserProfile()?.pin;
         try {
-          const decrypted = await decryptData(dbPayload, pin);
+          const decrypted = await decryptData(dbPayload, pin || 'default-pin');
+          if (!pin) {
+            console.log('Migrating from default-pin encrypted vault to plaintext vault on next save.');
+          }
           parsedDb = JSON.parse(decrypted);
         } catch (e) {
           console.error('Failed to decrypt database. Wrong PIN or corrupted.', e);
@@ -399,15 +513,35 @@ class DatabaseService {
     this.localSaveTimer = setTimeout(async () => {
       try {
         if (!this.db) return;
-        const plainPayload = JSON.stringify(this.db);
-  
-        // Encrypt At-Rest
-        const pin = authSession.getUserProfile()?.pin || 'default-pin';
-        let storagePayload = plainPayload;
-        try {
-          storagePayload = await encryptData(plainPayload, pin);
-        } catch (e) {
-          console.error('Encryption failed, falling back to plaintext', e);
+
+        const pin = authSession.getUserProfile()?.pin;
+        let storagePayload = '';
+
+        if (typeof window !== 'undefined' && window.Worker) {
+          try {
+            storagePayload = await runWorkerSave(this.db, pin);
+          } catch (err) {
+            console.error('Worker save failed, falling back to synchronous save', err);
+            const plainPayload = JSON.stringify(this.db);
+            storagePayload = plainPayload;
+            if (pin) {
+              try {
+                storagePayload = await encryptData(plainPayload, pin);
+              } catch (e) {
+                console.error('Encryption failed, falling back to plaintext', e);
+              }
+            }
+          }
+        } else {
+          const plainPayload = JSON.stringify(this.db);
+          storagePayload = plainPayload;
+          if (pin) {
+            try {
+              storagePayload = await encryptData(plainPayload, pin);
+            } catch (e) {
+              console.error('Encryption failed, falling back to plaintext', e);
+            }
+          }
         }
   
         this.lastSavedPayload = storagePayload;
@@ -495,6 +629,7 @@ class DatabaseService {
             console.warn('Browser localStorage quota exceeded or unavailable. Falling back to other persistence mechanisms.', e);
           }
           this.db = remoteDb;
+          this.notifySubscribers();
           return true; // We successfully updated the database from cloud
         } else if (remoteLatest < localLatest) {
           // If remote is older, our last push might have failed or hasn't propagated. 
@@ -610,7 +745,7 @@ class DatabaseService {
     if (this.db.recurringTransactions) this.db.recurringTransactions = this.db.recurringTransactions.filter(r => r.profileId !== id);
     if (this.db.goals) this.db.goals = this.db.goals.filter(g => g.profileId !== id);
     if (this.db.investmentPlans) this.db.investmentPlans = this.db.investmentPlans.filter(p => p.profileId !== id);
-    if (this.db.tdsRecords) this.db.tdsRecords = this.db.tdsRecords.filter(t => false); // no profileId on tds yet?
+    if (this.db.tdsRecords) this.db.tdsRecords = this.db.tdsRecords.filter(t => t.profileId !== id);
     if (this.db.taxInputs) delete this.db.taxInputs[id];
     if (this.db.emiInputs) delete this.db.emiInputs[id];
     if (this.db.businessDrafts) delete this.db.businessDrafts[id];

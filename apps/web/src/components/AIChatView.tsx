@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { dbService } from '@financeos/database';
+import { useDbVersion } from '../hooks/useDbSync.js';
 import { MessageSquare, Send, Sparkles, User, ShieldCheck, Cloud, Settings, Compass } from 'lucide-react';
 import { aiService, AIMode } from '../utils/aiService.js';
 
@@ -117,14 +118,15 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
   }, [messages, activeProfileId, isLoaded]);
 
   // DB Data access to answer queries
-  const accounts = useMemo(() => dbService.getAccounts().filter(a => a.profileId === activeProfileId), [activeProfileId]);
-  const transactions = useMemo(() => dbService.getTransactions().filter(t => t.profileId === activeProfileId), [activeProfileId]);
-  const stocks = useMemo(() => dbService.getStocks().filter(s => s.profileId === activeProfileId), [activeProfileId]);
-  const mfs = useMemo(() => dbService.getMutualFunds().filter(m => m.profileId === activeProfileId), [activeProfileId]);
-  const fds = useMemo(() => dbService.getFDs().filter(f => f.profileId === activeProfileId), [activeProfileId]);
-  const gold = useMemo(() => dbService.getGold().filter(g => g.profileId === activeProfileId), [activeProfileId]);
-  const nps = useMemo(() => dbService.getNPS().filter(n => n.profileId === activeProfileId), [activeProfileId]);
-  const pf = useMemo(() => dbService.getPF().filter(p => p.profileId === activeProfileId), [activeProfileId]);
+  const dbVersion = useDbVersion();
+  const accounts = useMemo(() => dbService.getAccounts().filter(a => a.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const transactions = useMemo(() => dbService.getTransactions().filter(t => t.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const stocks = useMemo(() => dbService.getStocks().filter(s => s.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const mfs = useMemo(() => dbService.getMutualFunds().filter(m => m.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const fds = useMemo(() => dbService.getFDs().filter(f => f.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const gold = useMemo(() => dbService.getGold().filter(g => g.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const nps = useMemo(() => dbService.getNPS().filter(n => n.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const pf = useMemo(() => dbService.getPF().filter(p => p.profileId === activeProfileId), [activeProfileId, dbVersion]);
 
   const aiContext = useMemo(() => ({ accounts, transactions, stocks, mfs, fds, gold, nps, pf }), [accounts, transactions, stocks, mfs, fds, gold, nps, pf]);
 
@@ -191,15 +193,16 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
 
       {/* Page Header Banner */}
       <div className="glass-panel" style={{
-        padding: '1.25rem 1.5rem',
-        borderRadius: 'var(--radius-md)',
+        padding: '2.5rem 3rem',
+        borderRadius: '1.5rem',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         flexWrap: 'wrap',
-        gap: '1.25rem',
-        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
-        border: '1px solid var(--border-color)',
+        gap: '2rem',
+        background: 'var(--header-banner-grad)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)',
         flexShrink: 0
       }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', flex: '1 1 min-content', minWidth: '280px' }}>

@@ -205,28 +205,27 @@ const App: React.FC = () => {
   // Switch pages helper
   const renderPage = () => {
     switch (activePage) {
-      case 'dashboard': return <DashboardView key={`${activeProfileId}_${syncTrigger}`} activeProfileId={activeProfileId} dateRange={dateRange} />;
-      case 'ledger': return <LedgerView key={`${activeProfileId}_${syncTrigger}`} activeProfileId={activeProfileId} dateRange={dateRange} />;
-      case 'investments': return <InvestmentsView key={`${activeProfileId}_${syncTrigger}`} activeProfileId={activeProfileId} />;
-      case 'tax': return <TaxView key={`${activeProfileId}_${syncTrigger}`} activeProfileId={activeProfileId} />;
-      case 'business': return <BusinessView key={`${activeProfileId}_${syncTrigger}`} activeProfileId={activeProfileId} dateRange={dateRange} />;
-      case 'sankey': return <SankeyView key={`${activeProfileId}_${syncTrigger}`} activeProfileId={activeProfileId} dateRange={dateRange} />;
-      case 'ai': return <AIChatView key={`${activeProfileId}_${syncTrigger}`} activeProfileId={activeProfileId} />;
-      case 'planner': return <InvestmentPlanner key={`${activeProfileId}_${syncTrigger}`} activeProfileId={activeProfileId} />;
-      case 'vault': return <DocumentVaultView key={`${activeProfileId}_${syncTrigger}`} profileId={activeProfileId} />;
-      case 'automation': return <AutomationView key={`${activeProfileId}_${syncTrigger}`} profileId={activeProfileId} />;
-      case 'reports': return <ReportsView key={`${activeProfileId}_${syncTrigger}`} profileId={activeProfileId} />;
+      case 'dashboard': return <DashboardView key={`${activeProfileId}`} activeProfileId={activeProfileId} dateRange={dateRange} />;
+      case 'ledger': return <LedgerView key={`${activeProfileId}`} activeProfileId={activeProfileId} dateRange={dateRange} />;
+      case 'investments': return <InvestmentsView key={`${activeProfileId}`} activeProfileId={activeProfileId} />;
+      case 'tax': return <TaxView key={`${activeProfileId}`} activeProfileId={activeProfileId} />;
+      case 'business': return <BusinessView key={`${activeProfileId}`} activeProfileId={activeProfileId} dateRange={dateRange} />;
+      case 'sankey': return <SankeyView key={`${activeProfileId}`} activeProfileId={activeProfileId} dateRange={dateRange} />;
+      case 'ai': return <AIChatView key={`${activeProfileId}`} activeProfileId={activeProfileId} />;
+      case 'planner': return <InvestmentPlanner key={`${activeProfileId}`} activeProfileId={activeProfileId} />;
+      case 'vault': return <DocumentVaultView key={`${activeProfileId}`} profileId={activeProfileId} />;
+      case 'automation': return <AutomationView key={`${activeProfileId}`} profileId={activeProfileId} />;
+      case 'reports': return <ReportsView key={`${activeProfileId}`} profileId={activeProfileId} />;
       case 'settings': return (
         <SettingsView
-          key={`${activeProfileId}_${syncTrigger}`}
+          key={`${activeProfileId}`}
           activeProfileId={activeProfileId}
           onActiveProfileChange={(id) => {
             setActiveProfileId(id);
-            setSyncTrigger(prev => prev + 1);
           }}
         />
       );
-      default: return <DashboardView key={`${activeProfileId}_${syncTrigger}`} activeProfileId={activeProfileId} dateRange={dateRange} />;
+      default: return <DashboardView key={`${activeProfileId}`} activeProfileId={activeProfileId} dateRange={dateRange} />;
     }
   };
 
@@ -524,9 +523,9 @@ const App: React.FC = () => {
             {/* Global Date Filter */}
             <div style={{ position: 'relative' }}>
               <button
-                className="btn btn-primary"
+                className="btn btn-secondary"
                 onPointerDown={() => setShowDatePicker(!showDatePicker)}
-                style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', gap: '0.4rem', background: 'var(--accent-1)', color: '#000', fontWeight: 600 }}
+                style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', gap: '0.4rem', background: showDatePicker ? 'var(--bg-panel-hover)' : 'var(--bg-panel)', color: 'var(--text-primary)', fontWeight: 600, border: 'var(--glass-border)' }}
               >
                 <Calendar size={14} />
                 <span>{dateRange.label}</span>
@@ -534,7 +533,7 @@ const App: React.FC = () => {
               </button>
 
               {showDatePicker && (
-                <div className="glass-panel animate-fade-in" style={{
+                <div className="animate-fade-in" style={{
                   position: 'absolute',
                   top: '100%',
                   right: 0,
@@ -543,11 +542,12 @@ const App: React.FC = () => {
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '0.2rem',
-                  zIndex: 100,
+                  zIndex: 1000,
                   minWidth: '200px',
-                  background: '#1a1b26',
-                  boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
-                  border: '1px solid rgba(255,255,255,0.1)'
+                  background: 'var(--bg-secondary)',
+                  boxShadow: 'var(--shadow-md)',
+                  border: 'var(--glass-border)',
+                  borderRadius: 'var(--radius-md)'
                 }}>
                   {(() => {
                     let earliest = new Date();
@@ -582,7 +582,8 @@ const App: React.FC = () => {
                           style={{
                             justifyContent: 'flex-start',
                             border: 'none',
-                            background: dateRange.label === opt.label ? 'rgba(255,255,255,0.1)' : 'transparent',
+                            background: dateRange.label === opt.label ? 'var(--bg-panel-hover)' : 'transparent',
+                            color: dateRange.label === opt.label ? 'var(--accent-1)' : 'var(--text-primary)',
                             padding: '0.4rem 0.8rem',
                             fontSize: '0.8rem',
                             opacity: isDisabled ? 0.4 : 1,

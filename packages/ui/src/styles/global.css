@@ -3,35 +3,37 @@
 
 /* Core Custom Theme Variables */
 :root {
-  /* Elegant Dark Mode (Fintech) */
-  --bg-primary: hsl(220, 10%, 12%);
-  --bg-secondary: hsl(220, 10%, 16%);
-  --bg-panel: hsla(220, 10%, 18%, 0.6);
-  --bg-panel-hover: hsla(220, 10%, 22%, 0.7);
+  /* Default: Vantablack (Stealth Dark) */
+  --bg-primary: hsl(222, 10%, 8%);
+  --bg-secondary: hsl(222, 10%, 11%);
+  --bg-panel: hsla(222, 10%, 13%, 0.6);
+  --bg-panel-hover: hsla(222, 10%, 16%, 0.7);
 
   --border-color: hsla(0, 0%, 100%, 0.08);
-  /* More subtle */
-  --border-focus: hsla(220, 80%, 65%, 0.4);
-  --border-color-glow: hsla(220, 80%, 65%, 0.1);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.04);
+  --border-focus: hsla(215, 25%, 65%, 0.25);
+  --border-color-glow: hsla(215, 25%, 65%, 0.05);
 
   --text-primary: hsl(0, 0%, 98%);
-  --text-secondary: hsl(220, 10%, 65%);
-  --text-muted: hsl(220, 10%, 45%);
+  --text-secondary: hsl(215, 20%, 65%);
+  --text-muted: hsl(215, 20%, 45%);
 
-  --accent-1: hsl(220, 80%, 65%);
-  /* Premium Deep Soft Blue */
-  --accent-2: hsl(260, 60%, 70%);
-  /* Restrained Violet */
+  --accent-1: #94a3b8;
+  --accent-2: #475569;
   --accent-grad: linear-gradient(135deg, var(--accent-1) 0%, var(--accent-2) 100%);
+  
+  --header-banner-grad: linear-gradient(135deg, rgba(15, 23, 42, 0.3) 0%, rgba(2, 6, 23, 0.5) 100%);
+  --body-mesh-grad: 
+    radial-gradient(ellipse at 10% 0%, hsla(215, 25%, 65%, 0.03) 0%, transparent 40%),
+    radial-gradient(ellipse at 90% 10%, hsla(215, 25%, 45%, 0.03) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 100%, hsla(215, 25%, 25%, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, hsla(0, 0%, 0%, 0.0) 0%, transparent 40%);
 
   --success: hsl(150, 60%, 45%);
-  /* Soft Emerald */
   --success-bg: hsla(150, 60%, 45%, 0.1);
   --error: hsl(350, 70%, 55%);
-  /* Restrained Red */
   --error-bg: hsla(350, 70%, 55%, 0.1);
   --warning: hsl(35, 90%, 55%);
-  /* Restrained Gold */
   --warning-bg: hsla(35, 90%, 55%, 0.1);
 
   --font-display: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -43,7 +45,6 @@
 
   --backdrop-blur: blur(16px) saturate(120%);
   --radius-sm: 8px;
-  /* Slightly tighter rounded corners common in fintech */
   --radius-md: 16px;
   --radius-lg: 24px;
 
@@ -51,43 +52,84 @@
   --transition-normal: 0.25s ease-out;
 }
 
-/* Alternate Theme Overwrites */
+[data-theme='glass-cyan'] {
+  --bg-primary: hsl(195, 15%, 8%);
+  --bg-secondary: hsl(195, 15%, 11%);
+  --bg-panel: hsla(195, 15%, 13%, 0.6);
+  --bg-panel-hover: hsla(195, 15%, 16%, 0.7);
+  --accent-1: #06b6d4;
+  --accent-2: #0284c7;
+  --border-focus: hsla(190, 90%, 50%, 0.25);
+  --border-color-glow: hsla(190, 90%, 50%, 0.05);
+  --header-banner-grad: linear-gradient(135deg, rgba(8, 51, 68, 0.3) 0%, rgba(4, 25, 36, 0.5) 100%);
+  --body-mesh-grad: 
+    radial-gradient(ellipse at 10% 0%, hsla(190, 90%, 50%, 0.04) 0%, transparent 40%),
+    radial-gradient(ellipse at 90% 10%, hsla(200, 90%, 40%, 0.03) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 100%, hsla(190, 90%, 30%, 0.02) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, hsla(0, 0%, 0%, 0.0) 0%, transparent 40%);
+}
+
 [data-theme='glass-emerald'] {
-  --accent-1: hsl(150, 60%, 45%);
-  --accent-2: hsl(174, 50%, 40%);
-  --border-focus: hsla(150, 60%, 45%, 0.4);
-  --border-color-glow: hsla(150, 60%, 45%, 0.1);
+  --bg-primary: hsl(150, 10%, 8%);
+  --bg-secondary: hsl(150, 10%, 11%);
+  --bg-panel: hsla(150, 10%, 13%, 0.6);
+  --bg-panel-hover: hsla(150, 10%, 16%, 0.7);
+  --accent-1: #10b981;
+  --accent-2: #059669;
+  --border-focus: hsla(150, 60%, 45%, 0.25);
+  --border-color-glow: hsla(150, 60%, 45%, 0.05);
+  --header-banner-grad: linear-gradient(135deg, rgba(6, 78, 59, 0.3) 0%, rgba(2, 44, 34, 0.5) 100%);
+  --body-mesh-grad: 
+    radial-gradient(ellipse at 10% 0%, hsla(150, 60%, 45%, 0.04) 0%, transparent 40%),
+    radial-gradient(ellipse at 90% 10%, hsla(160, 60%, 40%, 0.03) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 100%, hsla(150, 60%, 30%, 0.02) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, hsla(0, 0%, 0%, 0.0) 0%, transparent 40%);
 }
 
 [data-theme='glass-gold'] {
-  --bg-primary: hsl(40, 10%, 14%);
-  --bg-secondary: hsl(40, 10%, 18%);
-  --bg-panel: hsla(40, 10%, 20%, 0.6);
-  --bg-panel-hover: hsla(40, 10%, 24%, 0.7);
-  --accent-1: hsl(40, 80%, 65%);
-  --accent-2: hsl(25, 75%, 60%);
-  --border-focus: hsla(40, 80%, 65%, 0.4);
-  --border-color-glow: hsla(40, 80%, 65%, 0.1);
+  --bg-primary: hsl(40, 10%, 8%);
+  --bg-secondary: hsl(40, 10%, 11%);
+  --bg-panel: hsla(40, 10%, 13%, 0.6);
+  --bg-panel-hover: hsla(40, 10%, 16%, 0.7);
+  --accent-1: #f59e0b;
+  --accent-2: #d97706;
+  --border-focus: hsla(40, 80%, 65%, 0.25);
+  --border-color-glow: hsla(40, 80%, 65%, 0.05);
+  --header-banner-grad: linear-gradient(135deg, rgba(120, 53, 15, 0.3) 0%, rgba(69, 26, 3, 0.5) 100%);
+  --body-mesh-grad: 
+    radial-gradient(ellipse at 10% 0%, hsla(40, 80%, 65%, 0.04) 0%, transparent 40%),
+    radial-gradient(ellipse at 90% 10%, hsla(30, 80%, 60%, 0.03) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 100%, hsla(40, 80%, 50%, 0.02) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, hsla(0, 0%, 0%, 0.0) 0%, transparent 40%);
 }
 
 [data-theme='light'] {
-  --bg-primary: hsl(220, 20%, 98%);
-  /* Soft crisp near-white */
+  --bg-primary: hsl(220, 10%, 98%);
   --bg-secondary: #ffffff;
   --bg-panel: rgba(255, 255, 255, 0.65);
   --bg-panel-hover: rgba(255, 255, 255, 0.9);
-
+  
   --border-color: rgba(30, 40, 60, 0.08);
-  /* Sophisticated faint gray outline */
-  --border-focus: hsl(220, 80%, 55%);
-  --border-color-glow: rgba(0, 100, 255, 0.08);
+  --glass-border: 1px solid rgba(30, 40, 60, 0.05);
+  --border-focus: hsla(220, 80%, 55%, 0.25);
+  --border-color-glow: hsla(220, 80%, 55%, 0.05);
 
   --text-primary: hsl(220, 30%, 15%);
   --text-secondary: hsl(220, 15%, 45%);
   --text-muted: hsl(220, 10%, 60%);
 
+  --accent-1: #3b82f6;
+  --accent-2: #2563eb;
+
   --shadow-sm: 0 1px 3px rgba(30, 40, 60, 0.04);
   --shadow-md: 0 8px 32px -4px rgba(30, 40, 60, 0.08);
+  
+  --header-banner-grad: linear-gradient(135deg, rgba(239, 246, 255, 0.5) 0%, rgba(219, 234, 254, 0.3) 100%);
+  --body-mesh-grad: 
+    radial-gradient(ellipse at 10% 0%, hsla(220, 80%, 65%, 0.05) 0%, transparent 40%),
+    radial-gradient(ellipse at 90% 10%, hsla(260, 60%, 70%, 0.04) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 100%, hsla(150, 60%, 45%, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, hsla(0, 0%, 0%, 0.0) 0%, transparent 40%);
 }
 
 /* Global Reset & Base Elements */
@@ -103,12 +145,7 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
-  /* Subtle Modern Fintech Mesh Gradient */
-  background-image:
-    radial-gradient(ellipse at 10% 0%, hsla(220, 80%, 65%, 0.08) 0%, transparent 40%),
-    radial-gradient(ellipse at 90% 10%, hsla(260, 60%, 70%, 0.05) 0%, transparent 40%),
-    radial-gradient(ellipse at 50% 100%, hsla(150, 60%, 45%, 0.04) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 100%, hsla(0, 0%, 0%, 0.0) 0%, transparent 40%);
+  background-image: var(--body-mesh-grad);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
 }
@@ -129,7 +166,7 @@ h6 {
   background: var(--bg-panel);
   backdrop-filter: var(--backdrop-blur);
   -webkit-backdrop-filter: var(--backdrop-blur);
-  border: 1px solid var(--border-color);
+  border: var(--glass-border, 1px solid var(--border-color));
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   /* Default to subtle modern shadow */
