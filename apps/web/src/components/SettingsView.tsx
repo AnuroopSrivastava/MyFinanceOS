@@ -203,12 +203,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
   ];
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '2.5rem' }}>
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '4rem' }}>
 
       {/* Page Header Banner */}
       <div className="glass-panel" style={{
-        padding: '1.25rem 1.5rem',
-        borderRadius: 'var(--radius-md)',
+        padding: '2rem 2.5rem',
+        borderRadius: 'var(--radius-lg)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -232,10 +232,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
             <Settings size={22} color="#ffffff" />
           </div>
           <div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0 }}>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
               System Configuration & Security
             </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.83rem', marginTop: '0.15rem', margin: 0 }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '0.25rem', margin: 0, lineHeight: 1.5 }}>
               Manage visual themes, organizational details, profile privileges, backups, and security activity.
             </p>
           </div>
@@ -246,27 +246,31 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.35rem 0.75rem',
+            gap: '0.5rem',
+            padding: '0.5rem 1rem',
             borderRadius: '2rem',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid var(--border-color)',
-            fontSize: '0.76rem',
-            color: 'var(--text-secondary)'
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            fontSize: '0.85rem',
+            fontWeight: 500,
+            color: 'var(--text-secondary)',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
           }}>
-            <ShieldCheck size={14} color="var(--success)" />
+            <ShieldCheck size={16} color="var(--success)" />
             <span>AES-256 Offline Vault</span>
           </div>
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.35rem 0.75rem',
+            gap: '0.5rem',
+            padding: '0.5rem 1rem',
             borderRadius: '2rem',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid var(--border-color)',
-            fontSize: '0.76rem',
-            color: 'var(--text-secondary)'
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            fontSize: '0.85rem',
+            fontWeight: 500,
+            color: 'var(--text-secondary)',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
           }}>
             <Users size={14} color="var(--accent-1)" />
             <span>{profiles.length} Profiles Active</span>
@@ -275,23 +279,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
       </div>
 
       {/* Main Responsive Grid Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: '1.5rem' }} className="responsive-stack">
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2rem' }} className="responsive-stack">
 
         {/* LEFT COLUMN: Appearance, Business Info & Disaster Recovery */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
 
           {/* Theme Customizer Card */}
-          <div className="glass-panel" style={{ padding: '1.35rem 1.5rem' }}>
+          <div className="glass-panel" style={{ padding: '2rem', borderRadius: 'var(--radius-lg)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-display)', margin: 0 }}>
-                <Sliders size={18} color="var(--accent-1)" /> Appearance & Theme Engine
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.75rem', fontFamily: 'var(--font-display)', margin: 0 }}>
+                <Sliders size={20} color="var(--accent-1)" /> Appearance & Theme Engine
               </h3>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, background: 'rgba(255,255,255,0.05)', padding: '0.3rem 0.75rem', borderRadius: '1rem' }}>
                 5 Presets Available
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
               {themeOptions.map(t => {
                 const isActive = settings.theme === t.id;
                 return (
@@ -300,12 +304,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                     className="btn"
                     onClick={() => handleThemeChange(t.id)}
                     style={{
-                      padding: '0.75rem',
+                      padding: '1rem',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'flex-start',
                       justifyContent: 'space-between',
-                      borderRadius: 'var(--radius-sm)',
+                      borderRadius: 'var(--radius-md)',
                       border: isActive ? `1.5px solid ${t.color}` : '1px solid var(--border-color)',
                       background: isActive ? `${t.color}15` : 'rgba(255,255,255,0.02)',
                       color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
@@ -343,15 +347,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
           </div>
 
           {/* Business & Invoicing Details Card */}
-          <div className="glass-panel" style={{ padding: '1.35rem 1.5rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-display)', margin: 0 }}>
-              <Building2 size={18} color="var(--accent-1)" /> Business & GSTIN Profile
+          <div className="glass-panel" style={{ padding: '2rem', borderRadius: 'var(--radius-lg)' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontFamily: 'var(--font-display)', margin: 0 }}>
+              <Building2 size={20} color="var(--accent-1)" /> Business & GSTIN Profile
             </h3>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '1.1rem', marginTop: '0.2rem' }}>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', marginTop: '0.5rem', lineHeight: 1.5 }}>
               Organizational info used to generate client invoices and tax reports.
             </p>
 
-            <form onSubmit={handleSaveBusinessSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <form onSubmit={handleSaveBusinessSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div className="form-group" style={{ margin: 0 }}>
                 <label className="form-label" style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)' }}>
                   Registered Entity / Business Name
@@ -414,9 +418,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
           </div>
 
           {/* Backup, Restore & Danger Zone Card */}
-          <div className="glass-panel" style={{ padding: '1.35rem 1.5rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-display)', margin: 0 }}>
-              <Database size={18} color="var(--accent-2)" /> Offline Data Backup & Vault
+          <div className="glass-panel" style={{ padding: '2rem', borderRadius: 'var(--radius-lg)' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontFamily: 'var(--font-display)', margin: 0 }}>
+              <Database size={20} color="var(--accent-2)" /> Offline Data Backup & Vault
             </h3>
             <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '1.1rem', marginTop: '0.2rem' }}>
               Create encrypted offline backups or import external snapshot data.
@@ -566,16 +570,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
         </div>
 
         {/* RIGHT COLUMN: Profiles Registry & Audit Security Logs */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
 
           {/* Family Profiles & Nominees Registry Card */}
-          <div className="glass-panel" style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div className="glass-panel" style={{ padding: '2rem', borderRadius: 'var(--radius-lg)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 650, display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-display)', margin: 0 }}>
-                  <Users size={20} color="var(--accent-1)" /> Profiles & Access Registry
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.75rem', fontFamily: 'var(--font-display)', margin: 0 }}>
+                  <Users size={22} color="var(--accent-1)" /> Profiles & Access Registry
                 </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.4rem 0 0 2rem' }}>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: '0.5rem 0 0 2.25rem', lineHeight: 1.5 }}>
                   Manage family members, nominee mappings, and passcode protection.
                 </p>
               </div>
@@ -583,9 +587,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
               <button
                 className="btn btn-primary"
                 onClick={() => setShowAddProfile(true)}
-                style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', borderRadius: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                style={{ padding: '0.75rem 1.25rem', fontSize: '0.95rem', borderRadius: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)' }}
               >
-                <Plus size={14} /> Add Profile
+                <Plus size={16} /> Add Profile
               </button>
             </div>
 
@@ -600,17 +604,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    padding: '1rem 1.25rem',
+                    padding: '1.1rem 1.25rem',
                     background: isCurrentSession ? 'rgba(59, 130, 246, 0.08)' : 'rgba(255,255,255,0.02)',
                     border: isCurrentSession ? '1px solid var(--accent-1)' : '1px dashed var(--border-focus)',
                     borderRadius: 'var(--radius-md)',
                     transition: 'all 0.2s ease',
-                    gap: '0.75rem'
+                    gap: '1rem',
+                    flexWrap: 'wrap'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: '1 1 220px', minWidth: 0 }}>
                       <div style={{
-                        width: '40px',
-                        height: '40px',
+                        width: '42px',
+                        height: '42px',
                         borderRadius: '50%',
                         background: 'var(--accent-grad)',
                         display: 'flex',
@@ -618,36 +623,36 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                         justifyContent: 'center',
                         color: '#ffffff',
                         fontWeight: 700,
-                        fontSize: '1.1rem',
+                        fontSize: '1rem',
                         flexShrink: 0,
                         boxShadow: '0 4px 12px rgba(6, 182, 212, 0.3)',
                         overflow: 'hidden'
                       }}>
                         {p.avatar ? (
-                          <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={p.avatar} alt={p.name || 'User'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         ) : (
-                          p.name.charAt(0).toUpperCase()
+                          (p.name || 'User').charAt(0).toUpperCase()
                         )}
                       </div>
 
-                      <div style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: 650, fontSize: '0.88rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {p.name}
+                          <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                            {p.name || 'Unnamed Profile'}
                           </span>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 400 }}>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500 }}>
                             ({p.relationship || 'Self'})
                           </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
                           {isCurrentSession && (
-                            <span style={{ fontSize: '0.72rem', background: 'var(--accent-1)', color: '#fff', padding: '0.15rem 0.5rem', borderRadius: '0.5rem', fontWeight: 600 }}>
+                            <span style={{ fontSize: '0.7rem', background: 'var(--accent-1)', color: '#fff', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontWeight: 650 }}>
                               Active
                             </span>
                           )}
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
                           <span style={{
-                            fontSize: '0.72rem',
+                            fontSize: '0.7rem',
                             fontWeight: 600,
                             padding: '0.15rem 0.5rem',
                             borderRadius: '0.4rem',
@@ -656,10 +661,38 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                           }}>
                             {p.role}
                           </span>
-
+                          {p.isNomineeProvided ? (
+                            <span style={{
+                              fontSize: '0.7rem',
+                              color: 'var(--success)',
+                              fontWeight: 600,
+                              background: 'var(--success-bg)',
+                              padding: '0.15rem 0.5rem',
+                              borderRadius: '0.4rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }}>
+                              <ShieldCheck size={11} /> Nominee
+                            </span>
+                          ) : (
+                            <span style={{
+                              fontSize: '0.7rem',
+                              color: 'var(--warning)',
+                              fontWeight: 600,
+                              background: 'var(--warning-bg)',
+                              padding: '0.15rem 0.5rem',
+                              borderRadius: '0.4rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }}>
+                              <AlertTriangle size={11} /> No Nominee
+                            </span>
+                          )}
                           {p.pin ? (
-                            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                              <Lock size={10} /> PIN Protected
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                              <Lock size={11} /> PIN Protected
                             </span>
                           ) : null}
                         </div>
@@ -667,38 +700,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                      {p.isNomineeProvided ? (
-                        <span style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--success)',
-                          fontWeight: 600,
-                          background: 'var(--success-bg)',
-                          padding: '0.25rem 0.65rem',
-                          borderRadius: '1rem',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.3rem',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          <ShieldCheck size={12} /> Nominee
-                        </span>
-                      ) : (
-                        <span style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--warning)',
-                          fontWeight: 600,
-                          background: 'var(--warning-bg)',
-                          padding: '0.25rem 0.65rem',
-                          borderRadius: '1rem',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.3rem',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          <AlertTriangle size={12} /> No Nominee
-                        </span>
-                      )}
-
                       <button
                         type="button"
                         className="btn"
@@ -724,6 +725,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                           transition: 'all 0.2s ease',
                           cursor: 'pointer'
                         }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.transform = 'scale(1)'; }}
                         title="Edit Profile"
                       >
                         <Settings size={14} /> Edit
@@ -746,6 +749,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                           transition: 'all 0.2s ease',
                           cursor: 'pointer'
                         }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; e.currentTarget.style.transform = 'scale(1)'; }}
                         title="Delete Profile"
                       >
                         <Trash2 size={14} /> Remove
@@ -1099,7 +1104,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                   type="button"
                   className="btn btn-primary"
                   style={{ padding: '0.55rem 1.25rem', fontSize: '0.82rem' }}
-                  onPointerDown={async (e) => {
+                  onClick={async (e) => {
                     e.preventDefault();
                     if (!editingProfile) {
                       alert("No profile is currently selected for editing.");

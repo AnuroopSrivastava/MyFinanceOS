@@ -106,6 +106,10 @@ export const useInteractiveCardSystem = (): void => {
 
     const handlePointerMove = (event: PointerEvent) => {
       if (event.pointerType !== 'mouse' || reduceMotion.matches || !finePointer.matches) return;
+      // FIX: Freeze 3D transform recalculation while the user is actively clicking (mouse button down).
+      // If the transform updates between mousedown and mouseup, the browser invalidates the hit-test and drops the `click` event!
+      if (event.buttons > 0) return;
+
       const card = getCardFromTarget(event.target);
       if (!card) {
         resetCard(activeCard);

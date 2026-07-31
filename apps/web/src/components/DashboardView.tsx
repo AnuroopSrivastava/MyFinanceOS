@@ -6,7 +6,7 @@ import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
 import { formatRupee } from '../utils/currency.js';
 import {
   TrendingUp, TrendingDown, Landmark, PieChart as PieIcon,
-  Calendar, Users, AlertTriangle, Lightbulb, Wallet, ShieldCheck
+  Calendar, Users, AlertTriangle, Lightbulb, Wallet, ShieldCheck, CreditCard
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar,
@@ -497,8 +497,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
       {/* Top Banner metrics */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
-        gap: '1.25rem'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
+        gap: '0.85rem'
       }}>
 
         {/* Net Worth Card */}
@@ -508,17 +508,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             hidden: { opacity: 0, y: 20 },
             visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
           }}
-          style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}
+          style={{ padding: '1.15rem 1.25rem', position: 'relative', overflow: 'hidden' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.05em' }}>NET WORTH</span>
-            <Wallet size={18} color="var(--text-muted)" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 650, letterSpacing: '0.06em' }}>NET WORTH</span>
+            <Wallet size={16} color="var(--accent-1)" />
           </div>
-          <h3 style={{ fontSize: '2.2rem', fontWeight: 600, letterSpacing: '-0.02em', margin: 0, color: 'var(--text-primary)' }}>{formatRupee(netWorth)}</h3>
+          <h3 style={{ fontSize: 'clamp(1.5rem, 4vw, 2.1rem)', fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: 'var(--text-primary)' }}>{formatRupee(netWorth)}</h3>
 
-          {/* Subtle bottom glows */}
+          {/* Subtle bottom glow */}
           <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px'
+            position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, var(--accent-1) 0%, transparent 100%)', opacity: 0.6
           }} />
         </motion.div>
 
@@ -529,14 +529,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             hidden: { opacity: 0, y: 20 },
             visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
           }}
-          style={{ padding: '1.5rem' }}
+          style={{ padding: '1.15rem 1.25rem' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.05em' }}>INCOME (JULY)</span>
-            <TrendingUp size={18} color="var(--text-muted)" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 650, letterSpacing: '0.06em' }}>INCOME (JULY)</span>
+            <TrendingUp size={16} color="var(--success)" />
           </div>
-          <h3 style={{ fontSize: '1.8rem', fontWeight: 600, letterSpacing: '-0.02em', margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>{formatRupee(monthlyIncome)}</h3>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Business Sales + Salaries</p>
+          <h3 style={{ fontSize: 'clamp(1.35rem, 3.5vw, 1.75rem)', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 0.2rem 0', color: 'var(--text-primary)' }}>{formatRupee(monthlyIncome)}</h3>
+          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0 }}>Business Sales + Salaries</p>
         </motion.div>
 
         {/* Monthly Expense Card */}
@@ -546,14 +546,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             hidden: { opacity: 0, y: 20 },
             visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
           }}
-          style={{ padding: '1.5rem' }}
+          style={{ padding: '1.15rem 1.25rem' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.05em' }}>EXPENSES (JULY)</span>
-            <TrendingDown size={18} color="var(--text-muted)" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 650, letterSpacing: '0.06em' }}>EXPENSES (JULY)</span>
+            <TrendingDown size={16} color="var(--error)" />
           </div>
-          <h3 style={{ fontSize: '1.8rem', fontWeight: 600, letterSpacing: '-0.02em', margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>{formatRupee(monthlyExpense)}</h3>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Groceries, Utilities & Bills</p>
+          <h3 style={{ fontSize: 'clamp(1.35rem, 3.5vw, 1.75rem)', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 0.2rem 0', color: 'var(--text-primary)' }}>{formatRupee(monthlyExpense)}</h3>
+          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0 }}>Groceries, Utilities & Bills</p>
         </motion.div>
 
         {/* Savings Rate Card */}
@@ -563,15 +563,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             hidden: { opacity: 0, y: 20 },
             visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
           }}
-          style={{ padding: '1.5rem' }}
+          style={{ padding: '1.15rem 1.25rem' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.05em' }}>SAVINGS RATE</span>
-            <Landmark size={18} color="var(--text-muted)" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 650, letterSpacing: '0.06em' }}>SAVINGS RATE</span>
+            <Landmark size={16} color="var(--accent-2)" />
           </div>
-          <h3 style={{ fontSize: '1.8rem', fontWeight: 600, letterSpacing: '-0.02em', margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>{savingsRate.toFixed(1)}%</h3>
+          <h3 style={{ fontSize: 'clamp(1.35rem, 3.5vw, 1.75rem)', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 0.2rem 0', color: 'var(--text-primary)' }}>{savingsRate.toFixed(1)}%</h3>
           <div style={{
-            height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', marginTop: '0.5rem', overflow: 'hidden'
+            height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', marginTop: '0.4rem', overflow: 'hidden'
           }}>
             <motion.div
               initial={{ width: 0 }}
@@ -582,34 +582,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
           </div>
         </motion.div>
 
-        {/* Budget Gauges */}
-        {budgetAlerts.slice(0, 2).map((b, idx) => (
-          <motion.div
-            key={idx}
-            className="glass-panel"
-            variants={{
-              hidden: { opacity: 0, y: 20 },
-              visible: { opacity: 1, y: 0 }
-            }}
-            style={{ padding: '1.25rem' }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{b.category}</span>
-              <span style={{ fontSize: '0.8rem', color: b.pct > 90 ? 'var(--error)' : 'var(--text-secondary)' }}>
-                {b.pct}%
-              </span>
-            </div>
-            <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
-              <motion.div
-                initial={{ width: 0 }}
-                whileInView={{ width: `${Math.min(b.pct, 100)}%` }}
-                viewport={{ once: true }}
-                transition={{ duration: 1, ease: "easeOut" }}
-                style={{ height: '100%', background: b.pct > 90 ? 'var(--error)' : 'var(--accent-2)' }}
-              />
-            </div>
-          </motion.div>
-        ))}
+        {/* Liabilities & Debt Card */}
+        <motion.div
+          className="glass-panel"
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+          }}
+          style={{ padding: '1.15rem 1.25rem', position: 'relative', overflow: 'hidden' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 650, letterSpacing: '0.06em' }}>TOTAL LIABILITIES</span>
+            <CreditCard size={16} color={totalLiabilities > 0 ? 'var(--error)' : 'var(--text-muted)'} />
+          </div>
+          <h3 style={{ fontSize: 'clamp(1.35rem, 3.5vw, 1.75rem)', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 0.2rem 0', color: totalLiabilities > 0 ? 'var(--error)' : 'var(--text-primary)' }}>
+            {formatRupee(totalLiabilities)}
+          </h3>
+          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0 }}>
+            {totalLiabilities === 0 ? 'Zero Debt — Excellent' : 'Loans & Credit Card Debt'}
+          </p>
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px',
+            background: totalLiabilities > 0 ? 'linear-gradient(90deg, var(--error) 0%, transparent 100%)' : 'linear-gradient(90deg, var(--success) 0%, transparent 100%)',
+            opacity: 0.6
+          }} />
+        </motion.div>
 
         {/* Financial Health Score */}
         <motion.div
@@ -618,12 +615,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             hidden: { opacity: 0, scale: 0.95 },
             visible: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 100 } }
           }}
-          style={{ padding: '1.25rem', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
+          style={{ padding: '1.15rem 1.25rem', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
           onClick={() => setShowHealthBreakdown(!showHealthBreakdown)}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.05em' }}>HEALTH SCORE</span>
-            <ShieldCheck size={18} color="var(--text-muted)" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 650, letterSpacing: '0.06em' }}>HEALTH SCORE</span>
+            <ShieldCheck size={16} color="var(--text-muted)" />
           </div>
           <motion.div
             style={{ display: 'flex', justifyContent: 'center' }}
@@ -662,8 +659,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
       {/* Main Charts & Analytics Row */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))',
-        gap: '1.25rem'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+        gap: '1rem'
       }}>
 
         {/* Net Worth Timeline Card */}
@@ -675,21 +672,40 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
           }}
           style={{ padding: '1.25rem', minWidth: 0 }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h4 style={{ fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Wallet size={16} color="var(--accent-1)" /> Net Worth Progression ({timelineFilter === '6M' ? '6 Months' : timelineFilter === '12M' ? '12 Months' : timelineFilter === '2Y' ? '2 Years' : timelineFilter === '5Y' ? '5 Years' : '10 Years'})
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '0.75rem',
+            marginBottom: '1rem'
+          }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 650, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <Wallet size={16} color="var(--accent-1)" />
+              <span>Net Worth Progression</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                ({timelineFilter === '6M' ? '6 Months' : timelineFilter === '12M' ? '12 Months' : timelineFilter === '2Y' ? '2 Years' : timelineFilter === '5Y' ? '5 Years' : '10 Years'})
+              </span>
             </h4>
-            <div style={{ display: 'flex', gap: '0.25rem', background: 'rgba(255,255,255,0.03)', padding: '0.2rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+            <div style={{
+              display: 'flex',
+              gap: '0.2rem',
+              background: 'rgba(255,255,255,0.03)',
+              padding: '0.2rem',
+              borderRadius: '6px',
+              border: '1px solid var(--border-color)',
+              flexWrap: 'wrap'
+            }}>
               {(['6M', '12M', '2Y', '5Y', '10Y'] as const).map(f => (
                 <button
                   key={f}
                   onClick={() => setTimelineFilter(f)}
                   style={{
-                    padding: '0.2rem 0.5rem',
+                    padding: '0.25rem 0.5rem',
                     fontSize: '0.7rem',
                     background: timelineFilter === f ? 'var(--accent-grad)' : 'transparent',
                     border: 'none',
-                    borderRadius: '3px',
+                    borderRadius: '4px',
                     color: timelineFilter === f ? '#fff' : 'var(--text-secondary)',
                     cursor: 'pointer',
                     fontWeight: 650,
