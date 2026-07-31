@@ -401,16 +401,29 @@ class DatabaseService {
           // Instant local persistence (<1ms)
           localStorage.setItem(this.storageKey, storagePayload);
   
+          let localDiskSuccess = true;
           // Save local backup if running inside Electron
           if ((window as any).electronAPI) {
-            (window as any).electronAPI.saveDbBackup(storagePayload).catch((err: any) => {
+            try {
+              const res = await (window as any).electronAPI.saveDbBackup(storagePayload);
+              if (!res.success) {
+                localDiskSuccess = false;
+                console.error('Electron local backup save returned error:', res.error);
+              }
+            } catch (err) {
+              localDiskSuccess = false;
               console.error('Electron local backup save error:', err);
-            });
+            }
           }
   
-          // Local storage write succeeded - mark save as clean immediately
-          this.setSaveError(null);
-          this.setUnsavedChanges(false);
+          if (!localDiskSuccess) {
+            this.setSaveError('Critical: Local disk save failed. Please check permissions.');
+            this.setUnsavedChanges(true);
+          } else {
+            // Local storage write succeeded - mark save as clean immediately
+            this.setSaveError(null);
+            this.setUnsavedChanges(false);
+          }
   
           // Debounced background cloud sync to avoid network lag or API rate limits
           if (authSession.isAuthenticated()) {

@@ -153,7 +153,9 @@ app.whenReady().then(() => {
   // IPC Local Backup writes
   ipcMain.handle('save-db-backup', async (_, encryptedPayload: string) => {
     try {
-      fs.writeFileSync(backupFilePath, encryptedPayload, 'utf8');
+      const tmpPath = backupFilePath + '.tmp';
+      fs.writeFileSync(tmpPath, encryptedPayload, 'utf8');
+      fs.renameSync(tmpPath, backupFilePath);
       return { success: true };
     } catch (e) {
       console.error('Failed to write local backup database file', e);
@@ -178,7 +180,9 @@ app.whenReady().then(() => {
   // Config sync handlers
   ipcMain.handle('save-config-backup', async (_, configPayload: string) => {
     try {
-      fs.writeFileSync(configFilePath, configPayload, 'utf8');
+      const tmpPath = configFilePath + '.tmp';
+      fs.writeFileSync(tmpPath, configPayload, 'utf8');
+      fs.renameSync(tmpPath, configFilePath);
       return { success: true };
     } catch (e) {
       console.error('Failed to write local config file', e);
