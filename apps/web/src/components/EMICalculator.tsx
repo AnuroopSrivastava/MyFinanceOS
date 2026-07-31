@@ -76,7 +76,7 @@ export const EMICalculator: React.FC<EMICalculatorProps> = ({ activeProfileId })
 
     for (let m = 1; m <= tenureMonths && balance > 0; m++) {
       let currentPrepayment = 0;
-      let openingBalance = balance;
+      const openingBalance = balance;
       
       // Apply prepayment at specified month
       if (prepayment > 0 && m === prepaymentMonth) {

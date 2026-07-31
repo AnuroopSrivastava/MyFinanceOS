@@ -698,8 +698,13 @@ const App: React.FC = () => {
           animation: 'slideIn 0.3s ease-out', backdropFilter: 'blur(10px)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-1)' }}>⚡ {toast.title}</span>
-            <button onPointerDown={() => setToast(null)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '0.8rem' }}>×</button>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-1)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <AlertCircle size={14} />
+              {toast.title}
+            </span>
+            <button onPointerDown={() => setToast(null)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <X size={16} />
+            </button>
           </div>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0 }}>{toast.message}</p>
         </div>

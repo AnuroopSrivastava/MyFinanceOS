@@ -34,7 +34,7 @@ function serveStatic(port: number, dir: string) {
       }
 
       // 2. Resolve target file path relative to root directory
-      const safeRelativePath = path.normalize(decodedPath).replace(/^(\.\.[\/\\])+/, '');
+      const safeRelativePath = path.normalize(decodedPath).replace(/^(\.\.[/\\])+/, '');
       let targetPath = path.resolve(rootDir, '.' + safeRelativePath);
 
       // 3. Directory Traversal / Path Inclusion Jail Check:
