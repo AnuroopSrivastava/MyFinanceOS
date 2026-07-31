@@ -625,7 +625,7 @@ class DatabaseService {
     if (account) {
       if (tx.type === 'Income') account.balance += tx.amount;
       else if (tx.type === 'Expense') account.balance -= tx.amount;
-      else if (tx.type === 'Transfer' && tx.category === 'Investments') {
+      else if (tx.type === 'Transfer') {
         account.balance -= tx.amount;
       }
     }
