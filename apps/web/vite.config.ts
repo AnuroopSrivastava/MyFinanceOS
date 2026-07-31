@@ -89,6 +89,16 @@ export default defineConfig({
     strictPort: true,
     host: true
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'ui-vendor': ['framer-motion', 'lucide-react', 'recharts']
+        }
+      }
+    }
+  },
   test: {
     environment: 'jsdom',
     globals: true,

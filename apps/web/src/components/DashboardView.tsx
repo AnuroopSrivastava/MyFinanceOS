@@ -103,10 +103,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
   const budgets = useMemo(() => dbService.getBudgets().filter(b => b.profileId === activeProfileId), [activeProfileId]);
   const currentMonthStr = new Date().toISOString().substring(0, 7);
   const budgetAlerts = useMemo(() => {
+    // Optimization: Build a category-to-spent map in a single pass O(T) instead of O(B * T)
+    const categorySpentMap = new Map<string, number>();
+    for (let i = 0; i < rawTransactions.length; i++) {
+      const t = rawTransactions[i];
+      if (t.type === 'Expense' && t.date.startsWith(currentMonthStr)) {
+        categorySpentMap.set(t.category, (categorySpentMap.get(t.category) || 0) + t.amount);
+      }
+    }
+
     return budgets.map(b => {
-      const spent = rawTransactions
-        .filter(t => t.type === 'Expense' && t.category === b.category && t.date.startsWith(currentMonthStr))
-        .reduce((sum, t) => sum + t.amount, 0);
+      const spent = categorySpentMap.get(b.category) || 0;
       const pct = Math.round((spent / b.limitAmount) * 100);
       return { ...b, spent, pct };
     }).sort((a, b) => b.pct - a.pct);
