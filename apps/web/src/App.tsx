@@ -5,23 +5,23 @@ import { authSession } from '@financeos/auth';
 import { GlobalDateRange } from './utils/dateFilter.js';
 import { getSavedTheme, setTheme } from '@financeos/ui';
 import { Landing } from './components/Landing.js';
-import { DashboardView } from './components/DashboardView.js';
-import { LedgerView } from './components/LedgerView.js';
-import { InvestmentsView } from './components/InvestmentsView.js';
-import { TaxView } from './components/TaxView.js';
-import { BusinessView } from './components/BusinessView.js';
-import { SankeyView } from './components/SankeyView.js';
-import { AIChatView } from './components/AIChatView.js';
-import { SettingsView } from './components/SettingsView.js';
-import { InvestmentPlanner } from './components/InvestmentPlanner/index.js';
+const DashboardView = React.lazy(() => import('./components/DashboardView.js').then(m => ({ default: m.DashboardView })));
+const LedgerView = React.lazy(() => import('./components/LedgerView.js').then(m => ({ default: m.LedgerView })));
+const InvestmentsView = React.lazy(() => import('./components/InvestmentsView.js').then(m => ({ default: m.InvestmentsView })));
+const TaxView = React.lazy(() => import('./components/TaxView.js').then(m => ({ default: m.TaxView })));
+const BusinessView = React.lazy(() => import('./components/BusinessView.js').then(m => ({ default: m.BusinessView })));
+const SankeyView = React.lazy(() => import('./components/SankeyView.js').then(m => ({ default: m.SankeyView })));
+const AIChatView = React.lazy(() => import('./components/AIChatView.js').then(m => ({ default: m.AIChatView })));
+const SettingsView = React.lazy(() => import('./components/SettingsView.js').then(m => ({ default: m.SettingsView })));
+const InvestmentPlanner = React.lazy(() => import('./components/InvestmentPlanner/index.js').then(m => ({ default: m.InvestmentPlanner })));
 import { CommandPalette } from './components/CommandPalette.js';
 import { useInteractiveCardSystem } from './components/ui/InteractiveCard.js';
 
 import { SaveStatusPopup } from './components/SaveStatusPopup.js';
 
-import { DocumentVaultView } from './components/DocumentVaultView.js';
-import { AutomationView } from './components/AutomationView.js';
-import { ReportsView } from './components/ReportsView.js';
+const DocumentVaultView = React.lazy(() => import('./components/DocumentVaultView.js').then(m => ({ default: m.DocumentVaultView })));
+const AutomationView = React.lazy(() => import('./components/AutomationView.js').then(m => ({ default: m.AutomationView })));
+const ReportsView = React.lazy(() => import('./components/ReportsView.js').then(m => ({ default: m.ReportsView })));
 
 import {
   LayoutDashboard, Landmark, TrendingUp, Percent,
@@ -639,7 +639,13 @@ const App: React.FC = () => {
               transition={{ duration: 0.3, ease: 'easeInOut' }}
               style={{ height: '100%' }}
             >
-              {renderPage()}
+              <React.Suspense fallback={
+                <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ padding: '1rem', color: 'var(--text-secondary)' }}>Loading Module...</div>
+                </div>
+              }>
+                {renderPage()}
+              </React.Suspense>
             </motion.div>
           </AnimatePresence>
         </main>
