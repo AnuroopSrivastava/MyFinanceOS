@@ -274,7 +274,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
   // Handlers
   const handleAddContact = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!contName) return;
+    if (!contName) { alert('Please fill in all required fields.'); return; }
     await dbService.addContact({
       profileId: activeProfileId,
       name: contName,
@@ -291,7 +291,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
 
   const handleEditContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editContName) return;
+    if (!editContName) { alert('Please fill in all required fields.'); return; }
     await dbService.updateContact(editContId, {
       name: editContName,
       gstin: editContGstin || undefined,
@@ -398,8 +398,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
   const handleCreateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     const customer = customers.find(c => c.id === selectedCustomerId);
-    if (!customer) return;
-
+    if (!customer) { alert('Please fill in all required fields.'); return; }
     let subtotal = 0;
     let cgstTotal = 0;
     let sgstTotal = 0;

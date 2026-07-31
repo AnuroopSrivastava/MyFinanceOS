@@ -436,8 +436,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
 
   const handleAddNPS = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!npsBalance) return;
-    
+    if (!npsBalance) { alert('Please fill in all required fields.'); return; }
     const npsData = {
       profileId: activeProfileId,
       pranNumber: npsPran || 'N/A',
@@ -482,8 +481,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
 
   const handleAddPF = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pfBalance) return;
-    
+    if (!pfBalance) { alert('Please fill in all required fields.'); return; }
     const pfData = {
       profileId: activeProfileId,
       type: pfType,
