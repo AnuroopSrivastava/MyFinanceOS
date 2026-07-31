@@ -46,6 +46,7 @@ class DatabaseService {
   private isSyncing = false;
   private lastSavedPayload: string | null = null;
   private cloudSyncTimer: any = null;
+  private localSaveTimer: any = null;
   private activeProfileId: string | null = null;
 
   public hasUnsavedChanges = false;
@@ -376,52 +377,58 @@ class DatabaseService {
 
   public async save(): Promise<void> {
     if (!this.db) return;
-    try {
-      const plainPayload = JSON.stringify(this.db);
+    this.setUnsavedChanges(true); // Signal to UI that a save is pending
 
-      // Encrypt At-Rest
-      const pin = authSession.getUserProfile()?.pin || 'default-pin';
-      let storagePayload = plainPayload;
+    if (this.localSaveTimer) clearTimeout(this.localSaveTimer);
+    
+    this.localSaveTimer = setTimeout(async () => {
       try {
-        storagePayload = await encryptData(plainPayload, pin);
-      } catch (e) {
-        console.error('Encryption failed, falling back to plaintext', e);
-      }
-
-      this.lastSavedPayload = storagePayload;
-
-      if (typeof window !== 'undefined') {
-        // Instant local persistence (<1ms)
-        localStorage.setItem(this.storageKey, storagePayload);
-
-        // Save local backup if running inside Electron
-        if ((window as any).electronAPI) {
-          (window as any).electronAPI.saveDbBackup(storagePayload).catch((err: any) => {
-            console.error('Electron local backup save error:', err);
-          });
+        if (!this.db) return;
+        const plainPayload = JSON.stringify(this.db);
+  
+        // Encrypt At-Rest
+        const pin = authSession.getUserProfile()?.pin || 'default-pin';
+        let storagePayload = plainPayload;
+        try {
+          storagePayload = await encryptData(plainPayload, pin);
+        } catch (e) {
+          console.error('Encryption failed, falling back to plaintext', e);
         }
-
-        // Local storage write succeeded - mark save as clean immediately
-        this.setSaveError(null);
-        this.setUnsavedChanges(false);
-
-        // Debounced background cloud sync to avoid network lag or API rate limits
-        if (authSession.isAuthenticated()) {
-          if (this.cloudSyncTimer) clearTimeout(this.cloudSyncTimer);
-          this.cloudSyncTimer = setTimeout(() => {
-            this.pushToDrive(storagePayload).catch((err: any) => {
-              console.error('Cloud drive sync error:', err);
+  
+        this.lastSavedPayload = storagePayload;
+  
+        if (typeof window !== 'undefined') {
+          // Instant local persistence (<1ms)
+          localStorage.setItem(this.storageKey, storagePayload);
+  
+          // Save local backup if running inside Electron
+          if ((window as any).electronAPI) {
+            (window as any).electronAPI.saveDbBackup(storagePayload).catch((err: any) => {
+              console.error('Electron local backup save error:', err);
             });
-          }, 800);
+          }
+  
+          // Local storage write succeeded - mark save as clean immediately
+          this.setSaveError(null);
+          this.setUnsavedChanges(false);
+  
+          // Debounced background cloud sync to avoid network lag or API rate limits
+          if (authSession.isAuthenticated()) {
+            if (this.cloudSyncTimer) clearTimeout(this.cloudSyncTimer);
+            this.cloudSyncTimer = setTimeout(() => {
+              this.pushToDrive(storagePayload).catch((err: any) => {
+                console.error('Cloud drive sync error:', err);
+              });
+            }, 800);
+          }
         }
+      } catch (e: any) {
+        console.error('Failed to save database:', e);
+        const errMsg = e?.message ? `Local storage save failed: ${e.message}` : 'Local database save failed';
+        this.setSaveError(errMsg);
+        this.setUnsavedChanges(true);
       }
-    } catch (e: any) {
-      console.error('Failed to save database:', e);
-      const errMsg = e?.message ? `Local storage save failed: ${e.message}` : 'Local database save failed';
-      this.setSaveError(errMsg);
-      this.setUnsavedChanges(true);
-      throw e;
-    }
+    }, 300);
   }
 
   public async syncDatabaseState(): Promise<boolean> {

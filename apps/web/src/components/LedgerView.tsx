@@ -963,7 +963,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
             </thead>
             <tbody>
               {filteredTxs.length > 0 ? (
-                filteredTxs.map((tx, idx) => {
+                filteredTxs.slice(0, 500).map((tx, idx) => {
                   const accName = accounts.find(a => a.id === tx.accountId)?.name || 'External';
 
                   // Transaction Type styling map

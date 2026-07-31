@@ -68,9 +68,11 @@ const App: React.FC = () => {
   const [showSavedBadge, setShowSavedBadge] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; title: string; message: string } | null>(null);
 
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToastAlert = (title: string, message: string) => {
     setToast({ show: true, title, message });
-    setTimeout(() => setToast(null), 5000);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), 5000);
   };
 
   const profiles = dbService.isInitialized() && isUnlocked ? dbService.getProfiles() : [];
@@ -95,14 +97,15 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   }, [activePage, isUnlocked]);
 
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    let savedTimer: ReturnType<typeof setTimeout>;
     const cleanupUnsaved = dbService.onUnsavedChangeStatus((status) => {
       setHasUnsavedChanges(status);
       if (!status) {
         setShowSavedBadge(true);
-        clearTimeout(savedTimer);
-        savedTimer = setTimeout(() => setShowSavedBadge(false), 3000);
+        if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+        savedTimerRef.current = setTimeout(() => setShowSavedBadge(false), 3000);
       }
     });
     const cleanupError = dbService.onSaveErrorStatus((err) => {
@@ -114,7 +117,7 @@ const App: React.FC = () => {
     return () => {
       cleanupUnsaved();
       cleanupError();
-      clearTimeout(savedTimer);
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
     };
   }, []);
 
