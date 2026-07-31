@@ -178,7 +178,6 @@ button:not(:disabled):active {
 }
 
 .btn-primary:hover {
-  transform: translateY(-1px);
   box-shadow: 0 6px 16px hsla(220, 80%, 40%, 0.25), var(--shadow-glow);
 }
 
@@ -196,7 +195,6 @@ button:not(:disabled):active {
   background: hsla(220, 10%, 50%, 0.05);
   /* very soft hover background */
   border-color: var(--text-secondary);
-  transform: translateY(-1px);
 }
 
 .btn-danger {
@@ -209,7 +207,6 @@ button:not(:disabled):active {
   background: var(--error);
   color: #fff;
   box-shadow: 0 4px 12px hsla(350, 70%, 55%, 0.2);
-  transform: translateY(-1px);
 }
 
 /* Form Fields */
@@ -944,6 +941,21 @@ body {
   /* Match TiltCard's exact CSS transition timing: 0.1s ease-out for transform */
   transition: transform 0.1s ease-out, box-shadow 0.3s ease, border-color 0.3s ease !important;
   will-change: transform;
+}
+
+/* Invisible forcefield to prevent hover flicker when the card lifts or tilts out from under the cursor */
+.glass-panel:not([data-interactive-card='off']).is-interactive-card-active::after,
+.glass-widget:not([data-interactive-card='off']).is-interactive-card-active::after,
+.glass-card:not([data-interactive-card='off']).is-interactive-card-active::after,
+[data-interactive-card]:not([data-interactive-card='off']).is-interactive-card-active::after {
+  content: '';
+  position: absolute;
+  top: -20px;
+  bottom: -20px;
+  left: -20px;
+  right: -20px;
+  z-index: -10;
+  pointer-events: auto;
 }
 
 .glass-panel:not([data-interactive-card='off']).is-interactive-card-active::before,
