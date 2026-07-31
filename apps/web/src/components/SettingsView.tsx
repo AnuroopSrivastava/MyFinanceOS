@@ -302,7 +302,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                   <button
                     key={t.id}
                     className="btn"
-                    onClick={() => handleThemeChange(t.id)}
+                    onPointerDown={() => handleThemeChange(t.id)}
                     style={{
                       padding: '1rem',
                       display: 'flex',
@@ -444,7 +444,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                 </div>
                 <button
                   className="btn btn-secondary"
-                  onClick={handleExportBackup}
+                  onPointerDown={handleExportBackup}
                   style={{ padding: '0.5rem 0.9rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}
                 >
                   <Download size={14} /> Download Backup
@@ -467,7 +467,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                 </div>
                 <button
                   className="btn btn-secondary"
-                  onClick={() => setShowRestoreBox(prev => !prev)}
+                  onPointerDown={() => setShowRestoreBox(prev => !prev)}
                   style={{ padding: '0.5rem 0.9rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}
                 >
                   <Upload size={14} /> {showRestoreBox ? 'Hide Panel' : 'Restore Data'}
@@ -549,7 +549,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
 
                 <button
                   className="btn"
-                  onClick={() => setShowResetConfirm(true)}
+                  onPointerDown={() => setShowResetConfirm(true)}
                   style={{
                     background: 'rgba(239, 68, 68, 0.12)',
                     color: 'var(--error)',
@@ -586,7 +586,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
 
               <button
                 className="btn btn-primary"
-                onClick={() => setShowAddProfile(true)}
+                onPointerDown={() => setShowAddProfile(true)}
                 style={{ padding: '0.75rem 1.25rem', fontSize: '0.95rem', borderRadius: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)' }}
               >
                 <Plus size={16} /> Add Profile
@@ -703,7 +703,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                       <button
                         type="button"
                         className="btn"
-                        onClick={() => {
+                        onPointerDown={() => {
                           setEditingProfile(p);
                           setEditProfName(p.name);
                           setEditProfRole(p.role);
@@ -735,7 +735,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                       <button
                         type="button"
                         className="btn"
-                        onClick={() => handleDeleteProfile(p.id)}
+                        onPointerDown={() => handleDeleteProfile(p.id)}
                         style={{
                           background: 'rgba(239, 68, 68, 0.1)',
                           border: '1px solid rgba(239, 68, 68, 0.2)',
@@ -784,7 +784,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                 Add Family Profile
               </h3>
               <button
-                onClick={() => setShowAddProfile(false)}
+                onPointerDown={() => setShowAddProfile(false)}
                 style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
               >
                 <X size={18} />
@@ -838,7 +838,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                   {newProfAvatar && (
                     <button
                       type="button"
-                      onClick={() => setNewProfAvatar('')}
+                      onPointerDown={() => setNewProfAvatar('')}
                       style={{ background: 'transparent', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center' }}
                       title="Remove Image"
                     >
@@ -924,7 +924,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                   type="button"
                   className="btn btn-secondary"
                   style={{ padding: '0.55rem 1.1rem', fontSize: '0.82rem' }}
-                  onClick={() => setShowAddProfile(false)}
+                  onPointerDown={() => setShowAddProfile(false)}
                 >
                   Cancel
                 </button>
@@ -958,7 +958,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                 Edit Profile Details
               </h3>
               <button
-                onClick={() => setEditingProfile(null)}
+                onPointerDown={() => setEditingProfile(null)}
                 style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
               >
                 <X size={18} />
@@ -1010,7 +1010,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                   {editProfAvatar && (
                     <button
                       type="button"
-                      onClick={() => setEditProfAvatar('')}
+                      onPointerDown={() => setEditProfAvatar('')}
                       style={{ background: 'transparent', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center' }}
                       title="Remove Image"
                     >
@@ -1096,7 +1096,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                   type="button"
                   className="btn btn-secondary"
                   style={{ padding: '0.55rem 1.1rem', fontSize: '0.82rem' }}
-                  onClick={() => setEditingProfile(null)}
+                  onPointerDown={() => setEditingProfile(null)}
                 >
                   Cancel
                 </button>
@@ -1104,7 +1104,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                   type="button"
                   className="btn btn-primary"
                   style={{ padding: '0.55rem 1.25rem', fontSize: '0.82rem' }}
-                  onClick={async (e) => {
+                  onPointerDown={async (e) => {
                     e.preventDefault();
                     if (!editingProfile) {
                       alert("No profile is currently selected for editing.");
@@ -1190,7 +1190,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                 type="button"
                 className="btn btn-secondary"
                 style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem' }}
-                onClick={() => setShowResetConfirm(false)}
+                onPointerDown={() => setShowResetConfirm(false)}
               >
                 Cancel
               </button>
@@ -1204,7 +1204,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                   fontSize: '0.85rem',
                   fontWeight: 600
                 }}
-                onClick={handleResetDatabase}
+                onPointerDown={handleResetDatabase}
               >
                 Yes, Reset System
               </button>

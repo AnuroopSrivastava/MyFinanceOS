@@ -645,7 +645,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
             whiteSpace: 'nowrap',
             fontWeight: activeSubTab === 'invoices' ? 600 : 400
           }}
-          onClick={() => setActiveSubTab('invoices')}
+          onPointerDown={() => setActiveSubTab('invoices')}
         >
           <FileText size={14} style={{ flexShrink: 0 }} />
           <span>Invoices</span>
@@ -665,7 +665,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
             whiteSpace: 'nowrap',
             fontWeight: activeSubTab === 'gst' ? 600 : 400
           }}
-          onClick={() => setActiveSubTab('gst')}
+          onPointerDown={() => setActiveSubTab('gst')}
         >
           <Coins size={14} style={{ flexShrink: 0 }} />
           <span>GSTR</span>
@@ -685,7 +685,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
             whiteSpace: 'nowrap',
             fontWeight: activeSubTab === 'inventory' ? 600 : 400
           }}
-          onClick={() => setActiveSubTab('inventory')}
+          onPointerDown={() => setActiveSubTab('inventory')}
         >
           <Archive size={14} style={{ flexShrink: 0 }} />
           <span>Inventory</span>
@@ -705,7 +705,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
             whiteSpace: 'nowrap',
             fontWeight: activeSubTab === 'statements' ? 600 : 400
           }}
-          onClick={() => setActiveSubTab('statements')}
+          onPointerDown={() => setActiveSubTab('statements')}
         >
           <BarChart2 size={14} style={{ flexShrink: 0 }} />
           <span>Statements</span>
@@ -720,7 +720,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
           <motion.div className="glass-panel" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }} style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 650 }}>Active Invoices</h3>
-              <button className="btn btn-primary" onClick={() => setShowCreateInvoice(true)} disabled={customers.length === 0 || inventory.length === 0} style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)' }}>
+              <button className="btn btn-primary" onPointerDown={() => setShowCreateInvoice(true)} disabled={customers.length === 0 || inventory.length === 0} style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)' }}>
                 <Plus size={14} /> New GST Invoice
               </button>
             </div>
@@ -765,13 +765,13 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                           </span>
                         </td>
                         <td style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                          <button className="btn btn-secondary" style={{ padding: '0.25rem 0.4rem', fontSize: '0.75rem' }} onClick={() => handleUpdateInvoiceStatus(inv.id, inv.status)}>
+                          <button className="btn btn-secondary" style={{ padding: '0.25rem 0.4rem', fontSize: '0.75rem' }} onPointerDown={() => handleUpdateInvoiceStatus(inv.id, inv.status)}>
                             Status
                           </button>
-                          <button className="btn btn-secondary" style={{ padding: '0.25rem 0.4rem', fontSize: '0.75rem' }} onClick={() => setViewingInvoice(inv)}>
+                          <button className="btn btn-secondary" style={{ padding: '0.25rem 0.4rem', fontSize: '0.75rem' }} onPointerDown={() => setViewingInvoice(inv)}>
                             <Eye size={13} /> View
                           </button>
-                          <button className="btn btn-danger" style={{ padding: '0.25rem 0.4rem', fontSize: '0.75rem' }} onClick={() => handleDeleteInvoice(inv.id)}>
+                          <button className="btn btn-danger" style={{ padding: '0.25rem 0.4rem', fontSize: '0.75rem' }} onPointerDown={() => handleDeleteInvoice(inv.id)}>
                             <Trash2 size={13} />
                           </button>
                         </td>
@@ -793,7 +793,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
           <motion.div className="glass-panel" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }} style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 650 }}>Contacts Directory</h3>
-              <button className="btn btn-secondary" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)' }} onClick={() => setShowAddContact(true)}>
+              <button className="btn btn-secondary" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)' }} onPointerDown={() => setShowAddContact(true)}>
                 <Plus size={14} /> Add
               </button>
             </div>
@@ -810,10 +810,10 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Type: {c.type} {c.gstin ? `| GSTIN: ${c.gstin}` : ''}</span>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-secondary" style={{ padding: '0.35rem', borderRadius: '6px' }} onClick={() => openEditContact(c)}>
+                    <button className="btn btn-secondary" style={{ padding: '0.35rem', borderRadius: '6px' }} onPointerDown={() => openEditContact(c)}>
                       <Edit2 size={13} />
                     </button>
-                    <button className="btn btn-danger" style={{ padding: '0.35rem', borderRadius: '6px' }} onClick={() => handleDeleteContact(c.id)}>
+                    <button className="btn btn-danger" style={{ padding: '0.35rem', borderRadius: '6px' }} onPointerDown={() => handleDeleteContact(c.id)}>
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -837,7 +837,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                   </div>
                   <button
                     className="btn btn-secondary"
-                    onClick={() => setShowAddContact(true)}
+                    onPointerDown={() => setShowAddContact(true)}
                     style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', borderRadius: '2rem', marginTop: '0.5rem' }}
                   >
                     <Plus size={14} /> Add First Contact
@@ -881,7 +881,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
           <motion.div className="glass-panel" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }} style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <h4 style={{ fontSize: '1.1rem' }}>GSTR Register entries</h4>
-              <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }} onClick={() => openAddRegisterEntry()}>
+              <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }} onPointerDown={() => openAddRegisterEntry()}>
                 <Plus size={14} /> Add Entry
               </button>
             </div>
@@ -920,10 +920,10 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                       <td>{formatRupee(reg.igst)}</td>
                       <td style={{ fontWeight: 650 }}>{formatRupee(reg.totalAmount)}</td>
                       <td style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                        <button className="btn btn-secondary" style={{ padding: '0.25rem', borderRadius: '4px' }} onClick={() => openEditRegisterEntry(reg)}>
+                        <button className="btn btn-secondary" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => openEditRegisterEntry(reg)}>
                           <Edit2 size={12} />
                         </button>
-                        <button className="btn btn-danger" style={{ padding: '0.25rem', borderRadius: '4px' }} onClick={() => handleDeleteRegisterEntry(reg.id)}>
+                        <button className="btn btn-danger" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleDeleteRegisterEntry(reg.id)}>
                           <Trash2 size={12} />
                         </button>
                       </td>
@@ -947,7 +947,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
         <motion.div className="glass-panel" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }} style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h3 style={{ fontSize: '1.1rem' }}>FIFO Store Inventory Stock Ledger</h3>
-            <button className="btn btn-primary" onClick={() => setShowAddInventory(true)}>
+            <button className="btn btn-primary" onPointerDown={() => setShowAddInventory(true)}>
               <Plus size={16} /> Add Stock Item
             </button>
           </div>
@@ -989,10 +989,10 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                          <button className="btn btn-secondary" style={{ padding: '0.3rem', borderRadius: '4px' }} onClick={() => openEditInventory(item)}>
+                          <button className="btn btn-secondary" style={{ padding: '0.3rem', borderRadius: '4px' }} onPointerDown={() => openEditInventory(item)}>
                             <Edit2 size={13} />
                           </button>
-                          <button className="btn btn-danger" style={{ padding: '0.3rem', borderRadius: '4px' }} onClick={() => handleDeleteInventoryItem(item.id)}>
+                          <button className="btn btn-danger" style={{ padding: '0.3rem', borderRadius: '4px' }} onPointerDown={() => handleDeleteInventoryItem(item.id)}>
                             <Trash2 size={13} />
                           </button>
                         </div>
@@ -1124,7 +1124,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                 <input type="text" className="form-input" value={contAddress} onChange={(e) => setContAddress(e.target.value)} placeholder="Billing address" />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddContact(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onPointerDown={() => setShowAddContact(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save Contact</button>
               </div>
             </form>
@@ -1180,7 +1180,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                 <input type="number" className="form-input" value={invReorder} onChange={(e) => setInvReorder(e.target.value)} placeholder="5" />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddInventory(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onPointerDown={() => setShowAddInventory(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save Item</button>
               </div>
             </form>
@@ -1223,11 +1223,11 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                   <div className="form-group" style={{ flex: 1, margin: 0 }}>
                     <input type="number" className="form-input" value={row.quantity} onChange={(e) => handleInvoiceItemChange(idx, 'quantity', e.target.value)} min={1} required />
                   </div>
-                  <button type="button" className="btn btn-danger" style={{ padding: '0.6rem 0.8rem' }} onClick={() => removeInvoiceItemRow(idx)}>X</button>
+                  <button type="button" className="btn btn-danger" style={{ padding: '0.6rem 0.8rem' }} onPointerDown={() => removeInvoiceItemRow(idx)}>X</button>
                 </div>
               ))}
 
-              <button type="button" className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', marginTop: '0.5rem' }} onClick={addInvoiceItemRow}>
+              <button type="button" className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', marginTop: '0.5rem' }} onPointerDown={addInvoiceItemRow}>
                 + Add Row Item
               </button>
 
@@ -1237,7 +1237,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowCreateInvoice(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onPointerDown={() => setShowCreateInvoice(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Generate Invoice</button>
               </div>
             </form>
@@ -1341,10 +1341,10 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
             </div>
 
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
-              <button className="btn btn-secondary" style={{ color: '#333', borderColor: '#ccc' }} onClick={() => window.print()}>
+              <button className="btn btn-secondary" style={{ color: '#333', borderColor: '#ccc' }} onPointerDown={() => window.print()}>
                 <Printer size={16} /> Print/Save PDF
               </button>
-              <button className="btn btn-primary" onClick={() => setViewingInvoice(null)}>Close</button>
+              <button className="btn btn-primary" onPointerDown={() => setViewingInvoice(null)}>Close</button>
             </div>
           </div>
         </div>
@@ -1389,7 +1389,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                 <input type="text" className="form-input" value={editContAddress} onChange={(e) => setEditContAddress(e.target.value)} />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowEditContact(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onPointerDown={() => setShowEditContact(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save Changes</button>
               </div>
             </form>
@@ -1441,7 +1441,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowEditInventory(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onPointerDown={() => setShowEditInventory(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save Changes</button>
               </div>
             </form>
@@ -1507,7 +1507,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
               </div>
               
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowRegisterForm(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onPointerDown={() => setShowRegisterForm(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save Entry</button>
               </div>
             </form>

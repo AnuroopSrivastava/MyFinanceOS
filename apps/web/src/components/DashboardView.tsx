@@ -699,7 +699,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
               {(['6M', '12M', '2Y', '5Y', '10Y'] as const).map(f => (
                 <button
                   key={f}
-                  onClick={() => setTimelineFilter(f)}
+                  onPointerDown={() => setTimelineFilter(f)}
                   style={{
                     padding: '0.25rem 0.5rem',
                     fontSize: '0.7rem',

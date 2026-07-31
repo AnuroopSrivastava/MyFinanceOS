@@ -163,7 +163,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button
             className="btn btn-secondary"
-            onClick={handleExportCsv}
+            onPointerDown={handleExportCsv}
             disabled={!reportReady}
             style={{ padding: '0.5rem 0.8rem', fontSize: '0.85rem', opacity: reportReady ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: 'var(--radius-sm)' }}
           >
@@ -172,7 +172,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
           </button>
           <button
             className="btn btn-primary"
-            onClick={handlePrintPdf}
+            onPointerDown={handlePrintPdf}
             disabled={!reportReady}
             style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', opacity: reportReady ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: 'var(--radius-sm)' }}
           >
@@ -190,7 +190,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
           return (
             <button
               key={rep.id}
-              onClick={() => { setSelectedReportType(rep.id as any); setReportReady(false); }}
+              onPointerDown={() => { setSelectedReportType(rep.id as any); setReportReady(false); }}
               className="glass-panel"
               style={{
                 padding: '1rem',
@@ -260,7 +260,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
 
         <button
           className="btn btn-primary"
-          onClick={handleGenerate}
+          onPointerDown={handleGenerate}
           disabled={isGenerating}
           style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', marginLeft: 'auto' }}
         >

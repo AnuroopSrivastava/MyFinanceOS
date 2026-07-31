@@ -609,7 +609,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
             <h3 style={{ fontSize: '1.15rem', fontWeight: 650, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <FileText size={18} color="var(--accent-2)" /> TDS Summary (Form 26AS Reconciliation)
             </h3>
-            <button className="btn btn-primary" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem', borderRadius: 'var(--radius-sm)' }} onClick={() => openTdsModal()}>
+            <button className="btn btn-primary" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem', borderRadius: 'var(--radius-sm)' }} onPointerDown={() => openTdsModal()}>
               <Plus size={14} /> Add TDS
             </button>
           </div>
@@ -638,10 +638,10 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
 
                 {/* Actions */}
                 <div style={{ position: 'absolute', right: '0.5rem', bottom: '0.5rem', display: 'flex', gap: '0.4rem' }}>
-                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }} onClick={() => openTdsModal(r)}>
+                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }} onPointerDown={() => openTdsModal(r)}>
                     <Edit2 size={13} />
                   </button>
-                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)' }} onClick={() => deleteTdsRecord(r.id)}>
+                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)' }} onPointerDown={() => deleteTdsRecord(r.id)}>
                     <Trash2 size={13} />
                   </button>
                 </div>
@@ -675,7 +675,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
               style={{ width: '100%', maxWidth: '420px', padding: '1.5rem', position: 'relative' }}
             >
               <button
-                onClick={closeTdsModal}
+                onPointerDown={closeTdsModal}
                 style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
               >
                 <X size={20} />
@@ -714,7 +714,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
                 </select>
               </div>
 
-              <button className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} onClick={saveTdsRecord}>
+              <button className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} onPointerDown={saveTdsRecord}>
                 Save Record
               </button>
             </motion.div>

@@ -105,7 +105,7 @@ export const PortfolioDistribution: React.FC<PortfolioDistributionProps> = ({
                 <button
                   className="btn btn-secondary"
                   style={{ padding: '0.45rem', borderRadius: '50%', flexShrink: 0 }}
-                  onClick={() => handleRemove(cat.id)}
+                  onPointerDown={() => handleRemove(cat.id)}
                   title="Remove Category"
                 >
                   <Trash2 size={15} color="var(--error)" />
@@ -115,7 +115,7 @@ export const PortfolioDistribution: React.FC<PortfolioDistributionProps> = ({
           ))}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem' }}>
-            <button className="btn btn-primary" onClick={handleAddCategory}>
+            <button className="btn btn-primary" onPointerDown={handleAddCategory}>
               <Plus size={16} /> Add Category
             </button>
             <div style={{ 

@@ -126,15 +126,15 @@ export const GoalTracker: React.FC<GoalTrackerProps> = ({ activeProfileId }) => 
       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Icon:</span>
         {GOAL_ICONS.map(i => (
-          <button type="button" key={i} onClick={() => setIcon(i)} style={{ fontSize: '1.2rem', background: icon === i ? 'rgba(255,255,255,0.1)' : 'transparent', border: icon === i ? '1px solid var(--accent-1)' : '1px solid transparent', borderRadius: '6px', padding: '0.2rem 0.4rem', cursor: 'pointer' }}>{i}</button>
+          <button type="button" key={i} onPointerDown={() => setIcon(i)} style={{ fontSize: '1.2rem', background: icon === i ? 'rgba(255,255,255,0.1)' : 'transparent', border: icon === i ? '1px solid var(--accent-1)' : '1px solid transparent', borderRadius: '6px', padding: '0.2rem 0.4rem', cursor: 'pointer' }}>{i}</button>
         ))}
         <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>Color:</span>
         {GOAL_COLORS.map(c => (
-          <button type="button" key={c} onClick={() => setColor(c)} style={{ width: '20px', height: '20px', borderRadius: '50%', background: c, border: color === c ? '2px solid #fff' : '2px solid transparent', cursor: 'pointer' }} />
+          <button type="button" key={c} onPointerDown={() => setColor(c)} style={{ width: '20px', height: '20px', borderRadius: '50%', background: c, border: color === c ? '2px solid #fff' : '2px solid transparent', cursor: 'pointer' }} />
         ))}
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-        <button type="button" className="btn btn-secondary" onClick={resetForm} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', border: '1px solid var(--border-color)' }}>Cancel</button>
+        <button type="button" className="btn btn-secondary" onPointerDown={resetForm} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', border: '1px solid var(--border-color)' }}>Cancel</button>
         <button type="submit" className="btn btn-primary" style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}>{editGoal ? 'Update Goal' : 'Add Goal'}</button>
       </div>
     </form>
@@ -148,7 +148,7 @@ export const GoalTracker: React.FC<GoalTrackerProps> = ({ activeProfileId }) => 
         </h4>
         <button
           className="btn btn-primary"
-          onClick={() => { resetForm(); setShowAdd(true); }}
+          onPointerDown={() => { resetForm(); setShowAdd(true); }}
           style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', gap: '0.3rem' }}
         >
           <Plus size={14} /> New Goal
@@ -197,10 +197,10 @@ export const GoalTracker: React.FC<GoalTrackerProps> = ({ activeProfileId }) => 
                 </div>
               )}
               <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.5rem', justifyContent: 'flex-end' }}>
-                <button className="btn btn-secondary" onClick={() => openEdit(g)} style={{ padding: '0.2rem 0.4rem', border: '1px solid var(--border-color)', fontSize: '0.7rem' }}>
+                <button className="btn btn-secondary" onPointerDown={() => openEdit(g)} style={{ padding: '0.2rem 0.4rem', border: '1px solid var(--border-color)', fontSize: '0.7rem' }}>
                   <Edit2 size={12} />
                 </button>
-                <button className="btn btn-secondary" onClick={() => handleDelete(g.id)} style={{ padding: '0.2rem 0.4rem', border: '1px solid var(--border-color)', fontSize: '0.7rem' }}>
+                <button className="btn btn-secondary" onPointerDown={() => handleDelete(g.id)} style={{ padding: '0.2rem 0.4rem', border: '1px solid var(--border-color)', fontSize: '0.7rem' }}>
                   <Trash2 size={12} color="var(--error)" />
                 </button>
               </div>

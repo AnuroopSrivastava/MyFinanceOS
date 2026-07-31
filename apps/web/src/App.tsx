@@ -284,7 +284,7 @@ const App: React.FC = () => {
           </div>
           {isMobileMenuOpen && (
             <button
-              onClick={() => setIsMobileMenuOpen(false)}
+              onPointerDown={() => setIsMobileMenuOpen(false)}
               aria-label="Close menu"
               style={{
                 background: 'rgba(255,255,255,0.08)',
@@ -322,7 +322,7 @@ const App: React.FC = () => {
           ].map(page => (
             <button
               key={page.id}
-              onClick={() => {
+              onPointerDown={() => {
                 if (hasUnsavedChanges && activePage !== page.id) {
                   const confirmLeave = window.confirm('You have unsaved changes that are still syncing to the cloud. Are you sure you want to change pages?');
                   if (!confirmLeave) return;
@@ -407,7 +407,7 @@ const App: React.FC = () => {
               color: 'var(--error)', opacity: 0.9, transition: 'opacity 0.2s',
               fontSize: '0.85rem'
             }}
-            onClick={handleLock}
+            onPointerDown={handleLock}
           >
             <LogOut size={16} />
             <span>Lock Vault</span>
@@ -436,7 +436,7 @@ const App: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button
               className="btn btn-secondary mobile-menu-btn"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onPointerDown={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               style={{ padding: '0.35rem 0.5rem', border: '1px solid var(--border-color)' }}
             >
               <Menu size={16} />
@@ -452,7 +452,7 @@ const App: React.FC = () => {
               {saveError ? (
                 <button
                   className="btn animate-fade-in"
-                  onClick={() => setShowSavePopup(true)}
+                  onPointerDown={() => setShowSavePopup(true)}
                   title="Click to view error and retry"
                   style={{
                     padding: '0.35rem 0.75rem',
@@ -474,7 +474,7 @@ const App: React.FC = () => {
               ) : hasUnsavedChanges ? (
                 <button
                   className="btn animate-fade-in"
-                  onClick={() => {
+                  onPointerDown={() => {
                     dbService.syncToCloud().then(() => showToastAlert('Auto-Save', 'State saved to cloud'));
                   }}
                   title="Saving changes in background..."
@@ -522,7 +522,7 @@ const App: React.FC = () => {
             <div style={{ position: 'relative' }}>
               <button
                 className="btn btn-primary"
-                onClick={() => setShowDatePicker(!showDatePicker)}
+                onPointerDown={() => setShowDatePicker(!showDatePicker)}
                 style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', gap: '0.4rem', background: 'var(--accent-1)', color: '#000', fontWeight: 600 }}
               >
                 <Calendar size={14} />
@@ -586,7 +586,7 @@ const App: React.FC = () => {
                             cursor: isDisabled ? 'not-allowed' : 'pointer'
                           }}
                           disabled={isDisabled}
-                          onClick={() => {
+                          onPointerDown={() => {
                             setDateRange(range);
                             setShowDatePicker(false);
                           }}
@@ -606,7 +606,7 @@ const App: React.FC = () => {
                     <button
                       className="btn btn-primary"
                       style={{ width: 'calc(100% - 1rem)', margin: '0.5rem auto 0', padding: '0.3rem', fontSize: '0.8rem' }}
-                      onClick={() => {
+                      onPointerDown={() => {
                         setDateRange({ startDate: customStart || null, endDate: customEnd || null, label: customStart ? `${customStart} to ${customEnd || 'Now'}` : 'Custom' });
                         setShowDatePicker(false);
                       }}
@@ -645,42 +645,42 @@ const App: React.FC = () => {
         <nav className="mobile-bottom-nav">
           <button
             className={`mobile-nav-item ${activePage === 'dashboard' ? 'active' : ''}`}
-            onClick={() => { setActivePage('dashboard'); setIsMobileMenuOpen(false); }}
+            onPointerDown={() => { setActivePage('dashboard'); setIsMobileMenuOpen(false); }}
           >
             <LayoutDashboard size={18} />
             <span>Control</span>
           </button>
           <button
             className={`mobile-nav-item ${activePage === 'ledger' ? 'active' : ''}`}
-            onClick={() => { setActivePage('ledger'); setIsMobileMenuOpen(false); }}
+            onPointerDown={() => { setActivePage('ledger'); setIsMobileMenuOpen(false); }}
           >
             <Landmark size={18} />
             <span>Ledger</span>
           </button>
           <button
             className={`mobile-nav-item ${activePage === 'investments' ? 'active' : ''}`}
-            onClick={() => { setActivePage('investments'); setIsMobileMenuOpen(false); }}
+            onPointerDown={() => { setActivePage('investments'); setIsMobileMenuOpen(false); }}
           >
             <TrendingUp size={18} />
             <span>Wealth</span>
           </button>
           <button
             className={`mobile-nav-item ${activePage === 'tax' ? 'active' : ''}`}
-            onClick={() => { setActivePage('tax'); setIsMobileMenuOpen(false); }}
+            onPointerDown={() => { setActivePage('tax'); setIsMobileMenuOpen(false); }}
           >
             <Percent size={18} />
             <span>Tax</span>
           </button>
           <button
             className={`mobile-nav-item ${activePage === 'ai' ? 'active' : ''}`}
-            onClick={() => { setActivePage('ai'); setIsMobileMenuOpen(false); }}
+            onPointerDown={() => { setActivePage('ai'); setIsMobileMenuOpen(false); }}
           >
             <Sparkles size={18} />
             <span>AI</span>
           </button>
           <button
             className={`mobile-nav-item ${isMobileMenuOpen ? 'active' : ''}`}
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            onPointerDown={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             <Menu size={18} />
             <span>More</span>
@@ -699,7 +699,7 @@ const App: React.FC = () => {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
             <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-1)' }}>⚡ {toast.title}</span>
-            <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '0.8rem' }}>×</button>
+            <button onPointerDown={() => setToast(null)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '0.8rem' }}>×</button>
           </div>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0 }}>{toast.message}</p>
         </div>

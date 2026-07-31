@@ -358,7 +358,10 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
 
   const handleAddAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAccName || !newAccBank) return;
+    if (!newAccName.trim() || !newAccBank.trim()) {
+      alert("Please fill in the required fields: Account Label Name and Bank Institution.");
+      return;
+    }
 
     await dbService.addAccount({
       profileId: activeProfileId,
@@ -604,7 +607,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
             <h3 style={{ fontSize: '1.15rem', fontWeight: 650, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Landmark size={18} color="var(--accent-1)" /> Linked Accounts
             </h3>
-            <button className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.85rem', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)' }} onClick={() => setShowAddAccount(true)}>
+            <button className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.85rem', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)' }} onPointerDown={() => setShowAddAccount(true)}>
               <Plus size={14} /> Add Account
             </button>
           </div>
@@ -633,10 +636,10 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                     <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{acc.bankName}</span>
                   </div>
                   <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-                    <button onClick={() => openEditAccount(acc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} title="Edit Account">
+                    <button onPointerDown={() => openEditAccount(acc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} title="Edit Account">
                       <Edit2 size={15} />
                     </button>
-                    <button onClick={() => handleDeleteAccount(acc.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)' }} title="Delete Account">
+                    <button onPointerDown={() => handleDeleteAccount(acc.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)' }} title="Delete Account">
                       <Trash2 size={15} />
                     </button>
                     {acc.accountType === 'CreditCard' ? <CreditCard size={18} color="var(--accent-1)" style={{ marginLeft: '0.2rem' }} /> : <Landmark size={18} color="var(--accent-2)" style={{ marginLeft: '0.2rem' }} />}
@@ -670,7 +673,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
               <h3 style={{ fontSize: '1.15rem', fontWeight: 650, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <RefreshCw size={18} color="var(--accent-2)" /> Automated SIPs & Bills
               </h3>
-              <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)' }} onClick={() => setShowAddRecurring(true)}>
+              <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)' }} onPointerDown={() => setShowAddRecurring(true)}>
                 <Plus size={14} style={{ display: 'inline', marginRight: '0.25rem' }} /> Scheduler
               </button>
             </div>
@@ -698,7 +701,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                         {rt.type === 'Income' ? '+' : '-'}{formatRupee(rt.amount)}
                       </span>
                       <button
-                        onClick={() => handleDeleteRecurring(rt.id)}
+                        onPointerDown={() => handleDeleteRecurring(rt.id)}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)', padding: '0.1rem' }}
                         title="Delete Scheduler"
                       >
@@ -930,7 +933,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
 
             <button
               className="btn btn-secondary"
-              onClick={() => {
+              onPointerDown={() => {
                 exportToCSV('ledger_transactions', [
                   { label: 'Date', key: 'date' },
                   { label: 'Description', key: 'description' },
@@ -1024,7 +1027,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                          <button
                             className="btn btn-icon"
                             style={{ padding: '0.4rem', background: 'transparent', color: 'var(--text-muted)', border: 'none' }}
-                            onClick={(e) => {
+                            onPointerDown={(e) => {
                               // Prevent row click if any
                               e.stopPropagation();
                               handleDeleteTx(tx.id);
@@ -1095,8 +1098,14 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                 <input type="text" className="form-input" value={newAccNominee} onChange={(e) => setNewAccNominee(e.target.value)} placeholder="Nominee full name" />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddAccount(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Link Account</button>
+                <button type="button" className="btn btn-secondary" onPointerDown={() => setShowAddAccount(false)}>Cancel</button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary"
+                  onPointerDown={(e) => handleAddAccount(e as any)}
+                >
+                  Link Account
+                </button>
               </div>
             </form>
           </div>
@@ -1145,7 +1154,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                 <input type="text" className="form-input" value={editAccNominee} onChange={(e) => setEditAccNominee(e.target.value)} placeholder="Registered nominee" />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowEditAccount(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onPointerDown={() => setShowEditAccount(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save Changes</button>
               </div>
             </form>
@@ -1216,7 +1225,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                 <input type="text" className="form-input" value={newTxDesc} onChange={(e) => setNewTxDesc(e.target.value)} placeholder="e.g. Amazon shopping purchase" required />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddTx(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onPointerDown={() => setShowAddTx(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Record Entry</button>
               </div>
             </form>
@@ -1312,7 +1321,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddRecurring(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onPointerDown={() => setShowAddRecurring(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Schedule SIP/Bill</button>
               </div>
             </form>
@@ -1332,7 +1341,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                 <h3 style={{ fontSize: '1.25rem', margin: 0 }}>Review Bank Statement Entries</h3>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>Verify parsed dates, amounts, and categories before committing to ledger.</p>
               </div>
-              <button onClick={() => setParsedReviewTxs([])} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.25rem' }}>&times;</button>
+              <button onPointerDown={() => setParsedReviewTxs([])} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.25rem' }}>&times;</button>
             </div>
 
             <div className="form-group" style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem', background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
@@ -1457,10 +1466,10 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button className="btn btn-secondary" onClick={() => setParsedReviewTxs([])}>Cancel</button>
+              <button className="btn btn-secondary" onPointerDown={() => setParsedReviewTxs([])}>Cancel</button>
               <button
                 className="btn btn-primary"
-                onClick={handleImportVerified}
+                onPointerDown={handleImportVerified}
                 disabled={parsedReviewTxs.filter(t => t.selected).length === 0}
               >
                 Import {parsedReviewTxs.filter(t => t.selected).length} Verified Entries

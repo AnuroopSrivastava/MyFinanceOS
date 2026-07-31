@@ -115,7 +115,7 @@ export const SaveStatusPopup: React.FC<SaveStatusPopupProps> = ({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onPointerDown={onClose}
             style={{
               background: 'transparent',
               border: 'none',
@@ -157,7 +157,7 @@ export const SaveStatusPopup: React.FC<SaveStatusPopupProps> = ({
         {/* Action Buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <button
-            onClick={handleRetry}
+            onPointerDown={handleRetry}
             disabled={isRetrying}
             className="btn btn-primary"
             style={{
@@ -190,7 +190,7 @@ export const SaveStatusPopup: React.FC<SaveStatusPopupProps> = ({
           </button>
 
           <button
-            onClick={handleExportBackup}
+            onPointerDown={handleExportBackup}
             className="btn btn-secondary"
             style={{
               width: '100%',
@@ -210,7 +210,7 @@ export const SaveStatusPopup: React.FC<SaveStatusPopupProps> = ({
           </button>
 
           <button
-            onClick={onClose}
+            onPointerDown={onClose}
             style={{
               background: 'transparent',
               border: 'none',

@@ -123,7 +123,7 @@ export const SubCategoryDistribution: React.FC<SubCategoryDistributionProps> = (
               <button
                 className="btn btn-secondary"
                 style={{ padding: '0.5rem', marginTop: '1.4rem' }}
-                onClick={() => handleRemove(sub.id)}
+                onPointerDown={() => handleRemove(sub.id)}
                 title="Remove Asset"
               >
                 <Trash2 size={16} color="var(--error)" />
@@ -132,7 +132,7 @@ export const SubCategoryDistribution: React.FC<SubCategoryDistributionProps> = (
           ))}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-            <button className="btn btn-secondary" onClick={handleAdd} style={{ fontSize: '0.85rem' }}>
+            <button className="btn btn-secondary" onPointerDown={handleAdd} style={{ fontSize: '0.85rem' }}>
               <Plus size={16} /> Add Asset
             </button>
             

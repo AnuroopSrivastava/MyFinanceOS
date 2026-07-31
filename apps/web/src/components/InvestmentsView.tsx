@@ -601,13 +601,13 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
 
       {/* Tabs Menu */}
       <div className="mobile-tabs-scroll" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-        <button className={`btn ${activeTab === 'holdings' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onClick={() => setActiveTab('holdings')}>
+        <button className={`btn ${activeTab === 'holdings' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onPointerDown={() => setActiveTab('holdings')}>
           Asset Holdings
         </button>
-        <button className={`btn ${activeTab === 'rebalance' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onClick={() => setActiveTab('rebalance')}>
+        <button className={`btn ${activeTab === 'rebalance' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onPointerDown={() => setActiveTab('rebalance')}>
           Portfolio Rebalancing
         </button>
-        <button className={`btn ${activeTab === 'sim' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onClick={() => setActiveTab('sim')}>
+        <button className={`btn ${activeTab === 'sim' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onPointerDown={() => setActiveTab('sim')}>
           Retirement Simulator (Monte Carlo)
         </button>
       </div>
@@ -622,7 +622,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
               <h4 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Layers size={16} color="var(--accent-1)" /> Direct Equity Stocks
               </h4>
-              <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onClick={() => setShowAddStock(true)}>
+              <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onPointerDown={() => setShowAddStock(true)}>
                 <Plus size={14} /> Add Stock
               </button>
             </div>
@@ -669,10 +669,10 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
                           </td>
                           <td style={{ textAlign: 'center' }}>
                             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                              <button className="btn btn-secondary" style={{ padding: '0.3rem', borderRadius: '4px' }} onClick={() => handleEditStock(s)}>
+                              <button className="btn btn-secondary" style={{ padding: '0.3rem', borderRadius: '4px' }} onPointerDown={() => handleEditStock(s)}>
                                 <Edit2 size={13} />
                               </button>
-                              <button className="btn btn-danger" style={{ padding: '0.3rem', borderRadius: '4px' }} onClick={() => handleDeleteStock(s.id)}>
+                              <button className="btn btn-danger" style={{ padding: '0.3rem', borderRadius: '4px' }} onPointerDown={() => handleDeleteStock(s.id)}>
                                 <Trash2 size={13} />
                               </button>
                             </div>
@@ -698,7 +698,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
               <h4 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <TrendingUp size={16} color="var(--accent-2)" /> Mutual Funds (Direct Growth)
               </h4>
-              <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onClick={() => setShowAddMF(true)}>
+              <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onPointerDown={() => setShowAddMF(true)}>
                 <Plus size={14} /> Add Mutual Fund
               </button>
             </div>
@@ -743,10 +743,10 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
                           </td>
                           <td style={{ textAlign: 'center' }}>
                             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                              <button className="btn btn-secondary" style={{ padding: '0.3rem', borderRadius: '4px' }} onClick={() => handleEditMF(m)}>
+                              <button className="btn btn-secondary" style={{ padding: '0.3rem', borderRadius: '4px' }} onPointerDown={() => handleEditMF(m)}>
                                 <Edit2 size={13} />
                               </button>
-                              <button className="btn btn-danger" style={{ padding: '0.3rem', borderRadius: '4px' }} onClick={() => handleDeleteMF(m.id)}>
+                              <button className="btn btn-danger" style={{ padding: '0.3rem', borderRadius: '4px' }} onPointerDown={() => handleDeleteMF(m.id)}>
                                 <Trash2 size={13} />
                               </button>
                             </div>
@@ -774,10 +774,10 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                 <h4 style={{ fontSize: '1rem' }}>Fixed Deposits & Gold Assets</h4>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => setShowAddFD(true)}>
+                  <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onPointerDown={() => setShowAddFD(true)}>
                     + FD
                   </button>
-                  <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => setShowAddGold(true)}>
+                  <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onPointerDown={() => setShowAddGold(true)}>
                     + Gold
                   </button>
                 </div>
@@ -800,10 +800,10 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
                         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Principal: {formatRupee(f.principalAmount)}</span>
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-secondary" style={{ padding: '0.25rem', borderRadius: '4px' }} onClick={() => handleEditFD(f)}>
+                        <button className="btn btn-secondary" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleEditFD(f)}>
                           <Edit2 size={12} />
                         </button>
-                        <button className="btn btn-danger" style={{ padding: '0.25rem', borderRadius: '4px' }} onClick={() => handleDeleteFD(f.id)}>
+                        <button className="btn btn-danger" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleDeleteFD(f.id)}>
                           <Trash2 size={12} />
                         </button>
                       </div>
@@ -827,10 +827,10 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
                         <span style={{ fontSize: '0.72rem', color: 'var(--success)' }}>Gain: {(((g.currentPrice - g.purchasePrice) / g.purchasePrice) * 100).toFixed(0)}%</span>
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-secondary" style={{ padding: '0.25rem', borderRadius: '4px' }} onClick={() => handleEditGold(g)}>
+                        <button className="btn btn-secondary" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleEditGold(g)}>
                           <Edit2 size={12} />
                         </button>
-                        <button className="btn btn-danger" style={{ padding: '0.25rem', borderRadius: '4px' }} onClick={() => handleDeleteGold(g.id)}>
+                        <button className="btn btn-danger" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleDeleteGold(g.id)}>
                           <Trash2 size={12} />
                         </button>
                       </div>
@@ -851,10 +851,10 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                 <h4 style={{ fontSize: '1rem' }}>Government Pension & PPF/EPF</h4>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => setShowAddNPS(true)}>
+                  <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onPointerDown={() => setShowAddNPS(true)}>
                     + NPS
                   </button>
-                  <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => setShowAddPF(true)}>
+                  <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onPointerDown={() => setShowAddPF(true)}>
                     + PF
                   </button>
                 </div>
@@ -874,10 +874,10 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                       <div style={{ fontWeight: 600 }}>{formatRupee(n.balance)}</div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-secondary" style={{ padding: '0.25rem', borderRadius: '4px' }} onClick={() => handleEditNPS(n)}>
+                        <button className="btn btn-secondary" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleEditNPS(n)}>
                           <Edit2 size={12} />
                         </button>
-                        <button className="btn btn-danger" style={{ padding: '0.25rem', borderRadius: '4px' }} onClick={() => handleDeleteNPS(n.id)}>
+                        <button className="btn btn-danger" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleDeleteNPS(n.id)}>
                           <Trash2 size={12} />
                         </button>
                       </div>
@@ -898,10 +898,10 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                       <div style={{ fontWeight: 600 }}>{formatRupee(p.balance)}</div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-secondary" style={{ padding: '0.25rem', borderRadius: '4px' }} onClick={() => handleEditPF(p)}>
+                        <button className="btn btn-secondary" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleEditPF(p)}>
                           <Edit2 size={12} />
                         </button>
-                        <button className="btn btn-danger" style={{ padding: '0.25rem', borderRadius: '4px' }} onClick={() => handleDeletePF(p.id)}>
+                        <button className="btn btn-danger" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleDeletePF(p.id)}>
                           <Trash2 size={12} />
                         </button>
                       </div>
@@ -1029,7 +1029,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
                 <label className="form-label" style={{ fontSize: '0.75rem' }}>Portfolio Volatility (% StdDev)</label>
                 <input type="number" className="form-input" style={{ padding: '0.4rem' }} value={volatility} onChange={(e) => setVolatility(parseFloat(e.target.value) || 0)} />
               </div>
-              <button className="btn btn-primary" style={{ padding: '0.5rem', fontSize: '0.85rem' }} onClick={runMonteCarloSimulation}>
+              <button className="btn btn-primary" style={{ padding: '0.5rem', fontSize: '0.85rem' }} onPointerDown={runMonteCarloSimulation}>
                 <Play size={14} /> Run Simulation
               </button>
             </div>
@@ -1113,7 +1113,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
                 <input type="text" className="form-input" value={stkNominee} onChange={(e) => setStkNominee(e.target.value)} placeholder="Registered nominee" />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowAddStock(false); setEditStockId(null); }}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onPointerDown={() => { setShowAddStock(false); setEditStockId(null); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary">{editStockId ? 'Save Changes' : 'Add Asset'}</button>
               </div>
             </form>
@@ -1187,7 +1187,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
               )}
 
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowAddMF(false); setEditMFId(null); }}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onPointerDown={() => { setShowAddMF(false); setEditMFId(null); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary">{editMFId ? 'Save Changes' : 'Add Asset'}</button>
               </div>
             </form>
@@ -1237,7 +1237,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
                 <input type="text" className="form-input" value={fdNominee} onChange={(e) => setFdNominee(e.target.value)} placeholder="Registered nominee" />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowAddFD(false); setEditFDId(null); }}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onPointerDown={() => { setShowAddFD(false); setEditFDId(null); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary">{editFDId ? 'Save Changes' : 'Link Deposit'}</button>
               </div>
             </form>
@@ -1281,7 +1281,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
                 <input type="text" className="form-input" value={gldNominee} onChange={(e) => setGldNominee(e.target.value)} placeholder="Registered nominee" />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowAddGold(false); setEditGoldId(null); }}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onPointerDown={() => { setShowAddGold(false); setEditGoldId(null); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary">{editGoldId ? 'Save Changes' : 'Add Asset'}</button>
               </div>
             </form>
@@ -1329,7 +1329,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
                 <input type="text" className="form-input" value={npsNominee} onChange={(e) => setNpsNominee(e.target.value)} placeholder="Registered nominee" />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowAddNPS(false); setEditNPSId(null); }}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onPointerDown={() => { setShowAddNPS(false); setEditNPSId(null); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary">{editNPSId ? 'Save Changes' : 'Link NPS'}</button>
               </div>
             </form>
@@ -1372,7 +1372,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
                 <input type="text" className="form-input" value={pfNominee} onChange={(e) => setPfNominee(e.target.value)} placeholder="Registered nominee" />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowAddPF(false); setEditPFId(null); }}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onPointerDown={() => { setShowAddPF(false); setEditPFId(null); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary">{editPFId ? 'Save Changes' : 'Link Fund'}</button>
               </div>
             </form>

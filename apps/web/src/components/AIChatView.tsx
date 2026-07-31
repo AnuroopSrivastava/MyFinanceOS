@@ -240,7 +240,7 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
           }}>
             <button
               type="button"
-              onClick={() => handleModeChange('local')}
+              onPointerDown={() => handleModeChange('local')}
               style={{
                 padding: '0.35rem 1rem', fontSize: '0.75rem', borderRadius: 'var(--radius-sm)',
                 background: mode === 'local' ? 'var(--accent-grad)' : 'transparent',
@@ -254,7 +254,7 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
             </button>
             <button
               type="button"
-              onClick={() => handleModeChange('cloud')}
+              onPointerDown={() => handleModeChange('cloud')}
               style={{
                 padding: '0.35rem 1rem', fontSize: '0.75rem', borderRadius: 'var(--radius-sm)',
                 background: mode === 'cloud' ? 'var(--accent-grad)' : 'transparent',
@@ -269,7 +269,7 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
           </div>
           <button
             type="button"
-            onClick={() => setShowSettings(!showSettings)}
+            onPointerDown={() => setShowSettings(!showSettings)}
             style={{
               background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)',
               borderRadius: 'var(--radius-sm)', padding: '0.4rem', cursor: 'pointer',
@@ -302,7 +302,7 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
               onChange={(e) => setApiKey(e.target.value)}
             />
           </div>
-          <button type="button" className="btn btn-primary" onClick={handleSaveSettings} style={{ padding: '0.6rem 1.25rem' }}>Save Key</button>
+          <button type="button" className="btn btn-primary" onPointerDown={handleSaveSettings} style={{ padding: '0.6rem 1.25rem' }}>Save Key</button>
         </div>
       )}
 
@@ -378,7 +378,7 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
             key={i}
             type="button"
             className="btn glass-panel"
-            onClick={() => processQueryText(qp.prompt)}
+            onPointerDown={() => processQueryText(qp.prompt)}
             disabled={isProcessing}
             style={{
               fontSize: '0.78rem', padding: '0.5rem 1rem', whiteSpace: 'nowrap',

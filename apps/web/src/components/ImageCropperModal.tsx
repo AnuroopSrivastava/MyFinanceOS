@@ -125,7 +125,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({ isOpen, on
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Adjust Profile Picture</h3>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={18} /></button>
+          <button onPointerDown={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={18} /></button>
         </div>
 
         <div style={{ position: 'relative', width: '100%', height: '300px', background: '#000', borderRadius: '0.75rem', overflow: 'hidden' }}>
@@ -164,7 +164,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({ isOpen, on
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <button
                 type="button"
-                onClick={() => setRotation(rotation - 90)}
+                onPointerDown={() => setRotation(rotation - 90)}
                 className="btn btn-secondary"
                 style={{ padding: '0.4rem', borderRadius: '50%', flexShrink: 0 }}
               >
@@ -182,7 +182,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({ isOpen, on
               />
               <button
                 type="button"
-                onClick={() => setRotation(rotation + 90)}
+                onPointerDown={() => setRotation(rotation + 90)}
                 className="btn btn-secondary"
                 style={{ padding: '0.4rem', borderRadius: '50%', flexShrink: 0 }}
               >
@@ -193,8 +193,8 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({ isOpen, on
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-          <button type="button" onClick={onClose} className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }}>Cancel</button>
-          <button type="button" onClick={handleSave} className="btn btn-primary" style={{ padding: '0.5rem 1.25rem' }}>Apply Image</button>
+          <button type="button" onPointerDown={onClose} className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }}>Cancel</button>
+          <button type="button" onPointerDown={handleSave} className="btn btn-primary" style={{ padding: '0.5rem 1.25rem' }}>Apply Image</button>
         </div>
       </div>
     </div>,

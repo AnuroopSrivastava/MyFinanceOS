@@ -173,7 +173,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
                 return (
                   <button
                     key={item.id}
-                    onClick={() => { item.action(); onClose(); }}
+                    onPointerDown={() => { item.action(); onClose(); }}
                     onMouseEnter={() => setSelectedIndex(idx)}
                     style={{
                       width: '100%', display: 'flex', alignItems: 'center', gap: '0.6rem',

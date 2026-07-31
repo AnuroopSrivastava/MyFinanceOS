@@ -147,7 +147,7 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
         <button 
           type="button"
           tabIndex={-1}
-          onClick={handleIncrement}
+          onPointerDown={handleIncrement}
           style={{ 
             background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', height: '50%',
             display: 'flex', alignItems: 'flex-end', justifyContent: 'center'
@@ -158,7 +158,7 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
         <button 
           type="button"
           tabIndex={-1}
-          onClick={handleDecrement}
+          onPointerDown={handleDecrement}
           style={{ 
             background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', height: '50%',
             display: 'flex', alignItems: 'flex-start', justifyContent: 'center'

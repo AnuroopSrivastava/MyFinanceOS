@@ -147,7 +147,7 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
         }}>
           <button
             className={`btn ${activeTab === 'allocator' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setActiveTab('allocator')}
+            onPointerDown={() => setActiveTab('allocator')}
             style={{
               flex: 1,
               padding: '0.45rem 0.3rem',
@@ -166,7 +166,7 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
           </button>
           <button
             className={`btn ${activeTab === 'fire' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setActiveTab('fire')}
+            onPointerDown={() => setActiveTab('fire')}
             style={{
               flex: 1,
               padding: '0.45rem 0.3rem',
@@ -185,7 +185,7 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
           </button>
           <button
             className={`btn ${activeTab === 'emi' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setActiveTab('emi')}
+            onPointerDown={() => setActiveTab('emi')}
             style={{
               flex: 1,
               padding: '0.45rem 0.3rem',

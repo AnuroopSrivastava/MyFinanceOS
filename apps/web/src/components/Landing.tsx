@@ -100,7 +100,7 @@ const FaqItem = ({ question, answer }: { question: string, answer: string }) => 
   return (
     <div style={{ borderBottom: '1px solid var(--border-color)', padding: '1.5rem 0' }}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onPointerDown={() => setIsOpen(!isOpen)}
         style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'none', border: 'none', color: 'var(--text-primary)', fontSize: '1.15rem', fontWeight: 600, cursor: 'pointer', textAlign: 'left', padding: 0 }}
       >
         {question}
@@ -767,7 +767,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
             <a href="/privacy.html" className="nav-link">Privacy</a>
             <a href="/terms.html" className="nav-link">Terms</a>
           </div>
-          <button onClick={() => login()} className="btn btn-secondary nav-signin-btn" disabled={isLoading}>
+          <button onPointerDown={() => login()} className="btn btn-secondary nav-signin-btn" disabled={isLoading}>
             {isLoading ? 'Connecting...' : 'Sign In'}
           </button>
         </div>
@@ -812,7 +812,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
 
         <Reveal delay={0.4}>
           <button
-            onClick={() => login()}
+            onPointerDown={() => login()}
             className="btn btn-primary shimmer-btn hero-cta-btn"
             disabled={isLoading}
           >
@@ -1024,7 +1024,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
                 />
                 <button
                   className="btn btn-secondary feedback-submit-btn"
-                  onClick={handleFeedbackSubmit}
+                  onPointerDown={handleFeedbackSubmit}
                   disabled={isSendingFeedback || !feedbackText.trim()}
                 >
                   {isSendingFeedback ? 'Sending...' : 'Send Feedback'}
@@ -1041,9 +1041,9 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
         <div className="footer-links-container">
           <a href="#how-it-works" onClick={scrollToHowItWorks} className="footer-link">How It Works</a>
           <span className="footer-dot">•</span>
-          <button onClick={() => setActiveLegalModal('privacy')} className="footer-btn">Privacy Policy</button>
+          <button onPointerDown={() => setActiveLegalModal('privacy')} className="footer-btn">Privacy Policy</button>
           <span className="footer-dot">•</span>
-          <button onClick={() => setActiveLegalModal('terms')} className="footer-btn">Terms of Service</button>
+          <button onPointerDown={() => setActiveLegalModal('terms')} className="footer-btn">Terms of Service</button>
         </div>
         <div className="footer-copyright">
           © {new Date().getFullYear()} MyFinanceOS. All rights reserved.
@@ -1070,7 +1070,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
             }}>
               <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.05)', padding: '0.3rem', borderRadius: '12px' }}>
                 <button
-                  onClick={() => setActiveLegalModal('privacy')}
+                  onPointerDown={() => setActiveLegalModal('privacy')}
                   style={{
                     padding: '0.4rem 1rem', fontSize: '0.85rem', fontWeight: 600, border: 'none',
                     borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s',
@@ -1081,7 +1081,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
                   🛡️ Privacy Policy
                 </button>
                 <button
-                  onClick={() => setActiveLegalModal('terms')}
+                  onPointerDown={() => setActiveLegalModal('terms')}
                   style={{
                     padding: '0.4rem 1rem', fontSize: '0.85rem', fontWeight: 600, border: 'none',
                     borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s',
@@ -1103,7 +1103,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock }) => {
                   Open Page ↗
                 </a>
                 <button
-                  onClick={() => setActiveLegalModal(null)}
+                  onPointerDown={() => setActiveLegalModal(null)}
                   style={{
                     background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff',
                     borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer',

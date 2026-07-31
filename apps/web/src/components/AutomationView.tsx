@@ -181,7 +181,7 @@ export const AutomationView: React.FC<AutomationViewProps> = ({ profileId }) => 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.5rem' }}>
               <button
                 type="button"
-                onClick={() => setIsCreatingRule(false)}
+                onPointerDown={() => setIsCreatingRule(false)}
                 className="btn btn-secondary"
                 style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
               >
@@ -246,7 +246,7 @@ export const AutomationView: React.FC<AutomationViewProps> = ({ profileId }) => 
                 </p>
                 <button
                   className="btn btn-secondary"
-                  onClick={() => setIsCreatingRule(true)}
+                  onPointerDown={() => setIsCreatingRule(true)}
                   style={{ marginTop: '0.4rem', padding: '0.45rem 1rem', fontSize: '0.8rem', borderRadius: '2rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                 >
                   <Plus size={14} /> Create First Rule
@@ -297,14 +297,14 @@ export const AutomationView: React.FC<AutomationViewProps> = ({ profileId }) => 
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <button
-                    onClick={() => toggleRule(rule.id)}
+                    onPointerDown={() => toggleRule(rule.id)}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: rule.isActive ? 'var(--accent-1)' : 'var(--text-secondary)' }}
                     title={rule.isActive ? 'Pause Rule' : 'Activate Rule'}
                   >
                     {rule.isActive ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
                   </button>
                   <button
-                    onClick={() => deleteRule(rule.id)}
+                    onPointerDown={() => deleteRule(rule.id)}
                     style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', opacity: 0.8 }}
                     title="Delete Rule"
                   >

@@ -236,7 +236,7 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.5rem' }}>
               <button
                 type="button"
-                onClick={() => setIsUploading(false)}
+                onPointerDown={() => setIsUploading(false)}
                 className="btn btn-secondary"
                 style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
               >
@@ -273,7 +273,7 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
           {categories.map(cat => (
             <button
               key={cat}
-              onClick={() => setSelectedCategory(cat)}
+              onPointerDown={() => setSelectedCategory(cat)}
               style={{
                 padding: '0.4rem 0.85rem',
                 borderRadius: '2rem',
@@ -333,7 +333,7 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
                 </div>
 
                 <button
-                  onClick={() => handleDelete(doc.id)}
+                  onPointerDown={() => handleDelete(doc.id)}
                   style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', opacity: 0.7, padding: '0.2rem' }}
                   title="Delete Document"
                 >
@@ -392,7 +392,7 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
                 <HardDrive size={12} /> Stored in AES Local Keyring
               </span>
               <button
-                onClick={() => setActiveDoc(doc)}
+                onPointerDown={() => setActiveDoc(doc)}
                 style={{ background: 'none', border: 'none', color: 'var(--accent-1)', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
               >
                 <Eye size={12} /> View Details
@@ -430,7 +430,7 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
             </p>
             <button
               className="btn btn-primary"
-              onClick={() => setIsUploading(true)}
+              onPointerDown={() => setIsUploading(true)}
               style={{ marginTop: '0.5rem', padding: '0.5rem 1.25rem', fontSize: '0.85rem', borderRadius: '2rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
             >
               <Upload size={14} /> Upload First Document
@@ -460,7 +460,7 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
                   <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>{activeDoc.title}</h3>
                 </div>
                 <button
-                  onClick={() => setActiveDoc(null)}
+                  onPointerDown={() => setActiveDoc(null)}
                   style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}
                 >
                   <X size={18} />
@@ -525,7 +525,7 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '0.5rem' }}>
                 <button
-                  onClick={() => setActiveDoc(null)}
+                  onPointerDown={() => setActiveDoc(null)}
                   className="btn btn-primary"
                   style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}
                 >

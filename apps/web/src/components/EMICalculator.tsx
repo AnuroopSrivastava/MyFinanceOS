@@ -406,11 +406,11 @@ export const EMICalculator: React.FC<EMICalculatorProps> = ({ activeProfileId })
             <IndianRupee size={14} color="var(--accent-1)" /> Amortization Schedule
           </h4>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="btn btn-secondary" onClick={() => setShowFullTable(!showFullTable)}
+            <button className="btn btn-secondary" onPointerDown={() => setShowFullTable(!showFullTable)}
               style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', border: '1px solid var(--border-color)' }}>
               {showFullTable ? 'Show Less' : `Show All ${amortization.rows.length} Months`}
             </button>
-            <button className="btn btn-primary" onClick={() => exportToCSV('emi_amortization', [
+            <button className="btn btn-primary" onPointerDown={() => exportToCSV('emi_amortization', [
               { label: 'Month', key: 'month' }, { label: 'Opening Balance', key: 'openingBalance' },
               { label: 'EMI', key: 'emi' }, { label: 'Principal', key: 'principal' },
               { label: 'Interest', key: 'interest' }, { label: 'Closing Balance', key: 'closingBalance' }
