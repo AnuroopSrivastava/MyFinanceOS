@@ -478,7 +478,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
   const handleSaveRegisterEntry = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regDate || !regPartyName || !regTaxableAmount) return;
-    
+
     const entryData = {
       profileId: activeProfileId,
       date: regDate,
@@ -498,7 +498,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
     } else {
       await dbService.addRegisterEntry(entryData);
     }
-    
+
     setShowRegisterForm(false);
     refreshData();
   };
@@ -1504,7 +1504,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                   <CurrencyInput className="form-input" value={regIgst} onChange={(e) => setRegIgst(e.target.value)} />
                 </div>
               </div>
-              
+
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
                 <button type="button" className="btn btn-secondary" onPointerDown={() => setShowRegisterForm(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save Entry</button>

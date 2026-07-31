@@ -655,7 +655,7 @@ class DatabaseService {
   // Transactions Ledger
   public getTransactions(): Transaction[] {
     if (!this.db) throw new Error('Database is locked');
-    return (this.activeProfileId ? this.db.transactions.filter(x => x.profileId === this.activeProfileId) : this.db.transactions).sort((a, b) => b.date.localeCompare(a.date));
+    return (this.activeProfileId ? this.db.transactions.filter(x => x.profileId === this.activeProfileId) : [...this.db.transactions]).sort((a, b) => b.date.localeCompare(a.date));
   }
 
   public async addTransaction(tx: Omit<Transaction, 'id'>): Promise<Transaction> {
@@ -1008,7 +1008,7 @@ class DatabaseService {
   // Business: Purchase/Sales Register
   public getRegister(): BusinessRegisterEntry[] {
     if (!this.db) throw new Error('Database is locked');
-    return (this.activeProfileId ? this.db.register.filter(x => x.profileId === this.activeProfileId) : this.db.register).sort((a, b) => b.date.localeCompare(a.date));
+    return (this.activeProfileId ? this.db.register.filter(x => x.profileId === this.activeProfileId) : [...this.db.register]).sort((a, b) => b.date.localeCompare(a.date));
   }
 
   public async addRegisterEntry(entry: Omit<BusinessRegisterEntry, 'id'>): Promise<BusinessRegisterEntry> {

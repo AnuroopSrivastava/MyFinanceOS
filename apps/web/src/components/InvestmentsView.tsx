@@ -58,7 +58,7 @@ const solveXIRR = (cashFlows: CashFlow[]): number => {
 };
 
 const calculateFdAccruedValue = (fd: FixedDeposit): number => {
-  const now = new Date('2026-07-16'); // App's active date context
+  const now = new Date(); // Dynamic active date context
   const start = new Date(fd.startDate);
   const maturity = new Date(fd.maturityDate);
 
