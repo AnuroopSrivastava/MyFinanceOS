@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { Calculator, Percent, ShieldCheck, FileText, AlertCircle, Edit2, Trash2, Plus, X, Download, Calendar, Clock } from 'lucide-react';
@@ -87,6 +87,24 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
   const [tdsAmountPaid, setTdsAmountPaid] = useState<number>(0);
   const [tdsTaxDeducted, setTdsTaxDeducted] = useState<number>(0);
   const [tdsFY, setTdsFY] = useState('2026-27');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAisUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      // Mock parsing 26AS/AIS delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      await dbService.addTDSRecord({
+        deductorName: 'Tech Corp India Pvt Ltd (Mock AIS)',
+        tanOfDeductor: 'MUMT12345E',
+        amountPaid: 1200000,
+        taxDeducted: 120000,
+        financialYear: '2026-27'
+      });
+      setRefresh(r => r + 1);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const openTdsModal = (record?: TDSSummary) => {
     if (record) {
@@ -353,7 +371,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
         <motion.button
           whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
           className="btn btn-secondary"
-          onClick={handleExportTaxReport}
+          onPointerDown={handleExportTaxReport}
           style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', gap: '0.4rem', display: 'flex', alignItems: 'center', flexShrink: 0 }}
         >
           <Download size={16} />
@@ -648,12 +666,13 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
               </div>
             ))}
 
-            <div style={{
+            <label style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed var(--border-color)',
               padding: '0.75rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem'
-            }} onClick={() => alert('AIS/26AS JSON parse capability loaded successfully.')}>
+            }}>
+              <input type="file" style={{ display: 'none' }} accept=".json" ref={fileInputRef} onChange={handleAisUpload} />
               + Upload AIS / Form 26AS JSON
-            </div>
+            </label>
           </div>
         </motion.div>
 
