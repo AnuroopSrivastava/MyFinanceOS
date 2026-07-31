@@ -288,7 +288,22 @@ class DatabaseService {
     }
 
     if (!dbPayload) {
-      dbPayload = localStorage.getItem(this.storageKey);
+      // 1. Try Desktop Local Backup (Atomic, Unlimited Size)
+      if (typeof window !== 'undefined' && (window as any).electronAPI) {
+        try {
+          const res = await (window as any).electronAPI.loadDbBackup();
+          if (res.success && res.payload) {
+            dbPayload = res.payload;
+          }
+        } catch (e) {
+          console.error('Failed to load Electron DB backup', e);
+        }
+      }
+      
+      // 2. Try Browser Local Storage (Volatile, 5MB Limit)
+      if (!dbPayload) {
+        dbPayload = localStorage.getItem(this.storageKey);
+      }
     }
 
     if (dbPayload) {
@@ -399,7 +414,11 @@ class DatabaseService {
   
         if (typeof window !== 'undefined') {
           // Instant local persistence (<1ms)
-          localStorage.setItem(this.storageKey, storagePayload);
+          try {
+            localStorage.setItem(this.storageKey, storagePayload);
+          } catch (e) {
+            console.warn('Browser localStorage quota exceeded or unavailable. Falling back to other persistence mechanisms.', e);
+          }
   
           let localDiskSuccess = true;
           // Save local backup if running inside Electron
@@ -470,7 +489,11 @@ class DatabaseService {
 
         if (remoteLatest > localLatest) {
           this.lastSavedPayload = payload;
-          localStorage.setItem(this.storageKey, payload);
+          try {
+            localStorage.setItem(this.storageKey, payload);
+          } catch(e) {
+            console.warn('Browser localStorage quota exceeded or unavailable. Falling back to other persistence mechanisms.', e);
+          }
           this.db = remoteDb;
           return true; // We successfully updated the database from cloud
         } else if (remoteLatest < localLatest) {

@@ -748,7 +748,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
                 </thead>
                 <tbody>
                   {invoices.length > 0 ? (
-                    invoices.map(inv => (
+                    invoices.slice(0, 500).map(inv => (
                       <tr key={inv.id}>
                         <td style={{ fontWeight: 650 }}>{inv.invoiceNumber}</td>
                         <td>{inv.date}</td>
@@ -798,7 +798,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '400px', overflowY: 'auto' }}>
-              {contacts.map(c => (
+              {contacts.slice(0, 500).map(c => (
                 <div key={c.id} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem',
                   background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.82rem',
@@ -901,7 +901,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
               </thead>
               <tbody>
                 {register.length > 0 ? (
-                  register.map(reg => (
+                  register.slice(0, 500).map(reg => (
                     <tr key={reg.id}>
                       <td>{reg.date}</td>
                       <td>
@@ -967,7 +967,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ activeProfileId, dat
             </thead>
             <tbody>
               {inventory.length > 0 ? (
-                inventory.map(item => {
+                inventory.slice(0, 500).map(item => {
                   const totalCostVal = item.quantity * item.purchasePrice;
                   const isUnderstock = item.quantity <= item.reorderLevel;
                   return (
