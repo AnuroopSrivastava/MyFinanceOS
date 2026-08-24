@@ -1,5 +1,6 @@
+import { getSupabaseClient } from './supabaseClient.js';
 import { authSession } from '@financeos/auth';
-import { generateSalt } from '@financeos/shared';
+import { generateSalt, STORAGE_KEYS } from '@financeos/shared';
 
 import {
   UserProfile, BankAccount, Transaction, Budget, FixedDeposit,
@@ -7,7 +8,8 @@ import {
   ProvidentFundHolding, VendorCustomer, InventoryItem, BusinessInvoice,
   BusinessRegisterEntry, AuditLog, SystemSettings, RecurringTransaction,
   TDSSummary, InvestmentPlan, SavingsGoal, TaxViewInputs, EMICalculatorInputs,
-  BusinessDrafts, FireCalculatorInputs, AIChatMessage,
+  BusinessDrafts, FireCalculatorInputs, AIChatMessage, EncryptedDocument,
+  AutomationRule,
   encryptData, decryptData
 } from '@financeos/shared';
 
@@ -19,65 +21,8 @@ const saveResolvers = new Map<number, { resolve: (val: string) => void, reject: 
 const getSaveWorker = (): Worker | null => {
   if (typeof window === 'undefined' || !window.Worker) return null;
   if (saveWorkerInstance) return saveWorkerInstance;
-  
-  const workerCode = `
-    const getSubtle = () => {
-      if (typeof self !== 'undefined' && self.crypto) return self.crypto.subtle;
-      throw new Error('Web Crypto API is not supported.');
-    };
-    const textEncode = (text) => new TextEncoder().encode(text);
-    const textDecode = (buffer) => new TextDecoder().decode(buffer);
-    const bufferToHex = (buffer) => Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-    const hexToBuffer = (hex) => {
-      const cleanHex = hex.replace(/[^0-9a-fA-F]/g, '');
-      const buffer = new Uint8Array(cleanHex.length / 2);
-      for (let i = 0; i < cleanHex.length; i += 2) buffer[i / 2] = parseInt(cleanHex.substring(i, i + 2), 16);
-      return buffer.buffer;
-    };
-    const generateSalt = (bytes = 16) => {
-      const array = new Uint8Array(bytes);
-      self.crypto.getRandomValues(array);
-      return bufferToHex(array.buffer);
-    };
-    const deriveKey = async (password, saltHex) => {
-      const subtle = getSubtle();
-      const passwordBuffer = textEncode(password);
-      const saltBuffer = hexToBuffer(saltHex);
-      const baseKey = await subtle.importKey('raw', passwordBuffer, { name: 'PBKDF2' }, false, ['deriveKey']);
-      return await subtle.deriveKey({ name: 'PBKDF2', salt: saltBuffer, iterations: 100000, hash: 'SHA-256' }, baseKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
-    };
-    const encrypt = async (plainText, key) => {
-      const subtle = getSubtle();
-      const ivArray = new Uint8Array(12);
-      self.crypto.getRandomValues(ivArray);
-      const encoded = textEncode(plainText);
-      const encryptedBuffer = await subtle.encrypt({ name: 'AES-GCM', iv: ivArray }, key, encoded);
-      return { ciphertext: bufferToHex(encryptedBuffer), iv: bufferToHex(ivArray.buffer) };
-    };
-    const encryptData = async (plainText, pin) => {
-      const salt = generateSalt(16);
-      const key = await deriveKey(pin, salt);
-      const { ciphertext, iv } = await encrypt(plainText, key);
-      return \`\${salt}:\${iv}:\${ciphertext}\`;
-    };
 
-    self.onmessage = async (e) => {
-      try {
-        const { msgId, db, pin } = e.data;
-        const plainPayload = JSON.stringify(db);
-        let storagePayload = plainPayload;
-        if (pin) {
-          storagePayload = await encryptData(plainPayload, pin);
-        }
-        self.postMessage({ msgId, success: true, storagePayload });
-      } catch (err) {
-        self.postMessage({ msgId, success: false, error: err instanceof Error ? err.message : String(err) });
-      }
-    };
-  `;
-  
-  const blob = new Blob([workerCode], { type: 'application/javascript' });
-  saveWorkerInstance = new Worker(URL.createObjectURL(blob));
+  saveWorkerInstance = new Worker(new URL('./saveWorker.ts', import.meta.url), { type: 'module' });
   saveWorkerInstance.onmessage = (e) => {
     const { msgId, success, storagePayload, error } = e.data;
     const resolvers = saveResolvers.get(msgId);
@@ -97,7 +42,7 @@ const getSaveWorker = (): Worker | null => {
   return saveWorkerInstance;
 };
 
-const runWorkerSave = (db: any, pin: string | undefined): Promise<string> => {
+const runWorkerSave = (db: DatabaseSchema, pin: string | undefined): Promise<string> => {
   return new Promise((resolve, reject) => {
     const worker = getSaveWorker();
     if (!worker) {
@@ -137,18 +82,20 @@ interface DatabaseSchema {
   businessDrafts?: Record<string, BusinessDrafts>;
   fireInputs?: Record<string, FireCalculatorInputs>;
   chatHistory?: Record<string, AIChatMessage[]>;
+  encryptedDocuments?: EncryptedDocument[];
+  automationRules?: AutomationRule[];
+  schemaVersion?: number;
 }
 
 class DatabaseService {
   private db: DatabaseSchema | null = null;
-  private storageKey = 'financeos_db_cache';
-  private driveFileId: string | null = null;
-  private isSyncing = false;
+  private storageKey = STORAGE_KEYS.dbCache;
   private lastSavedPayload: string | null = null;
-  private cloudSyncTimer: any = null;
-  private localSaveTimer: any = null;
+  private cloudSyncTimer: ReturnType<typeof setTimeout> | null = null;
+  private localSaveTimer: ReturnType<typeof setTimeout> | null = null;
   private activeProfileId: string | null = null;
   private subscribers: Array<() => void> = [];
+  private lastSyncedAt: number = 0;
 
   public hasUnsavedChanges = false;
   public lastSaveError: string | null = null;
@@ -166,6 +113,13 @@ class DatabaseService {
 
   constructor() {
     if (typeof window !== 'undefined') {
+      // Restore the cross-device sync watermark so a fresh boot doesn't re-apply
+      // a cloud row that was already incorporated on a previous session.
+      try {
+        const stored = localStorage.getItem(STORAGE_KEYS.lastSyncedAt);
+        if (stored) this.lastSyncedAt = Number(stored) || 0;
+      } catch { /* SSR / restricted context */ }
+
       window.addEventListener('storage', (e) => {
         if (e.key === this.storageKey && e.newValue) {
           if (e.newValue !== this.lastSavedPayload) {
@@ -187,9 +141,13 @@ class DatabaseService {
 
     // Check if it's AES-GCM encrypted
     if (payload.includes(':') && payload.split(':').length === 3) {
-      const pin = authSession.getUserProfile()?.pin;
+      const pin = authSession.getSessionPin();
+      // SEC-04: never fall back to a default PIN. If no session PIN is available
+      // (e.g. cross-tab reload before unlock), bail out — the next full unlock
+      // will decrypt from the canonical source with the real PIN.
+      if (!pin) return;
       try {
-        const decrypted = await decryptData(payload, pin || 'default-pin');
+        const decrypted = await decryptData(payload, pin);
         parsedDb = JSON.parse(decrypted);
       } catch (e) {
         console.error('Cross-tab sync decryption failed', e);
@@ -240,136 +198,33 @@ class DatabaseService {
     this.saveErrorListeners.forEach(cb => cb(error));
   }
 
-  public isInitialized(): boolean {
-    return localStorage.getItem(this.storageKey) !== null || authSession.isAuthenticated();
+  private persistLastSyncedAt(value: number) {
+    this.lastSyncedAt = value;
+    if (typeof window !== 'undefined') {
+      try { localStorage.setItem(STORAGE_KEYS.lastSyncedAt, String(value)); } catch { /* quota */ }
+    }
   }
 
-  // Google Drive REST API utilities
-  private async fetchDriveFileId(): Promise<string | null> {
-    if (this.driveFileId) return this.driveFileId;
-    if (!authSession.isAuthenticated()) return null;
-    const token = authSession.getAccessToken();
-    const res = await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name="financeos_db.json"', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (res.status === 401) {
-      authSession.logout();
-      return null;
-    }
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.files && data.files.length > 0) {
-      this.driveFileId = data.files[0].id;
-      return this.driveFileId;
-    }
-    return null;
-  }
-
-  private async fetchFromDrive(): Promise<string | null> {
-    const fileId = await this.fetchDriveFileId();
-    if (!fileId) return null;
-    const token = authSession.getAccessToken();
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (res.status === 401) {
-      authSession.logout();
-      return null;
-    }
-    if (!res.ok) return null;
-    return await res.text();
-  }
-
-  private async pushToDrive(payload: string): Promise<void> {
-    if (!authSession.isAuthenticated()) {
-      this.setSaveError(null);
-      this.setUnsavedChanges(false);
-      return;
-    }
-    try {
-      const token = authSession.getAccessToken();
-      const fileId = await this.fetchDriveFileId();
-
-      if (!authSession.isAuthenticated()) {
-        this.setSaveError('Cloud auth token expired. Local data is auto-saved on disk.');
-        this.setUnsavedChanges(false);
-        return;
-      }
-
-      if (fileId) {
-        // Update existing file
-        const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-          method: 'PATCH',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: payload
-        });
-        if (res.status === 401) {
-          authSession.logout();
-          this.setSaveError('Google Drive session expired (401). Local data is auto-saved on disk.');
-          this.setUnsavedChanges(false);
-          return;
-        }
-        if (!res.ok) throw new Error(`Cloud storage API HTTP ${res.status}`);
-      } else {
-        // Create new file in appDataFolder
-        const metadata = {
-          name: 'financeos_db.json',
-          parents: ['appDataFolder']
-        };
-
-        const form = new FormData();
-        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-        form.append('file', new Blob([payload], { type: 'application/json' }));
-
-        const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: form
-        });
-        if (res.status === 401) {
-          authSession.logout();
-          this.setSaveError('Google Drive session expired (401). Local data is auto-saved on disk.');
-          this.setUnsavedChanges(false);
-          return;
-        }
-        if (!res.ok) throw new Error(`Cloud storage API HTTP ${res.status}`);
-        const data = await res.json();
-        if (data.id) this.driveFileId = data.id;
-      }
-
-      // Clear unsaved changes flag and save error on successful upload
-      this.setSaveError(null);
-      this.setUnsavedChanges(false);
-    } catch (err: any) {
-      console.error('Push to Drive failed:', err);
-      const is401 = err?.message?.includes('401');
-      if (is401) {
-        authSession.logout();
-        this.setSaveError('Google session expired (401). Local data is auto-saved on disk.');
-        this.setUnsavedChanges(false);
-      } else {
-        const errMsg = err?.message ? `Cloud backup failed: ${err.message}` : 'Google Drive sync failed';
-        this.setSaveError(errMsg);
-        this.setUnsavedChanges(true);
-      }
-      throw err;
-    }
+  public async isInitialized(): Promise<boolean> {
+    return localStorage.getItem(this.storageKey) !== null || (await authSession.isAuthenticated());
   }
 
   public async syncToCloud(): Promise<void> {
-    if (this.cloudSyncTimer) {
-      clearTimeout(this.cloudSyncTimer);
-      this.cloudSyncTimer = null;
+    if (this.db) {
+      await this.save();
     }
-    if (this.lastSavedPayload && authSession.isAuthenticated()) {
-      await this.pushToDrive(this.lastSavedPayload);
-    } else if (this.db) {
+  }
+
+  public async syncDatabaseState(): Promise<void> {
+    if (this.db) {
       await this.save();
     }
   }
 
   public async initializeNewDb(adminName: string): Promise<void> {
+    this.lastSavedPayload = null;
     const adminId = 'p1';
+    this.activeProfileId = adminId;
     const settings: SystemSettings = {
       theme: 'glass-cyan',
       currency: 'INR',
@@ -381,116 +236,103 @@ class DatabaseService {
     ];
 
     this.db = {
-      settings, profiles, accounts: [], transactions: [], budgets: [], fds: [], stocks: [], mutualfunds: [], gold: [], nps: [], pf: [], contacts: [], inventory: [], invoices: [], register: [], auditLogs: [
+      schemaVersion: 1,
+      settings, profiles, accounts: [], transactions: [], budgets: [], fds: [], stocks: [], mutualfunds: [], gold: [], nps: [], pf: [], contacts: [], inventory: [], invoices: [], register: [], recurringTransactions: [], auditLogs: [
         { id: 'log1', timestamp: new Date().toISOString(), userId: adminId, action: 'SETUP', details: 'Database initialized for user: ' + adminName }
-      ], tdsRecords: []
+      ], tdsRecords: [], encryptedDocuments: []
     };
-    await this.save();
+    await this.save(true);
   }
 
-  public async unlock(): Promise<boolean> {
-    if (!authSession.isAuthenticated()) return false;
+  public async unlock(): Promise<boolean | 'needs_pin'> {
+    if (!(await authSession.isAuthenticated())) return false;
 
-    let dbPayload = null;
-    try {
-      dbPayload = await this.fetchFromDrive();
-    } catch (e) {
-      console.warn('Failed to fetch from Google Drive, falling back to local cache', e);
-    }
+    // 1. Cloud pull — cross-device canonical source. If the cloud has a row it
+    //    is loaded into this.db here. A missing/incorrect session PIN returns
+    //    'needs_pin' so the UI prompts the user rather than silently creating a
+    //    fresh empty DB that would overwrite the encrypted cloud payload.
+    const cloudResult = await this.pullFromCloud();
+    if (cloudResult === 'needs_pin') return 'needs_pin';
 
-    if (!dbPayload) {
-      // 1. Try Desktop Local Backup (Atomic, Unlimited Size)
-      if (typeof window !== 'undefined' && (window as any).electronAPI) {
-        try {
-          const res = await (window as any).electronAPI.loadDbBackup();
-          if (res.success && res.payload) {
-            dbPayload = res.payload;
-          }
-        } catch (e) {
-          console.error('Failed to load Electron DB backup', e);
-        }
+    // 2. Local sources — only when cloud pull did not supply data.
+    if (cloudResult !== 'synced') {
+      const candidates: string[] = [];
+      if (typeof window !== 'undefined') {
+        const cached = localStorage.getItem(this.storageKey);
+        if (cached) candidates.push(cached);
       }
-      
-      // 2. Try Browser Local Storage (Volatile, 5MB Limit)
-      if (!dbPayload) {
-        dbPayload = localStorage.getItem(this.storageKey);
-      }
-    }
 
-    if (dbPayload) {
-      this.lastSavedPayload = dbPayload;
       let parsedDb: DatabaseSchema | null = null;
+      let decryptionFailed = false;
 
-      // Handle Encryption / Migration
-      if (dbPayload.includes(':') && dbPayload.split(':').length === 3) {
-        // AES-GCM format
-        const pin = authSession.getUserProfile()?.pin;
-        try {
-          const decrypted = await decryptData(dbPayload, pin || 'default-pin');
-          if (!pin) {
-            console.log('Migrating from default-pin encrypted vault to plaintext vault on next save.');
+      for (const dbPayload of candidates) {
+        if (dbPayload.includes(':') && dbPayload.split(':').length === 3) {
+          const pin = authSession.getSessionPin();
+          if (!pin) return 'needs_pin';
+          try {
+            const decrypted = await decryptData(dbPayload, pin);
+            if (decrypted) {
+              parsedDb = JSON.parse(decrypted);
+              this.lastSavedPayload = dbPayload;
+              break;
+            }
+          } catch (e) {
+            console.error('Failed to decrypt database. Wrong PIN or corrupted.', e);
+            decryptionFailed = true;
           }
-          parsedDb = JSON.parse(decrypted);
-        } catch (e) {
-          console.error('Failed to decrypt database. Wrong PIN or corrupted.', e);
-          return false;
-        }
-      } else {
-        // Migration from plaintext JSON
-        try {
-          parsedDb = JSON.parse(dbPayload);
-          console.log('Migrating plaintext database to ciphertext on next save.');
-        } catch (e) {
-          console.error('Failed to parse database JSON', e);
-          return false;
+        } else {
+          try {
+            parsedDb = JSON.parse(dbPayload);
+            this.lastSavedPayload = dbPayload;
+            break;
+          } catch (e) {
+            console.error('Failed to parse database JSON', e);
+            if (await authSession.isAuthenticated()) {
+              console.warn('OAuth authenticated user has corrupted local JSON. Skipping cache source.');
+            } else {
+              return false;
+            }
+          }
         }
       }
 
       if (parsedDb) {
-        // Ensure all arrays/objects are initialized to prevent undefined errors
-        parsedDb.settings = parsedDb.settings || {
-          theme: 'glass-cyan',
-          currency: 'INR',
-          backupSchedule: 'weekly',
-          isCloudBackupEnabled: true
-        };
-        parsedDb.profiles = parsedDb.profiles || [];
-        parsedDb.accounts = parsedDb.accounts || [];
-        parsedDb.transactions = parsedDb.transactions || [];
-        parsedDb.budgets = parsedDb.budgets || [];
-        parsedDb.fds = parsedDb.fds || [];
-        parsedDb.stocks = parsedDb.stocks || [];
-        parsedDb.mutualfunds = parsedDb.mutualfunds || [];
-        parsedDb.gold = parsedDb.gold || [];
-        parsedDb.nps = parsedDb.nps || [];
-        parsedDb.pf = parsedDb.pf || [];
-        parsedDb.contacts = parsedDb.contacts || [];
-        parsedDb.inventory = parsedDb.inventory || [];
-        parsedDb.invoices = parsedDb.invoices || [];
-        parsedDb.register = parsedDb.register || [];
-        parsedDb.auditLogs = parsedDb.auditLogs || [];
-        parsedDb.recurringTransactions = parsedDb.recurringTransactions || [];
-        parsedDb.tdsRecords = parsedDb.tdsRecords || [];
-        parsedDb.investmentPlans = parsedDb.investmentPlans || [];
-        parsedDb.goals = parsedDb.goals || [];
-        parsedDb.taxInputs = parsedDb.taxInputs || {};
-        parsedDb.emiInputs = parsedDb.emiInputs || {};
-        parsedDb.businessDrafts = parsedDb.businessDrafts || {};
-        parsedDb.fireInputs = parsedDb.fireInputs || {};
-        parsedDb.chatHistory = parsedDb.chatHistory || {};
-
-        // Data Migration: Inject profileId into business records if missing
-        const defaultProfileId = parsedDb.profiles?.[0]?.id || 'p_default';
-        parsedDb.contacts.forEach(c => { if (!c.profileId) c.profileId = defaultProfileId; });
-        parsedDb.inventory.forEach(i => { if (!i.profileId) i.profileId = defaultProfileId; });
-        parsedDb.invoices.forEach(inv => { if (!inv.profileId) inv.profileId = defaultProfileId; });
-        parsedDb.register.forEach(r => { if (!r.profileId) r.profileId = defaultProfileId; });
-
-        this.db = parsedDb;
+        this.db = this.normalizeDb(parsedDb);
       }
-    } else {
-      const profile = authSession.getUserProfile();
-      await this.initializeNewDb(profile?.name || 'Default User');
+
+      if (!parsedDb) {
+        if (decryptionFailed) {
+          return false;
+        }
+
+        let userName = 'Default User';
+        try {
+          const user = await authSession.getUser();
+          if (user?.user_metadata?.full_name) {
+            userName = user.user_metadata.full_name;
+          } else if (user?.email) {
+            userName = user.email.split('@')[0];
+          }
+        } catch (e) {
+          console.warn('Could not fetch user info for DB init:', e);
+        }
+        await this.initializeNewDb(userName);
+      }
+    }
+
+    if (this.db && (!this.db.profiles || this.db.profiles.length === 0)) {
+      let userName = 'Default User';
+      try {
+        const user = await authSession.getUser();
+        if (user?.user_metadata?.full_name) {
+          userName = user.user_metadata.full_name;
+        } else if (user?.email) {
+          userName = user.email.split('@')[0];
+        }
+      } catch (e) {
+        console.debug('Error extracting user data:', e);
+      }
+      this.db.profiles = [{ id: 'p1', name: userName, role: 'Admin', relationship: 'Self', isNomineeProvided: true }];
     }
 
     if (this.db && !this.db.recurringTransactions) {
@@ -504,17 +346,17 @@ class DatabaseService {
     return true;
   }
 
-  public async save(): Promise<void> {
+  public async save(immediate = false): Promise<void> {
     if (!this.db) return;
     this.setUnsavedChanges(true); // Signal to UI that a save is pending
 
     if (this.localSaveTimer) clearTimeout(this.localSaveTimer);
-    
-    this.localSaveTimer = setTimeout(async () => {
+
+    const performSave = async () => {
       try {
         if (!this.db) return;
 
-        const pin = authSession.getUserProfile()?.pin;
+        const pin = authSession.getSessionPin() || undefined;
         let storagePayload = '';
 
         if (typeof window !== 'undefined' && window.Worker) {
@@ -528,8 +370,15 @@ class DatabaseService {
               try {
                 storagePayload = await encryptData(plainPayload, pin);
               } catch (e) {
-                console.error('Encryption failed, falling back to plaintext', e);
+                console.error('Encryption failed', e);
+                this.setSaveError('Authentication failed');
+                this.setUnsavedChanges(true);
+                return;
               }
+            } else if (this.lastSavedPayload && this.lastSavedPayload.includes(':')) {
+              this.setSaveError('Authentication failed');
+              this.setUnsavedChanges(true);
+              return;
             }
           }
         } else {
@@ -539,137 +388,299 @@ class DatabaseService {
             try {
               storagePayload = await encryptData(plainPayload, pin);
             } catch (e) {
-              console.error('Encryption failed, falling back to plaintext', e);
+              console.error('Encryption failed', e);
+              this.setSaveError('Authentication failed');
+              this.setUnsavedChanges(true);
+              return;
             }
+          } else if (this.lastSavedPayload && this.lastSavedPayload.includes(':')) {
+            this.setSaveError('Authentication failed');
+            this.setUnsavedChanges(true);
+            return;
           }
         }
-  
+
         this.lastSavedPayload = storagePayload;
-  
-        if (typeof window !== 'undefined') {
+
+        if (typeof globalThis.localStorage !== 'undefined' || typeof window !== 'undefined') {
           // Instant local persistence (<1ms)
           try {
-            localStorage.setItem(this.storageKey, storagePayload);
+            const targetStorage = globalThis.localStorage || (typeof window !== 'undefined' ? window.localStorage : null);
+            if (targetStorage) {
+              targetStorage.setItem(this.storageKey, storagePayload);
+            }
           } catch (e) {
             console.warn('Browser localStorage quota exceeded or unavailable. Falling back to other persistence mechanisms.', e);
           }
-  
-          let localDiskSuccess = true;
-          // Save local backup if running inside Electron
-          if ((window as any).electronAPI) {
-            try {
-              const res = await (window as any).electronAPI.saveDbBackup(storagePayload);
-              if (!res.success) {
-                localDiskSuccess = false;
-                console.error('Electron local backup save returned error:', res.error);
-              }
-            } catch (err) {
-              localDiskSuccess = false;
-              console.error('Electron local backup save error:', err);
-            }
-          }
-  
-          if (!localDiskSuccess) {
-            this.setSaveError('Critical: Local disk save failed. Please check permissions.');
-            this.setUnsavedChanges(true);
-          } else {
-            // Local storage write succeeded - mark save as clean immediately
-            this.setSaveError(null);
-            this.setUnsavedChanges(false);
-          }
-  
-          // Debounced background cloud sync to avoid network lag or API rate limits
-          if (authSession.isAuthenticated()) {
+
+          // Local storage write succeeded - mark save as clean immediately
+          this.setSaveError(null);
+          this.setUnsavedChanges(false);
+
+          // Debounced background cloud sync to avoid network lag or API rate limits.
+          // Pushed only when the user consents to cloud backup (isCloudBackupEnabled !== false).
+          if ((await authSession.isAuthenticated()) && this.db?.settings?.isCloudBackupEnabled !== false) {
             if (this.cloudSyncTimer) clearTimeout(this.cloudSyncTimer);
             this.cloudSyncTimer = setTimeout(() => {
-              this.pushToDrive(storagePayload).catch((err: any) => {
-                console.error('Cloud drive sync error:', err);
+              this.saveCloudDb(storagePayload).catch((err: unknown) => {
+                console.error('Cloud sync error:', err);
               });
-            }, 800);
+            }, 1000);
           }
         }
-      } catch (e: any) {
-        console.error('Failed to save database:', e);
-        const errMsg = e?.message ? `Local storage save failed: ${e.message}` : 'Local database save failed';
-        this.setSaveError(errMsg);
+      } catch (err) {
+        console.error('Save failed:', err);
+        this.setSaveError('Local save failed. Retrying...');
         this.setUnsavedChanges(true);
       }
-    }, 300);
+    };
+
+    if (immediate) {
+      await performSave();
+    } else {
+      this.localSaveTimer = setTimeout(performSave, 350);
+    }
   }
 
-  public async syncDatabaseState(): Promise<boolean> {
-    if (!this.db || typeof window === 'undefined' || !authSession.isAuthenticated()) return false;
-    // Don't overwrite local data with cloud data if we have pending local unsaved changes
-    if (this.hasUnsavedChanges) return false;
+  /**
+   * Applies defensive defaults and profileId migration to a parsed database
+   * before it is used by the UI. Shared by unlock() and pullFromCloud() so every
+   * payload (local or cloud) is normalized identically.
+   */
+  private normalizeDb(db: DatabaseSchema): DatabaseSchema {
+    db.settings = db.settings || {
+      theme: 'glass-cyan',
+      currency: 'INR',
+      backupSchedule: 'weekly',
+      isCloudBackupEnabled: true
+    };
+    db.profiles = db.profiles || [];
+    db.accounts = db.accounts || [];
+    db.transactions = db.transactions || [];
+    db.budgets = db.budgets || [];
+    db.fds = db.fds || [];
+    db.stocks = db.stocks || [];
+    db.mutualfunds = db.mutualfunds || [];
+    db.gold = db.gold || [];
+    db.nps = db.nps || [];
+    db.pf = db.pf || [];
+    db.contacts = db.contacts || [];
+    db.inventory = db.inventory || [];
+    db.invoices = db.invoices || [];
+    db.register = db.register || [];
+    db.auditLogs = db.auditLogs || [];
+    db.recurringTransactions = db.recurringTransactions || [];
+    db.tdsRecords = db.tdsRecords || [];
+    db.investmentPlans = db.investmentPlans || [];
+    db.goals = db.goals || [];
+    db.taxInputs = db.taxInputs || {};
+    db.emiInputs = db.emiInputs || {};
+    db.businessDrafts = db.businessDrafts || {};
+    db.fireInputs = db.fireInputs || {};
+    db.chatHistory = db.chatHistory || {};
+    db.encryptedDocuments = db.encryptedDocuments || [];
+    db.automationRules = db.automationRules || [];
 
-    let payload = null;
+    // Data Migration: Inject profileId into business records if missing
+    const defaultProfileId = db.profiles?.[0]?.id || 'p_default';
+    db.contacts.forEach(c => { if (!c.profileId) c.profileId = defaultProfileId; });
+    db.inventory.forEach(i => { if (!i.profileId) i.profileId = defaultProfileId; });
+    db.invoices.forEach(inv => { if (!inv.profileId) inv.profileId = defaultProfileId; });
+    db.register.forEach(r => { if (!r.profileId) r.profileId = defaultProfileId; });
+
+    return db;
+  }
+
+  /**
+   * Cloud backup: upsert the user's COMPLETE encrypted payload as a single row in
+   * `user_dbs` keyed by the authenticated Supabase user id. This is the only cloud
+   * write path — the app never stores plaintext records in Supabase (CRIT-02).
+   *
+   * Gated on: consent (isCloudBackupEnabled !== false), an authenticated session,
+   * and the payload being an AES-GCM encrypted `salt:iv:ciphertext` blob (exactly
+   * 3 colon-separated parts). A PIN-less user's plaintext JSON is refused — it
+   * must never reach the server.
+   *
+   * Retries with backoff (1s / 5s / 15s) so offline edits are not dropped when the
+   * network flaps. On success the row's updated_at becomes the last-known-sync
+   * watermark used by pullFromCloud() to avoid re-applying stale rows.
+   */
+  public async saveCloudDb(payload: string): Promise<void> {
+    const client = getSupabaseClient();
+    if (!client) return;
+    if (this.db?.settings?.isCloudBackupEnabled === false) return; // consent off → stop pushing
+    if (typeof payload !== 'string' || payload.split(':').length !== 3) return; // refuse plaintext
+    if (!(await authSession.isAuthenticated())) return;
+
+    let user;
     try {
-      payload = await this.fetchFromDrive();
-    } catch (e) {
-      console.warn('Failed to fetch central db for sync', e);
+      user = await authSession.getUser();
+    } catch {
+      return;
     }
+    if (!user) return;
 
-    if (payload && payload !== this.lastSavedPayload) {
+    const rowTime = Date.now();
+    const delays = [1000, 5000, 15000];
+    for (let attempt = 0; attempt <= delays.length; attempt++) {
       try {
-        const remoteDb: DatabaseSchema = JSON.parse(payload);
-
-        // Compare timestamps to avoid overwriting newer local data with stale cloud data
-        const localLatest = (this.db && this.db.auditLogs && this.db.auditLogs.length > 0)
-          ? new Date(this.db.auditLogs[0].timestamp).getTime()
-          : 0;
-        const remoteLatest = (remoteDb.auditLogs && remoteDb.auditLogs.length > 0)
-          ? new Date(remoteDb.auditLogs[0].timestamp).getTime()
-          : 0;
-
-        if (remoteLatest > localLatest) {
-          this.lastSavedPayload = payload;
-          try {
-            localStorage.setItem(this.storageKey, payload);
-          } catch(e) {
-            console.warn('Browser localStorage quota exceeded or unavailable. Falling back to other persistence mechanisms.', e);
-          }
-          this.db = remoteDb;
-          this.notifySubscribers();
-          return true; // We successfully updated the database from cloud
-        } else if (remoteLatest < localLatest) {
-          // If remote is older, our last push might have failed or hasn't propagated. 
-          // We can optionally trigger a re-save here, but updating lastSavedPayload 
-          // isn't strictly necessary as we want to keep trying to push the newer data.
+        const { error } = await client
+          .from('user_dbs')
+          .upsert({ user_id: user.id, payload, schema_version: 1, updated_at: new Date(rowTime).toISOString() });
+        if (error) throw error;
+        this.persistLastSyncedAt(rowTime);
+        this.setSaveError(null);
+        return;
+      } catch (err) {
+        console.warn(`Cloud backup attempt ${attempt + 1}/${delays.length + 1} failed:`, err);
+        if (attempt < delays.length) {
+          await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
         }
-      } catch (e) {
-        console.error('Failed to parse database during sync', e);
       }
     }
-    return false; // No changes applied
+    this.setSaveError('Cloud backup failed after retries. Will retry on next save.');
   }
 
-  public listenForSync(callback: () => void): () => void {
+  /**
+   * Cloud pull: fetch the user's encrypted backup from `user_dbs` and, if it is
+   * newer than the last known sync, decrypt it with the session PIN and load it
+   * into this.db.
+   *
+   * Returns:
+   *   'synced'    — a newer cloud payload was decrypted and applied.
+   *   'needs_pin' — a cloud row exists but we cannot decrypt it (no session PIN or
+   *                 wrong PIN). The caller must prompt for the PIN rather than
+   *                 initialize a fresh DB, otherwise a second device with a wrong
+   *                 PIN would overwrite the user's real data with an empty DB.
+   *   'none'      — no cloud row / not consented / transient network error; the
+   *                 caller should fall through to the local sources.
+   */
+  public async pullFromCloud(): Promise<'synced' | 'needs_pin' | 'none'> {
+    const client = getSupabaseClient();
+    if (!client) return 'none';
+    if (!(await authSession.isAuthenticated())) return 'none';
+    if (this.db?.settings?.isCloudBackupEnabled === false) return 'none';
+
+    let user;
+    try {
+      user = await authSession.getUser();
+    } catch {
+      return 'none';
+    }
+    if (!user) return 'none';
+
+    let row: { payload: string; updated_at?: string } | null = null;
+    try {
+      const res = await client
+        .from('user_dbs')
+        .select('payload, updated_at')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (res.error || !res.data?.payload) return 'none';
+      row = res.data as { payload: string; updated_at?: string };
+    } catch (e) {
+      console.warn('Cloud pull network error:', e);
+      return 'none'; // transient — do not block boot; local sources still work
+    }
+
+    const rowTime = row.updated_at ? new Date(row.updated_at).getTime() : 0;
+    if (rowTime > 0 && rowTime <= this.lastSyncedAt) return 'none';
+
+    const pin = authSession.getSessionPin();
+    if (!pin) return 'needs_pin';
+
+    try {
+      const decrypted = await decryptData(row.payload, pin);
+      if (!decrypted) return 'needs_pin';
+      const parsed = JSON.parse(decrypted) as DatabaseSchema;
+      this.db = this.normalizeDb(parsed);
+      this.lastSavedPayload = row.payload;
+      this.persistLastSyncedAt(rowTime);
+      this.notifySubscribers();
+      return 'synced';
+    } catch (e) {
+      console.warn('Cloud pull decryption failed (wrong PIN?):', e);
+      return 'needs_pin';
+    }
+  }
+
+  /** Deletes the user's encrypted cloud backup row. Local data is untouched. */
+  public async deleteCloudBackup(): Promise<{ ok: boolean; message: string }> {
+    const client = getSupabaseClient();
+    if (!client) return { ok: false, message: 'Cloud sync is not configured.' };
+    if (!(await authSession.isAuthenticated())) return { ok: false, message: 'Not authenticated.' };
+    let user;
+    try {
+      user = await authSession.getUser();
+    } catch {
+      return { ok: false, message: 'Could not identify the signed-in user.' };
+    }
+    if (!user) return { ok: false, message: 'Could not identify the signed-in user.' };
+
+    try {
+      const { error } = await client
+        .from('user_dbs')
+        .delete()
+        .eq('user_id', user.id);
+      if (error) throw error;
+      return { ok: true, message: 'Cloud backup deleted.' };
+    } catch (e) {
+      console.error('Failed to delete cloud backup:', e);
+      return { ok: false, message: 'Could not delete cloud backup. Try again.' };
+    }
+  }
+
+  /** 30s poll of pullFromCloud() while unlocked; fires callback when a newer cloud copy was applied. */
+  public listenForCloudSync(callback: () => void): () => void {
     if (typeof window === 'undefined') return () => { };
-    // Poll every 30 seconds for cloud sync
     const interval = setInterval(async () => {
-      if (this.isSyncing) return;
-      this.isSyncing = true;
       try {
-        const didSync = await this.syncDatabaseState();
-        if (didSync) {
+        const result = await this.pullFromCloud();
+        if (result === 'synced') {
           callback();
         }
-      } finally {
-        this.isSyncing = false;
+      } catch (e) {
+        console.warn('Cloud sync poll failed:', e);
       }
     }, 30000);
     return () => clearInterval(interval);
   }
 
+  /** Real-time sync listener combining local cross-tab sync and cloud pull */
+  public listenForSync(callback: () => void): () => void {
+    const unsubSubscribe = this.subscribe(callback);
+    const unsubCloud = this.listenForCloudSync(callback);
+    return () => {
+      unsubSubscribe();
+      unsubCloud();
+    };
+  }
+
+  public purgeLocalDatabase(): void {
+    this.db = null;
+    this.lastSavedPayload = null;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(this.storageKey);
+      } catch (e) {
+        console.error('Failed to purge local storage', e);
+      }
+    }
+  }
+
   public lock(): void {
     authSession.logout();
     this.db = null;
-    this.driveFileId = null;
+  }
+
+  public isUnlocked(): boolean {
+    return this.db !== null;
   }
 
   // Log action to audit logs
   private logAction(action: string, details: string): void {
     if (!this.db) return;
+    if (!this.db.auditLogs) this.db.auditLogs = [];
     const log: AuditLog = {
       id: 'log_' + generateSalt(6),
       timestamp: new Date().toISOString(),
@@ -712,7 +723,8 @@ class DatabaseService {
     };
     this.db.profiles.push(newProfile);
     this.logAction('PROFILE_ADD', `Added profile for ${profile.name}`);
-    await this.save();
+    await this.save(true);
+    this.notifySubscribers();
     return newProfile;
   }
 
@@ -720,7 +732,8 @@ class DatabaseService {
     if (!this.db) throw new Error('Database is locked');
     this.db.profiles = this.db.profiles.map(p => p.id === id ? { ...p, ...updates } : p);
     this.logAction('PROFILE_UPDATE', `Updated profile ID ${id}`);
-    await this.save();
+    await this.save(true);
+    this.notifySubscribers();
   }
 
   public async deleteProfile(id: string): Promise<void> {
@@ -745,6 +758,8 @@ class DatabaseService {
     if (this.db.recurringTransactions) this.db.recurringTransactions = this.db.recurringTransactions.filter(r => r.profileId !== id);
     if (this.db.goals) this.db.goals = this.db.goals.filter(g => g.profileId !== id);
     if (this.db.investmentPlans) this.db.investmentPlans = this.db.investmentPlans.filter(p => p.profileId !== id);
+    if (this.db.encryptedDocuments) this.db.encryptedDocuments = this.db.encryptedDocuments.filter(d => d.profileId !== id);
+    if (this.db.automationRules) this.db.automationRules = this.db.automationRules.filter(r => r.profileId !== id);
     if (this.db.tdsRecords) this.db.tdsRecords = this.db.tdsRecords.filter(t => t.profileId !== id);
     if (this.db.taxInputs) delete this.db.taxInputs[id];
     if (this.db.emiInputs) delete this.db.emiInputs[id];
@@ -752,8 +767,13 @@ class DatabaseService {
     if (this.db.fireInputs) delete this.db.fireInputs[id];
     if (this.db.chatHistory) delete this.db.chatHistory[id];
 
+    if (this.activeProfileId === id) {
+      this.activeProfileId = this.db.profiles.length > 0 ? this.db.profiles[0].id : null;
+    }
+
     this.logAction('PROFILE_DELETE', `Deleted profile ID ${id} and cascaded all associated personal data`);
-    await this.save();
+    await this.save(true);
+    this.notifySubscribers();
   }
 
   // Bank Accounts
@@ -765,37 +785,67 @@ class DatabaseService {
 
   public async addAccount(account: Omit<BankAccount, 'id'>): Promise<BankAccount> {
     if (!this.db) throw new Error('Database is locked');
+    if (this.activeProfileId && account.profileId && account.profileId !== this.activeProfileId) {
+      throw new Error('Authentication failed: Cannot add account for a different profile');
+    }
     const newAccount: BankAccount = { ...account, id: 'a_' + generateSalt(6) };
     this.db.accounts.push(newAccount);
-
-    // Adjust balance audit log
-    this.logAction('ACCOUNT_ADD', `Added account ${account.name} at ${account.bankName}`);
     await this.save();
     return newAccount;
   }
 
   public async updateAccount(id: string, updates: Partial<BankAccount>): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.accounts.find(a => a.id === id);
+    if (existing && this.activeProfileId && existing.profileId !== this.activeProfileId) {
+      throw new Error('Authentication failed: Account belongs to a different profile');
+    }
     this.db.accounts = this.db.accounts.map(a => a.id === id ? { ...a, ...updates } : a);
     await this.save();
   }
 
   public async deleteAccount(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.accounts.find(a => a.id === id);
+    if (existing && this.activeProfileId && existing.profileId !== this.activeProfileId) {
+      throw new Error('Authentication failed: Account belongs to a different profile');
+    }
     this.db.accounts = this.db.accounts.filter(a => a.id !== id);
     this.db.transactions = this.db.transactions.filter(t => t.accountId !== id);
     await this.save();
   }
 
   // Transactions Ledger
-  public getTransactions(): Transaction[] {
+  public getTransactions(profileId?: string): Transaction[] {
     if (!this.db) throw new Error('Database is locked');
-    return (this.activeProfileId ? this.db.transactions.filter(x => x.profileId === this.activeProfileId) : [...this.db.transactions]).sort((a, b) => b.date.localeCompare(a.date));
+    const targetPid = profileId || this.activeProfileId;
+    return (targetPid ? this.db.transactions.filter(x => x.profileId === targetPid) : [...this.db.transactions]).sort((a, b) => b.date.localeCompare(a.date));
   }
 
   public async addTransaction(tx: Omit<Transaction, 'id'>): Promise<Transaction> {
     if (!this.db) throw new Error('Database is locked');
-    const newTx: Transaction = { ...tx, id: 't_' + generateSalt(6) };
+
+    // Auto-apply active automation rules
+    let category = tx.category;
+    let tag = tx.tag;
+    const rules = (this.db.automationRules || []).filter(r => r.isActive && r.profileId === tx.profileId);
+    for (const r of rules) {
+      if (r.triggerType === 'DescriptionContains' && tx.description.toLowerCase().includes(r.matchPattern.toLowerCase())) {
+        category = r.targetCategory;
+        if (r.targetTag) tag = r.targetTag;
+        break;
+      } else if (r.triggerType === 'AmountOver' && tx.amount >= parseFloat(r.matchPattern)) {
+        category = r.targetCategory;
+        if (r.targetTag) tag = r.targetTag;
+        break;
+      } else if (r.triggerType === 'CategoryMatch' && tx.category.toLowerCase() === r.matchPattern.toLowerCase()) {
+        category = r.targetCategory;
+        if (r.targetTag) tag = r.targetTag;
+        break;
+      }
+    }
+
+    const newTx: Transaction = { ...tx, category, tag, id: 't_' + generateSalt(6) };
     this.db.transactions.push(newTx);
 
     // Update bank balance
@@ -816,6 +866,41 @@ class DatabaseService {
 
     await this.save();
     return newTx;
+  }
+
+  public async updateTransaction(id: string, updates: Partial<Transaction>): Promise<void> {
+    if (!this.db) throw new Error('Database is locked');
+    const oldTx = this.db.transactions.find(t => t.id === id);
+    if (!oldTx) return;
+
+    // Rollback old balance
+    const oldAccount = this.db.accounts.find(a => a.id === oldTx.accountId);
+    if (oldAccount) {
+      if (oldTx.type === 'Income') oldAccount.balance -= oldTx.amount;
+      else if (oldTx.type === 'Expense') oldAccount.balance += oldTx.amount;
+      else if (oldTx.type === 'Transfer') oldAccount.balance += oldTx.amount;
+    }
+    if (oldTx.type === 'Transfer' && oldTx.refAccountId) {
+      const refAccount = this.db.accounts.find(a => a.id === oldTx.refAccountId);
+      if (refAccount) refAccount.balance -= oldTx.amount;
+    }
+
+    const updatedTx: Transaction = { ...oldTx, ...updates };
+    this.db.transactions = this.db.transactions.map(t => t.id === id ? updatedTx : t);
+
+    // Apply new balance
+    const newAccount = this.db.accounts.find(a => a.id === updatedTx.accountId);
+    if (newAccount) {
+      if (updatedTx.type === 'Income') newAccount.balance += updatedTx.amount;
+      else if (updatedTx.type === 'Expense') newAccount.balance -= updatedTx.amount;
+      else if (updatedTx.type === 'Transfer') newAccount.balance -= updatedTx.amount;
+    }
+    if (updatedTx.type === 'Transfer' && updatedTx.refAccountId) {
+      const refAccount = this.db.accounts.find(a => a.id === updatedTx.refAccountId);
+      if (refAccount) refAccount.balance += updatedTx.amount;
+    }
+
+    await this.save();
   }
 
   public async deleteTransaction(id: string): Promise<void> {
@@ -858,6 +943,36 @@ class DatabaseService {
     if (!this.db) throw new Error('Database is locked');
     this.db.budgets = this.db.budgets.map(b => b.id === id ? { ...b, ...updates } : b);
     await this.save();
+  }
+
+  public async deleteBudget(id: string): Promise<void> {
+    if (!this.db) throw new Error('Database is locked');
+    this.db.budgets = this.db.budgets.filter(b => b.id !== id);
+    await this.save();
+  }
+
+  // Encrypted Documents (Document Vault)
+  public getEncryptedDocuments(profileId?: string): EncryptedDocument[] {
+    if (!this.db) throw new Error('Database is locked');
+    const docs = this.db.encryptedDocuments || [];
+    const targetPid = profileId || this.activeProfileId;
+    return targetPid ? docs.filter(d => d.profileId === targetPid) : docs;
+  }
+
+  public async addEncryptedDocument(doc: EncryptedDocument): Promise<EncryptedDocument> {
+    if (!this.db) throw new Error('Database is locked');
+    if (!this.db.encryptedDocuments) this.db.encryptedDocuments = [];
+    this.db.encryptedDocuments.push(doc);
+    await this.save();
+    return doc;
+  }
+
+  public async deleteEncryptedDocument(id: string): Promise<void> {
+    if (!this.db) throw new Error('Database is locked');
+    if (this.db.encryptedDocuments) {
+      this.db.encryptedDocuments = this.db.encryptedDocuments.filter(d => d.id !== id);
+      await this.save();
+    }
   }
 
   // FDs
@@ -1297,11 +1412,45 @@ class DatabaseService {
   public async importRawDb(jsonString: string): Promise<boolean> {
     try {
       const imported = JSON.parse(jsonString);
-      if (imported.settings && imported.profiles && imported.accounts) {
-        const db = imported as DatabaseSchema;
-        if (!db.recurringTransactions) {
-          db.recurringTransactions = [];
+      if (
+        imported &&
+        typeof imported === 'object' &&
+        imported.settings &&
+        Array.isArray(imported.profiles) &&
+        Array.isArray(imported.accounts) &&
+        Array.isArray(imported.transactions) &&
+        Array.isArray(imported.budgets)
+      ) {
+        // Validate profile fields
+        for (const p of imported.profiles) {
+          if (!p.id || !p.name) return false;
         }
+
+        // Validate account profileIds
+        const profileIds = new Set(imported.profiles.map((p: any) => p.id));
+        for (const a of imported.accounts) {
+          if (!a.id || !profileIds.has(a.profileId)) return false;
+        }
+
+        // Validate transaction accountIds
+        const accountIds = new Set(imported.accounts.map((a: any) => a.id));
+        for (const t of imported.transactions) {
+          if (!t.id || !accountIds.has(t.accountId)) return false;
+        }
+
+        // Create pre-import snapshot backup
+        if (typeof window !== 'undefined' && this.db) {
+          try {
+            localStorage.setItem(`pre_import_snapshot_${Date.now()}`, JSON.stringify(this.db));
+          } catch (e) {
+            console.error('Pre-import snapshot failed', e);
+            return false;
+          }
+        }
+
+        const db = imported as DatabaseSchema;
+        if (!db.recurringTransactions) db.recurringTransactions = [];
+        if (!db.auditLogs) db.auditLogs = [];
         this.db = db;
         await this.save();
         this.logAction('BACKUP_IMPORT', 'Database imported and overwritten from backup');
@@ -1343,11 +1492,12 @@ class DatabaseService {
   }
 
   // Investment Plans
-  public getInvestmentPlans(): InvestmentPlan[] {
+  public getInvestmentPlans(profileId?: string): InvestmentPlan[] {
     const db = this.db;
     if (!db) throw new Error('Database is locked');
-    if (!db.investmentPlans) db.investmentPlans = [];
-    return db.investmentPlans;
+    const plans = db.investmentPlans || [];
+    const pid = profileId || this.activeProfileId;
+    return pid ? plans.filter(p => p.profileId === pid) : plans;
   }
 
   public async addInvestmentPlan(plan: Omit<InvestmentPlan, 'id'>): Promise<InvestmentPlan> {
@@ -1372,11 +1522,12 @@ class DatabaseService {
 
 
   // Savings Goals
-  public getGoals(): SavingsGoal[] {
+  public getGoals(profileId?: string): SavingsGoal[] {
     const db = this.db;
     if (!db) throw new Error('Database is locked');
-    if (!db.goals) db.goals = [];
-    return db.goals;
+    const goals = db.goals || [];
+    const pid = profileId || this.activeProfileId;
+    return pid ? goals.filter(g => g.profileId === pid) : goals;
   }
 
   public async addGoal(goal: Omit<SavingsGoal, 'id' | 'createdAt'>): Promise<SavingsGoal> {
@@ -1404,6 +1555,43 @@ class DatabaseService {
     if (!db.goals) return;
     db.goals = db.goals.filter(g => g.id !== id);
     this.logAction('GOAL_DELETE', `Deleted savings goal ID: ${id}`);
+    await this.save();
+  }
+
+  // Automation Rules
+  public getAutomationRules(profileId?: string): AutomationRule[] {
+    const db = this.db;
+    if (!db) throw new Error('Database is locked');
+    const rules = db.automationRules || [];
+    const pid = profileId || this.activeProfileId;
+    return pid ? rules.filter(r => r.profileId === pid) : rules;
+  }
+
+  public async addAutomationRule(rule: Omit<AutomationRule, 'id'>): Promise<AutomationRule> {
+    const db = this.db;
+    if (!db) throw new Error('Database is locked');
+    if (!db.automationRules) db.automationRules = [];
+    const newRule: AutomationRule = { ...rule, id: 'rule_' + generateSalt(6) };
+    db.automationRules.push(newRule);
+    this.logAction('AUTOMATION_RULE_ADD', `Added automation rule: ${rule.name}`);
+    await this.save();
+    return newRule;
+  }
+
+  public async updateAutomationRule(id: string, updates: Partial<AutomationRule>): Promise<void> {
+    const db = this.db;
+    if (!db) throw new Error('Database is locked');
+    if (!db.automationRules) db.automationRules = [];
+    db.automationRules = db.automationRules.map(r => r.id === id ? { ...r, ...updates } : r);
+    await this.save();
+  }
+
+  public async deleteAutomationRule(id: string): Promise<void> {
+    const db = this.db;
+    if (!db) throw new Error('Database is locked');
+    if (!db.automationRules) return;
+    db.automationRules = db.automationRules.filter(r => r.id !== id);
+    this.logAction('AUTOMATION_RULE_DELETE', `Deleted automation rule ID: ${id}`);
     await this.save();
   }
 
@@ -1482,7 +1670,7 @@ class DatabaseService {
   public async processRecurringTransactions(): Promise<void> {
     const db = this.db;
     if (!db) return;
-    const nowStr = '2026-07-16'; // Consistent current date
+    const nowStr = new Date().toISOString().split('T')[0];
     const today = new Date(nowStr);
     let changed = false;
 
@@ -1514,7 +1702,8 @@ class DatabaseService {
           amount: currentAmount,
           type: rt.type,
           category: rt.category,
-          refAccountId: rt.refAccountId
+          refAccountId: rt.refAccountId,
+          isAutoGenerated: true
         };
 
         db.transactions.push(newTx);

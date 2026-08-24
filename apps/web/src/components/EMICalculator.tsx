@@ -1,21 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Button, MetricCard, PanelHeader, Slider, Tabs, SummaryMetricGrid, PaginationControls } from '@financeos/ui';
 import { dbService } from '@financeos/database';
-import { formatRupee } from '../utils/currency.js';
+import { formatRupee } from '@financeos/shared';
+import { calculateEMI, generateAmortizationSchedule, AmortRow } from '../utils/financialCalculations.js';
 import { exportToCSV } from '../utils/exportCsv.js';
 import { Calculator, Download, IndianRupee, Clock, PieChart as PieIcon } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, AreaChart, Area, XAxis, YAxis } from 'recharts';
 
 interface EMICalculatorProps {
   activeProfileId: string;
-}
-
-interface AmortRow {
-  month: number;
-  openingBalance: number;
-  emi: number;
-  principal: number;
-  interest: number;
-  closingBalance: number;
 }
 
 export const EMICalculator: React.FC<EMICalculatorProps> = ({ activeProfileId }) => {
@@ -36,6 +29,12 @@ export const EMICalculator: React.FC<EMICalculatorProps> = ({ activeProfileId })
         setTenureYears(saved.tenureYears || 0);
         setPrepayment(saved.prepayment || 0);
         setPrepaymentMonth(saved.prepaymentMonth || 12);
+      } else {
+        setPrincipal(0);
+        setRate(0);
+        setTenureYears(0);
+        setPrepayment(0);
+        setPrepaymentMonth(12);
       }
     } catch (e) {
       console.error('Failed to load EMI inputs', e);
@@ -59,55 +58,23 @@ export const EMICalculator: React.FC<EMICalculatorProps> = ({ activeProfileId })
   }, [principal, rate, tenureYears, prepayment, prepaymentMonth, activeProfileId, isLoaded]);
 
   const tenureMonths = tenureYears * 12;
-  const monthlyRate = rate / 12 / 100;
 
   const emi = useMemo(() => {
-    if (tenureMonths === 0) return 0;
-    if (monthlyRate === 0) return principal / tenureMonths;
-    return (principal * monthlyRate * Math.pow(1 + monthlyRate, tenureMonths)) /
-      (Math.pow(1 + monthlyRate, tenureMonths) - 1);
-  }, [principal, monthlyRate, tenureMonths]);
+    return calculateEMI(principal, rate, tenureMonths);
+  }, [principal, rate, tenureMonths]);
 
   const amortization = useMemo(() => {
-    const rows: AmortRow[] = [];
-    let balance = principal;
-    let totalInterest = 0;
-    let totalPrincipal = 0;
-
-    for (let m = 1; m <= tenureMonths && balance > 0; m++) {
-      let currentPrepayment = 0;
-      const openingBalance = balance;
-      
-      // Apply prepayment at specified month
-      if (prepayment > 0 && m === prepaymentMonth) {
-        currentPrepayment = Math.min(balance, prepayment);
-        balance = Math.max(0, balance - currentPrepayment);
-      }
-
-      const interestPart = balance * monthlyRate;
-      let principalPart = emi - interestPart;
-      
-      if (principalPart > balance) principalPart = balance;
-      const closingBalance = Math.max(0, balance - principalPart);
-
-      totalInterest += interestPart;
-      totalPrincipal += (principalPart + currentPrepayment);
-
-      rows.push({
-        month: m,
-        openingBalance: Math.round(openingBalance),
-        emi: Math.round(emi + currentPrepayment),
-        principal: Math.round(principalPart + currentPrepayment),
-        interest: Math.round(interestPart),
-        closingBalance: Math.round(closingBalance)
-      });
-
-      balance = closingBalance;
-      if (balance <= 0) break;
-    }
-
-    return { rows, totalInterest: Math.round(totalInterest), totalPrincipal: Math.round(totalPrincipal), totalPayment: Math.round(totalInterest + totalPrincipal), actualTenure: rows.length };
-  }, [principal, monthlyRate, emi, tenureMonths, prepayment, prepaymentMonth]);
+    const rows = generateAmortizationSchedule(principal, rate, tenureMonths, prepayment, prepaymentMonth);
+    const totalInterest = rows.reduce((sum, r) => sum + r.interest, 0);
+    const totalPrincipal = rows.reduce((sum, r) => sum + r.principal, 0);
+    return {
+      rows,
+      totalInterest,
+      totalPrincipal,
+      totalPayment: totalInterest + totalPrincipal,
+      actualTenure: rows.length
+    };
+  }, [principal, rate, tenureMonths, prepayment, prepaymentMonth]);
 
   // Without prepayment baseline
   const baselineTotal = useMemo(() => {
@@ -138,136 +105,105 @@ export const EMICalculator: React.FC<EMICalculatorProps> = ({ activeProfileId })
     return points;
   }, [amortization]);
 
-  const [showFullTable, setShowFullTable] = useState(false);
+  const [scheduleMode, setScheduleMode] = useState<'annual' | 'monthly'>('annual');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 24;
+
+  const annualSummary = useMemo(() => {
+    const years: Array<{
+      year: number;
+      openingBalance: number;
+      totalEmi: number;
+      totalPrincipal: number;
+      totalInterest: number;
+      closingBalance: number;
+    }> = [];
+
+    const rows = amortization.rows;
+    const numYears = Math.ceil(rows.length / 12);
+    for (let y = 0; y < numYears; y++) {
+      const chunk = rows.slice(y * 12, (y + 1) * 12);
+      if (chunk.length === 0) continue;
+      years.push({
+        year: y + 1,
+        openingBalance: chunk[0].openingBalance,
+        totalEmi: chunk.reduce((sum, r) => sum + r.emi, 0),
+        totalPrincipal: chunk.reduce((sum, r) => sum + r.principal, 0),
+        totalInterest: chunk.reduce((sum, r) => sum + r.interest, 0),
+        closingBalance: chunk[chunk.length - 1].closingBalance
+      });
+    }
+    return years;
+  }, [amortization.rows]);
+
+  const totalMonthlyPages = Math.ceil(amortization.rows.length / pageSize) || 1;
+  const paginatedMonthlyRows = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return amortization.rows.slice(start, start + pageSize);
+  }, [amortization.rows, currentPage, pageSize]);
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-125)' }}>
 
       {/* Input Controls */}
-      <div className="glass-panel" style={{ padding: '1.5rem' }}>
-        <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Calculator size={18} color="var(--accent-1)" /> EMI & Loan Amortization Calculator
-        </h3>
+      <div className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-15)' }}>
+        <PanelHeader
+          title="EMI & Loan Amortization Calculator"
+          icon={<Calculator size={18} />}
+          style={{ marginBottom: 'var(--spacing-125)' }}
+        />
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 'var(--spacing-125)' }}>
           {/* Principal Input & Slider */}
-          <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Loan Amount</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '0.2rem 0.5rem', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--accent-1)', fontWeight: 700 }}>₹</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={500000000}
-                  step={10000}
-                  value={principal}
-                  onChange={e => setPrincipal(Math.max(0, Number(e.target.value)))}
-                  style={{
-                    width: '120px',
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--accent-1)',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
-                    outline: 'none',
-                    textAlign: 'right'
-                  }}
-                />
-              </div>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={50000000}
-              step={100000}
-              value={principal}
-              onChange={e => setPrincipal(Number(e.target.value))}
-              style={{ width: '100%', accentColor: 'var(--accent-1)', marginTop: '0.3rem' }}
-            />
-          </div>
+          <Slider
+            label="Loan Amount"
+            value={principal}
+            onChange={(v) => setPrincipal(Math.max(0, v))}
+            min={0}
+            max={50000000}
+            step={100000}
+            editable
+            prefix="₹"
+            inputWidth={120}
+            ariaLabel="Loan Amount"
+          />
 
           {/* Interest Rate Input & Slider */}
-          <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Interest Rate</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '0.2rem 0.5rem', border: '1px solid var(--border-color)' }}>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={0.1}
-                  value={rate}
-                  onChange={e => setRate(Math.max(0, Number(e.target.value)))}
-                  style={{
-                    width: '60px',
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--accent-1)',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
-                    outline: 'none',
-                    textAlign: 'right'
-                  }}
-                />
-                <span style={{ fontSize: '0.85rem', color: 'var(--accent-1)', fontWeight: 700 }}>%</span>
-              </div>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={25}
-              step={0.1}
-              value={rate}
-              onChange={e => setRate(Number(e.target.value))}
-              style={{ width: '100%', accentColor: 'var(--accent-1)', marginTop: '0.3rem' }}
-            />
-          </div>
+          <Slider
+            label="Interest Rate"
+            value={rate}
+            onChange={(v) => setRate(Math.max(0, v))}
+            min={0}
+            max={25}
+            step={0.1}
+            editable
+            suffix="%"
+            inputWidth={60}
+            ariaLabel="Interest Rate"
+          />
 
           {/* Tenure Input & Slider */}
-          <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Tenure</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '0.2rem 0.5rem', border: '1px solid var(--border-color)' }}>
-                <input
-                  type="number"
-                  min={0}
-                  max={50}
-                  step={1}
-                  value={tenureYears}
-                  onChange={e => setTenureYears(Math.max(0, Number(e.target.value)))}
-                  style={{
-                    width: '50px',
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--accent-1)',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
-                    outline: 'none',
-                    textAlign: 'right'
-                  }}
-                />
-                <span style={{ fontSize: '0.8rem', color: 'var(--accent-1)', fontWeight: 600 }}>Yrs</span>
-              </div>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={30}
-              step={1}
-              value={tenureYears}
-              onChange={e => setTenureYears(Number(e.target.value))}
-              style={{ width: '100%', accentColor: 'var(--accent-1)', marginTop: '0.3rem' }}
-            />
-          </div>
+          <Slider
+            label="Loan Tenure"
+            value={tenureYears}
+            onChange={(v) => setTenureYears(Math.max(0, v))}
+            min={0}
+            max={35}
+            step={1}
+            editable
+            suffix="Yrs"
+            inputWidth={50}
+            ariaLabel="Loan Tenure"
+          />
 
-          {/* Prepayment Input & Slider */}
+          {/* Prepayment Input */}
           <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Lump-Sum Prepayment</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '0.2rem 0.5rem', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--warning)', fontWeight: 700 }}>₹</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-04)' }}>
+              <label htmlFor="emi-prepay-input" style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', fontWeight: 'var(--fw-medium)' }}>Lump-sum Prepayment</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-02)', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-xs)', padding: 'var(--spacing-02) var(--spacing-05)', border: '1px solid var(--border-color)', boxShadow: 'var(--neo-inset-sm)' }}>
+                <span style={{ fontSize: 'var(--font-sm)', color: 'var(--accent-1)', fontWeight: 'var(--fw-heavy)' }}>₹</span>
                 <input
+                  id="emi-prepay-input"
                   type="number"
                   min={0}
                   max={500000000}
@@ -275,175 +211,205 @@ export const EMICalculator: React.FC<EMICalculatorProps> = ({ activeProfileId })
                   value={prepayment}
                   onChange={e => setPrepayment(Math.max(0, Number(e.target.value)))}
                   style={{
-                    width: '110px',
+                    width: '120px',
                     background: 'transparent',
                     border: 'none',
-                    color: 'var(--warning)',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
+                    color: 'var(--accent-1)',
+                    fontWeight: 'var(--fw-heavy)',
+                    fontSize: 'var(--font-sm)',
                     outline: 'none',
                     textAlign: 'right'
                   }}
                 />
               </div>
             </div>
-            <input
-              type="range"
-              min={0}
-              max={Math.max(100000, principal * 0.5)}
-              step={10000}
-              value={prepayment}
-              onChange={e => setPrepayment(Number(e.target.value))}
-              style={{ width: '100%', accentColor: 'var(--warning)', marginTop: '0.3rem' }}
-            />
-            {prepayment > 0 && (
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                Applied at month {prepaymentMonth}
-                <input
-                  type="number"
-                  min={1}
-                  max={Math.max(1, tenureMonths)}
-                  value={prepaymentMonth}
-                  onChange={e => setPrepaymentMonth(Number(e.target.value))}
-                  style={{
-                    width: '50px',
-                    marginLeft: '0.3rem',
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '4px',
-                    color: '#fff',
-                    padding: '0.1rem 0.3rem',
-                    fontSize: '0.7rem'
-                  }}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Results Summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-        <div className="glass-panel" style={{ padding: '1rem', textAlign: 'center' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Monthly EMI</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-1)' }}>{formatRupee(Math.round(emi))}</div>
-        </div>
-        <div className="glass-panel" style={{ padding: '1rem', textAlign: 'center' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Total Interest</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--error)' }}>{formatRupee(amortization.totalInterest)}</div>
-        </div>
-        <div className="glass-panel" style={{ padding: '1rem', textAlign: 'center' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Total Payment</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{formatRupee(amortization.totalPayment)}</div>
-        </div>
-        {savings > 0 && (
-          <div className="glass-panel" style={{ padding: '1rem', textAlign: 'center', borderColor: 'var(--success)' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--success)', marginBottom: '0.3rem' }}>Prepayment Savings</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--success)' }}>{formatRupee(savings)}</div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-              Tenure reduced to {Math.ceil(amortization.actualTenure / 12)}Y {amortization.actualTenure % 12}M
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)', marginTop: 'var(--spacing-04)' }}>
+              <span style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }}>At Month:</span>
+              <input
+                type="number"
+                aria-label="Prepayment Month"
+                min={1}
+                max={tenureMonths || 12}
+                value={prepaymentMonth}
+                onChange={e => setPrepaymentMonth(Math.max(1, Number(e.target.value)))}
+                style={{ width: '80px', padding: 'var(--spacing-02) var(--spacing-04)', fontSize: 'var(--font-xs)', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xs)', color: 'var(--text-primary)', textAlign: 'center' }}
+              />
             </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Charts Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="responsive-stack">
+      {/* Summary Cards */}
+      <SummaryMetricGrid minItemWidth="180px">
+        <MetricCard
+          label="Monthly EMI"
+          value={formatRupee(emi)}
+          subtext="Principal + Interest monthly"
+          accentColor="var(--accent-1)"
+        />
 
-        {/* Pie Chart */}
-        <div className="glass-panel" style={{ padding: '1.25rem' }}>
-          <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <PieIcon size={14} color="var(--accent-2)" /> Principal vs Interest
-          </h4>
+        <MetricCard
+          label="Total Interest"
+          value={formatRupee(amortization.totalInterest)}
+          subtext={`${((amortization.totalInterest / (amortization.totalPayment || 1)) * 100).toFixed(0)}% of total repayment`}
+          accentColor="var(--error)"
+        />
+
+        <MetricCard
+          label="Total Payment"
+          value={formatRupee(amortization.totalPayment)}
+          subtext={`Principal: ${formatRupee(amortization.totalPrincipal)}`}
+          accentColor="var(--text-primary)"
+        />
+
+        {prepayment > 0 && (
+          <MetricCard
+            label="Prepayment Savings"
+            value={formatRupee(savings)}
+            subtext={`Tenure reduced to ${Math.ceil(amortization.actualTenure / 12)} yrs`}
+            progressVariant="positive"
+            accentColor="var(--success)"
+          />
+        )}
+      </SummaryMetricGrid>
+
+      {/* Analytics Charts */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--spacing-1)' }}>
+        {/* Principal vs Interest Donut */}
+        <div className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-125)' }}>
+          <PanelHeader
+            title="Loan Breakdown"
+            icon={<PieIcon size={14} />}
+            tag="h4"
+          />
           <div style={{ width: '100%', height: '200px' }}>
             <ResponsiveContainer>
               <PieChart>
                 <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value">
                   {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
-                <Tooltip formatter={(v: any) => formatRupee(v)} />
+                <Tooltip formatter={(v) => formatRupee(Number(v))} />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', fontSize: '0.78rem' }}>
-            {pieData.map((d, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color }} />
-                <span style={{ color: 'var(--text-secondary)' }}>{d.name}: {formatRupee(d.value)}</span>
-              </div>
-            ))}
-          </div>
         </div>
 
-        {/* Balance Over Time */}
-        <div className="glass-panel" style={{ padding: '1.25rem' }}>
-          <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Clock size={14} color="var(--accent-1)" /> Outstanding Balance Over Time
-          </h4>
-          <div style={{ width: '100%', height: '200px' }}>
+        {/* Balance Over Time Area Chart */}
+        <div className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-125)' }}>
+          <PanelHeader
+            title="Repayment Timeline"
+            icon={<Clock size={14} />}
+            tag="h4"
+          />
+          <div style={{ width: '100%', height: 'var(--chart-height-sm)' }}>
             <ResponsiveContainer>
               <AreaChart data={yearlyData}>
                 <defs>
-                  <linearGradient id="balGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--error)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="var(--error)" stopOpacity={0} />
+                  <linearGradient id="emiBalanceGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--accent-1)" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="var(--accent-1)" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="year" stroke="var(--text-muted)" fontSize={10} tickLine={false} />
-                <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} tickFormatter={v => `${(v / 100000).toFixed(0)}L`} />
-                <Tooltip formatter={(v: any) => formatRupee(v)} contentStyle={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }} />
-                <Area type="monotone" dataKey="balance" stroke="var(--error)" strokeWidth={2} fillOpacity={1} fill="url(#balGrad)" />
+                <XAxis dataKey="year" stroke="var(--text-muted)" fontSize={11} />
+                <YAxis stroke="var(--text-muted)" fontSize={11} tickFormatter={(v) => `₹${(v / 100000).toFixed(0)}L`} />
+                <Tooltip formatter={(v) => formatRupee(Number(v))} />
+                <Area type="monotone" dataKey="balance" stroke="var(--accent-1)" fillOpacity={1} fill="url(#emiBalanceGrad)" name="Remaining Balance" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
       </div>
 
-      {/* Amortization Table */}
-      <div className="glass-panel" style={{ padding: '1.25rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-          <h4 style={{ fontSize: '0.9rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <IndianRupee size={14} color="var(--accent-1)" /> Amortization Schedule
-          </h4>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="btn btn-secondary" onPointerDown={() => setShowFullTable(!showFullTable)}
-              style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', border: '1px solid var(--border-color)' }}>
-              {showFullTable ? 'Show Less' : `Show All ${amortization.rows.length} Months`}
-            </button>
-            <button className="btn btn-primary" onPointerDown={() => exportToCSV('emi_amortization', [
-              { label: 'Month', key: 'month' }, { label: 'Opening Balance', key: 'openingBalance' },
-              { label: 'EMI', key: 'emi' }, { label: 'Principal', key: 'principal' },
-              { label: 'Interest', key: 'interest' }, { label: 'Closing Balance', key: 'closingBalance' }
-            ], amortization.rows)} style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', gap: '0.3rem' }}>
-              <Download size={12} /> CSV
-            </button>
-          </div>
-        </div>
+      {/* Amortization Schedule with Annual Consolidation & Pagination */}
+      <div className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-125)' }}>
+        <PanelHeader
+          title={
+            <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-1)', flexWrap: 'wrap' }}>
+              Amortization Schedule
+              {/* View Mode Toggle */}
+              <Tabs
+                tabs={[
+                  { id: 'annual', label: `Yearly Consolidation (${annualSummary.length} Yrs)` },
+                  { id: 'monthly', label: `Monthly Breakdown (${amortization.rows.length} Mo)` },
+                ]}
+                activeTab={scheduleMode}
+                onChange={(id) => setScheduleMode(id as 'annual' | 'monthly')}
+                variant="segmented"
+              />
+            </span>
+          }
+          icon={<IndianRupee size={14} />}
+          tag="h4"
+          style={{ marginBottom: 0 }}
+          action={
+            <Button
+              variant="primary"
+              onClick={() => exportToCSV('emi_amortization', [
+                { label: 'Month', key: 'month' }, { label: 'Opening Balance', key: 'openingBalance' },
+                { label: 'EMI', key: 'emi' }, { label: 'Principal', key: 'principal' },
+                { label: 'Interest', key: 'interest' }, { label: 'Closing Balance', key: 'closingBalance' }
+              ], amortization.rows)}
+              style={{ padding: 'var(--spacing-04) var(--spacing-06)', fontSize: 'var(--font-xs)', gap: 'var(--spacing-04)' }}
+            >
+              <Download size={12} /> Export CSV
+            </Button>
+          }
+        />
 
-        <div style={{ overflowX: 'auto', maxHeight: showFullTable ? '500px' : '240px', overflowY: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+        {/* Schedule Table */}
+        <div style={{ overflowX: 'auto', maxHeight: 'var(--chart-height-xl)', overflowY: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-xs)' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                {['Month', 'Opening Balance', 'EMI', 'Principal', 'Interest', 'Closing Balance'].map(h => (
-                  <th key={h} style={{ padding: '0.5rem', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
+                {(scheduleMode === 'annual'
+                  ? ['Year', 'Opening Balance', 'Annual EMI Paid', 'Principal Paid', 'Interest Paid', 'Closing Balance']
+                  : ['Month', 'Opening Balance', 'EMI Paid', 'Principal', 'Interest', 'Closing Balance']
+                ).map(h => (
+                  <th key={h} style={{ padding: 'var(--spacing-05)', textAlign: 'right', fontFamily: 'var(--font-display)', fontSize: 'var(--font-xs)', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)', fontWeight: 'var(--fw-semibold)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {(showFullTable ? amortization.rows : amortization.rows.slice(0, 12)).map(r => (
-                <tr key={r.month} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  <td style={{ padding: '0.4rem 0.5rem', textAlign: 'right', color: 'var(--text-muted)' }}>{r.month}</td>
-                  <td style={{ padding: '0.4rem 0.5rem', textAlign: 'right' }}>{formatRupee(r.openingBalance)}</td>
-                  <td style={{ padding: '0.4rem 0.5rem', textAlign: 'right', fontWeight: 600 }}>{formatRupee(r.emi)}</td>
-                  <td style={{ padding: '0.4rem 0.5rem', textAlign: 'right', color: 'var(--success)' }}>{formatRupee(r.principal)}</td>
-                  <td style={{ padding: '0.4rem 0.5rem', textAlign: 'right', color: 'var(--error)' }}>{formatRupee(r.interest)}</td>
-                  <td style={{ padding: '0.4rem 0.5rem', textAlign: 'right', fontWeight: 600 }}>{formatRupee(r.closingBalance)}</td>
-                </tr>
-              ))}
+              {scheduleMode === 'annual' ? (
+                annualSummary.map(r => (
+                  <tr key={r.year} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <td style={{ padding: 'var(--spacing-04) var(--spacing-05)', textAlign: 'right', fontWeight: 'var(--fw-bold)', color: 'var(--accent-1)', fontVariantNumeric: 'tabular-nums' }}>Year {r.year}</td>
+                    <td style={{ padding: 'var(--spacing-04) var(--spacing-05)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatRupee(r.openingBalance)}</td>
+                    <td style={{ padding: 'var(--spacing-04) var(--spacing-05)', textAlign: 'right', fontWeight: 'var(--fw-semibold)', fontVariantNumeric: 'tabular-nums' }}>{formatRupee(r.totalEmi)}</td>
+                    <td style={{ padding: 'var(--spacing-04) var(--spacing-05)', textAlign: 'right', color: 'var(--success)', fontVariantNumeric: 'tabular-nums' }}>{formatRupee(r.totalPrincipal)}</td>
+                    <td style={{ padding: 'var(--spacing-04) var(--spacing-05)', textAlign: 'right', color: 'var(--error)', fontVariantNumeric: 'tabular-nums' }}>{formatRupee(r.totalInterest)}</td>
+                    <td style={{ padding: 'var(--spacing-04) var(--spacing-05)', textAlign: 'right', fontWeight: 'var(--fw-semibold)', fontVariantNumeric: 'tabular-nums' }}>{formatRupee(r.closingBalance)}</td>
+                  </tr>
+                ))
+              ) : (
+                paginatedMonthlyRows.map(r => (
+                  <tr key={r.month} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <td style={{ padding: 'var(--spacing-04) var(--spacing-05)', textAlign: 'right', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>Month {r.month}</td>
+                    <td style={{ padding: 'var(--spacing-04) var(--spacing-05)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatRupee(r.openingBalance)}</td>
+                    <td style={{ padding: 'var(--spacing-04) var(--spacing-05)', textAlign: 'right', fontWeight: 'var(--fw-semibold)', fontVariantNumeric: 'tabular-nums' }}>{formatRupee(r.emi)}</td>
+                    <td style={{ padding: 'var(--spacing-04) var(--spacing-05)', textAlign: 'right', color: 'var(--success)', fontVariantNumeric: 'tabular-nums' }}>{formatRupee(r.principal)}</td>
+                    <td style={{ padding: 'var(--spacing-04) var(--spacing-05)', textAlign: 'right', color: 'var(--error)', fontVariantNumeric: 'tabular-nums' }}>{formatRupee(r.interest)}</td>
+                    <td style={{ padding: 'var(--spacing-04) var(--spacing-05)', textAlign: 'right', fontWeight: 'var(--fw-semibold)', fontVariantNumeric: 'tabular-nums' }}>{formatRupee(r.closingBalance)}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
+
+        {/* Monthly Pagination Controls */}
+        {scheduleMode === 'monthly' && totalMonthlyPages > 1 && (
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalMonthlyPages}
+            totalItems={amortization.rows.length}
+            pageSize={pageSize}
+            itemLabel="months"
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
+
     </div>
   );
 };

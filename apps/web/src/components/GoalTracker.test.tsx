@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { GoalTracker } from './GoalTracker';
 
@@ -18,6 +18,9 @@ vi.mock('@financeos/database', () => ({
         createdAt: '2026-01-01'
       }
     ],
+    subscribe: () => () => {},
+    onUnsavedChangeStatus: () => () => {},
+    onSaveErrorStatus: () => () => {},
     addGoal: vi.fn(),
     updateGoal: vi.fn(),
     deleteGoal: vi.fn()
@@ -30,5 +33,15 @@ describe('GoalTracker Component', () => {
     expect(screen.getByText('Savings Goals')).toBeDefined();
     expect(screen.getByText('Emergency Fund')).toBeDefined();
     expect(screen.getByText('50%')).toBeDefined();
+  });
+
+  it('opens and cancels the new-goal form via click', () => {
+    render(<GoalTracker activeProfileId="p1" />);
+
+    fireEvent.click(screen.getByText('New Goal'));
+    expect(screen.getByText(/Create Savings Goal|Add Goal/i)).toBeTruthy();
+
+    fireEvent.click(screen.getByText('Cancel'));
+    expect(screen.queryByPlaceholderText('e.g. Emergency Fund')).toBeNull();
   });
 });

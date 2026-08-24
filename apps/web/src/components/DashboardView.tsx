@@ -2,9 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { useDbVersion } from '../hooks/useDbSync.js';
-import { FixedDeposit } from '@financeos/shared';
+import { FixedDeposit, formatRupee } from '@financeos/shared';
 import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
-import { formatRupee } from '../utils/currency.js';
 import {
   TrendingUp, TrendingDown, Landmark, PieChart as PieIcon,
   Calendar, Users, AlertTriangle, Lightbulb, Wallet, ShieldCheck, CreditCard
@@ -103,7 +102,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
 
   // Budgets & Spending Alerts
   const budgets = useMemo(() => dbService.getBudgets().filter(b => b.profileId === activeProfileId), [activeProfileId, dbVersion]);
-  const currentMonthStr = new Date().toISOString().substring(0, 7);
+  const currentMonthStr = useMemo(() => new Date().toISOString().substring(0, 7), []);
+  const currentMonthName = useMemo(() => new Date().toLocaleString('en-IN', { month: 'short' }).toUpperCase(), []);
   const budgetAlerts = useMemo(() => {
     // Optimization: Build a category-to-spent map in a single pass O(T) instead of O(B * T)
     const categorySpentMap = new Map<string, number>();
@@ -142,12 +142,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
   // Chart data for Asset Allocation
   const allocationData = useMemo(() => {
     return [
-      { name: 'Cash & Banks', value: bankBalances, color: '#06b6d4' },
-      { name: 'FDs / FIs', value: fdValue, color: '#3b82f6' },
-      { name: 'Stocks', value: stockValue, color: '#10b981' },
-      { name: 'Mutual Funds', value: mfValue, color: '#8b5cf6' },
-      { name: 'Gold', value: goldValue, color: '#f59e0b' },
-      { name: 'Retirement (NPS/PF)', value: npsValue + pfValue, color: '#ec4899' }
+      { name: 'Cash & Banks', value: bankBalances, color: 'var(--color-asset-cash)' },
+      { name: 'FDs / FIs', value: fdValue, color: 'var(--color-asset-fd)' },
+      { name: 'Stocks', value: stockValue, color: 'var(--color-asset-stocks)' },
+      { name: 'Mutual Funds', value: mfValue, color: 'var(--color-asset-mf)' },
+      { name: 'Gold', value: goldValue, color: 'var(--color-asset-gold)' },
+      { name: 'Retirement (NPS/PF)', value: npsValue + pfValue, color: 'var(--color-asset-retirement)' }
     ].filter(item => item.value > 0);
   }, [bankBalances, fdValue, stockValue, mfValue, goldValue, npsValue, pfValue]);
 
@@ -483,7 +483,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             fill="none" stroke={scoreFill} strokeWidth="6" strokeLinecap="round"
             style={{ transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }} />
         )}
-        <text x={cx} y={cy - 4} textAnchor="middle" fill="#fff" fontSize="18" fontWeight="700">{score}</text>
+        <text x={cx} y={cy - 4} textAnchor="middle" fill="var(--text-primary)" fontSize="18" fontWeight="700">{score}</text>
         <text x={cx} y={cy + 12} textAnchor="middle" fill={scoreFill} fontSize="8" fontWeight="600">{label}</text>
       </svg>
     );
@@ -500,15 +500,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
           transition: { staggerChildren: 0.1 }
         }
       }}
-      style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+      className="gap-stack-lg"
     >
 
       {/* Top Banner metrics */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
-        gap: '0.85rem'
-      }}>
+      <div className="card-grid-sm" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 'var(--spacing-085)' }}>
 
         {/* Net Worth Card */}
         <motion.div
@@ -517,13 +513,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             hidden: { opacity: 0, y: 20 },
             visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
           }}
-          style={{ padding: '1.15rem 1.25rem', position: 'relative', overflow: 'hidden' }}
+          style={{ padding: 'var(--spacing-15)', position: 'relative', overflow: 'hidden' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 650, letterSpacing: '0.06em' }}>NET WORTH</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-05)' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '0.06em' }}>TOTAL NET WORTH</span>
             <Wallet size={16} color="var(--accent-1)" />
           </div>
-          <h3 style={{ fontSize: 'clamp(1.5rem, 4vw, 2.1rem)', fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: 'var(--text-primary)' }}>{formatRupee(netWorth)}</h3>
+          <h3 style={{ fontSize: 'clamp(1.5rem, 4vw, 2.1rem)', fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{formatRupee(netWorth)}</h3>
 
           {/* Subtle bottom glow */}
           <div style={{
@@ -538,14 +534,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             hidden: { opacity: 0, y: 20 },
             visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
           }}
-          style={{ padding: '1.15rem 1.25rem' }}
+          style={{ padding: 'var(--spacing-15)' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 650, letterSpacing: '0.06em' }}>INCOME (JULY)</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-05)' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '0.06em' }}>INCOME ({currentMonthName})</span>
             <TrendingUp size={16} color="var(--success)" />
           </div>
-          <h3 style={{ fontSize: 'clamp(1.35rem, 3.5vw, 1.75rem)', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 0.2rem 0', color: 'var(--text-primary)' }}>{formatRupee(monthlyIncome)}</h3>
-          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0 }}>Business Sales + Salaries</p>
+          <h3 style={{ fontSize: 'clamp(1.35rem, 3.5vw, 1.75rem)', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 var(--spacing-025) 0', color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{formatRupee(monthlyIncome)}</h3>
+          <p style={{ fontSize: 'var(--font-2xs)', color: 'var(--text-muted)', margin: 0 }}>Business Sales + Salaries</p>
         </motion.div>
 
         {/* Monthly Expense Card */}
@@ -555,14 +551,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             hidden: { opacity: 0, y: 20 },
             visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
           }}
-          style={{ padding: '1.15rem 1.25rem' }}
+          style={{ padding: 'var(--spacing-15)' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 650, letterSpacing: '0.06em' }}>EXPENSES (JULY)</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-05)' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '0.06em' }}>EXPENSES ({currentMonthName})</span>
             <TrendingDown size={16} color="var(--error)" />
           </div>
-          <h3 style={{ fontSize: 'clamp(1.35rem, 3.5vw, 1.75rem)', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 0.2rem 0', color: 'var(--text-primary)' }}>{formatRupee(monthlyExpense)}</h3>
-          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0 }}>Groceries, Utilities & Bills</p>
+          <h3 style={{ fontSize: 'clamp(1.35rem, 3.5vw, 1.75rem)', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 var(--spacing-025) 0', color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{formatRupee(monthlyExpense)}</h3>
+          <p style={{ fontSize: 'var(--font-2xs)', color: 'var(--text-muted)', margin: 0 }}>Groceries, Utilities & Bills</p>
         </motion.div>
 
         {/* Savings Rate Card */}
@@ -572,15 +568,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             hidden: { opacity: 0, y: 20 },
             visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
           }}
-          style={{ padding: '1.15rem 1.25rem' }}
+          style={{ padding: 'var(--spacing-15)' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 650, letterSpacing: '0.06em' }}>SAVINGS RATE</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-05)' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '0.06em' }}>SAVINGS RATE</span>
             <Landmark size={16} color="var(--accent-2)" />
           </div>
-          <h3 style={{ fontSize: 'clamp(1.35rem, 3.5vw, 1.75rem)', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 0.2rem 0', color: 'var(--text-primary)' }}>{savingsRate.toFixed(1)}%</h3>
+          <h3 style={{ fontSize: 'clamp(1.35rem, 3.5vw, 1.75rem)', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 var(--spacing-025) 0', color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{savingsRate.toFixed(1)}%</h3>
           <div style={{
-            height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', marginTop: '0.4rem', overflow: 'hidden'
+            height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: 'var(--radius-xs)', marginTop: 'var(--spacing-05)', overflow: 'hidden'
           }}>
             <motion.div
               initial={{ width: 0 }}
@@ -598,16 +594,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             hidden: { opacity: 0, y: 20 },
             visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
           }}
-          style={{ padding: '1.15rem 1.25rem', position: 'relative', overflow: 'hidden' }}
+          style={{ padding: 'var(--spacing-15)', position: 'relative', overflow: 'hidden' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 650, letterSpacing: '0.06em' }}>TOTAL LIABILITIES</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-05)' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '0.06em' }}>TOTAL LIABILITIES</span>
             <CreditCard size={16} color={totalLiabilities > 0 ? 'var(--error)' : 'var(--text-muted)'} />
           </div>
-          <h3 style={{ fontSize: 'clamp(1.35rem, 3.5vw, 1.75rem)', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 0.2rem 0', color: totalLiabilities > 0 ? 'var(--error)' : 'var(--text-primary)' }}>
+          <h3 style={{ fontSize: 'clamp(1.35rem, 3.5vw, 1.75rem)', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 var(--spacing-025) 0', color: totalLiabilities > 0 ? 'var(--error)' : 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
             {formatRupee(totalLiabilities)}
           </h3>
-          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0 }}>
+          <p style={{ fontSize: 'var(--font-2xs)', color: 'var(--text-muted)', margin: 0 }}>
             {totalLiabilities === 0 ? 'Zero Debt — Excellent' : 'Loans & Credit Card Debt'}
           </p>
           <div style={{
@@ -624,11 +620,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             hidden: { opacity: 0, scale: 0.95 },
             visible: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 100 } }
           }}
-          style={{ padding: '1.15rem 1.25rem', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
+          style={{ padding: 'var(--spacing-15)', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
           onClick={() => setShowHealthBreakdown(!showHealthBreakdown)}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 650, letterSpacing: '0.06em' }}>HEALTH SCORE</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-05)' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '0.06em' }}>HEALTH SCORE</span>
             <ShieldCheck size={16} color="var(--text-muted)" />
           </div>
           <motion.div
@@ -645,16 +641,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem', overflow: 'hidden' }}
+                style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-075)', marginTop: 'var(--spacing-075)', borderTop: '1px solid var(--border-color)', paddingTop: 'var(--spacing-075)', overflow: 'hidden' }}
               >
                 {healthScore.breakdown.map((b, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem' }}>
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--font-xs)' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>{b.label}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <div style={{ width: '40px', height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
-                        <div style={{ width: `${(b.points / b.max) * 100}%`, height: '100%', background: b.points >= b.max * 0.7 ? 'var(--success)' : 'var(--warning)', transition: 'width 0.5s' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)' }}>
+                      <div style={{ width: '40px', height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: 'var(--radius-xs)', overflow: 'hidden', position: 'relative' }}>
+                        <div style={{
+                          width: '100%',
+                          height: '100%',
+                          background: b.points >= b.max * 0.7 ? 'var(--success)' : 'var(--warning)',
+                          transform: `scaleX(${Math.min(1, Math.max(0, b.points / b.max))})`,
+                          transformOrigin: 'left',
+                          transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+                        }} />
                       </div>
-                      <span style={{ fontWeight: 600, minWidth: '28px', textAlign: 'right' }}>{b.points}/{b.max}</span>
+                      <span style={{ fontWeight: 'var(--fw-semibold)', minWidth: '28px', textAlign: 'right' }}>{b.points}/{b.max}</span>
                     </div>
                   </div>
                 ))}
@@ -666,11 +669,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
       </div>
 
       {/* Main Charts & Analytics Row */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
-        gap: '1rem'
-      }}>
+      <div className="card-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))' }}>
 
         {/* Net Worth Timeline Card */}
         <motion.div
@@ -679,7 +678,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             hidden: { opacity: 0, x: -30 },
             visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 50, damping: 15 } }
           }}
-          style={{ padding: '1.25rem', minWidth: 0 }}
+          style={{ padding: 'var(--spacing-15)', minWidth: 0 }}
         >
           <div style={{
             display: 'flex',
@@ -689,19 +688,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             gap: '0.75rem',
             marginBottom: '1rem'
           }}>
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 650, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <h4 style={{ fontSize: 'var(--font-lg)', fontWeight: 650, margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)', flexWrap: 'wrap' }}>
               <Wallet size={16} color="var(--accent-1)" />
               <span>Net Worth Progression</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+              <span style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)', fontWeight: 500 }}>
                 ({timelineFilter === '6M' ? '6 Months' : timelineFilter === '12M' ? '12 Months' : timelineFilter === '2Y' ? '2 Years' : timelineFilter === '5Y' ? '5 Years' : '10 Years'})
               </span>
             </h4>
             <div style={{
               display: 'flex',
-              gap: '0.2rem',
+              gap: 'var(--spacing-05)',
               background: 'rgba(255,255,255,0.03)',
-              padding: '0.2rem',
-              borderRadius: '6px',
+              padding: 'var(--spacing-05)',
+              borderRadius: 'var(--radius-sm)',
               border: '1px solid var(--border-color)',
               flexWrap: 'wrap'
             }}>
@@ -710,14 +709,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                   key={f}
                   onPointerDown={() => setTimelineFilter(f)}
                   style={{
-                    padding: '0.25rem 0.5rem',
-                    fontSize: '0.7rem',
+                    padding: 'var(--spacing-05) var(--spacing-075)',
+                    fontSize: 'var(--font-xs)',
                     background: timelineFilter === f ? 'var(--accent-grad)' : 'transparent',
                     border: 'none',
-                    borderRadius: '4px',
+                    borderRadius: 'var(--radius-xs)',
                     color: timelineFilter === f ? '#fff' : 'var(--text-secondary)',
                     cursor: 'pointer',
-                    fontWeight: 650,
+                    fontWeight: 'var(--fw-semibold)',
                     transition: 'all var(--transition-fast)'
                   }}
                 >
@@ -743,9 +742,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                     background: 'var(--bg-panel)',
                     borderColor: 'var(--border-color)',
                     color: 'var(--text-primary)',
-                    borderRadius: '12px',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                    padding: '12px'
+                    borderRadius: 'var(--radius-tooltip)',
+                    boxShadow: 'var(--shadow-tooltip)',
+                    padding: 'var(--spacing-1)'
                   }}
                   itemStyle={{ fontWeight: 600 }}
                 />
@@ -762,12 +761,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             hidden: { opacity: 0, x: 30 },
             visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 50, damping: 15 } }
           }}
-          style={{ padding: '1.25rem', minWidth: 0 }}
+          style={{ padding: 'var(--spacing-15)', minWidth: 0 }}
         >
-          <h4 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h4 style={{ fontSize: 'var(--font-lg)', marginBottom: 'var(--spacing-1)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)' }}>
             <TrendingUp size={16} color="var(--success)" /> Income vs Expense comparison
           </h4>
-          <div style={{ width: '100%', height: '240px', minWidth: 0 }}>
+          <div style={{ width: '100%', height: 'var(--chart-height-md)', minWidth: 0 }}>
             <ResponsiveContainer width="100%" height={240} debounce={50}>
               <BarChart data={cashflowData}>
                 <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} />
@@ -777,10 +776,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                   contentStyle={{
                     background: 'var(--bg-panel)',
                     borderColor: 'var(--border-color)',
-                    borderRadius: '12px',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                    borderRadius: 'var(--radius-tooltip)',
+                    boxShadow: 'var(--shadow-tooltip)',
                     color: 'var(--text-primary)',
-                    padding: '12px'
+                    padding: 'var(--spacing-1)'
                   }}
                   itemStyle={{ fontWeight: 600 }}
                   cursor={{ fill: 'rgba(150,150,150,0.05)' }}
@@ -806,11 +805,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             transition: { staggerChildren: 0.1 }
           }
         }}
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))',
-          gap: '1.25rem'
-        }} className="responsive-stack"
+        className="card-grid responsive-stack"
+        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))' }}
       >
 
         {/* Investment Allocation Chart */}
@@ -820,13 +816,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             hidden: { opacity: 0, scale: 0.98, y: 15 },
             visible: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.3 } }
           }}
-          style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', minWidth: 0 }}
+          style={{ padding: 'var(--spacing-15)', display: 'flex', flexDirection: 'column', minWidth: 0 }}
         >
-          <h4 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h4 style={{ fontSize: 'var(--font-lg)', marginBottom: 'var(--spacing-1)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)' }}>
             <PieIcon size={16} color="var(--accent-2)" /> Investment Allocation
           </h4>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flex: 1, flexWrap: 'wrap', minWidth: 0 }}>
-            <div style={{ width: '100%', maxWidth: '160px', height: '160px', minWidth: 0 }}>
+            <div style={{ width: '100%', maxWidth: '160px', height: 'var(--chart-height-sm)', minWidth: 0 }}>
               <ResponsiveContainer width="100%" height={160} debounce={50}>
                 <PieChart>
                   <Pie
@@ -849,10 +845,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                     contentStyle={{
                       background: 'var(--bg-panel)',
                       borderColor: 'var(--border-color)',
-                      borderRadius: '12px',
+                      borderRadius: 'var(--radius-tooltip)',
                       color: 'var(--text-primary)',
-                      boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                      padding: '12px'
+                      boxShadow: 'var(--shadow-tooltip)',
+                      padding: 'var(--spacing-1)'
                     }}
                     itemStyle={{ fontWeight: 600 }}
                   />
@@ -860,7 +856,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
               </ResponsiveContainer>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.8rem', minWidth: '150px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-05)', fontSize: 'var(--font-xs)', minWidth: '150px' }}>
               {allocationData.map((item, idx) => (
                 <motion.div
                   key={idx}
@@ -879,7 +875,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
         </motion.div>
 
         {/* Right side: AI insights, nominee alerts, upcoming maturities */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0 }}>
+        <div className="gap-stack-lg" style={{ minWidth: 0 }}>
 
           {/* AI Insights & Alerts panel */}
           <motion.div
@@ -889,10 +885,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
               visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 70 } }
             }}
             whileHover={{ scale: 1.02 }}
-            style={{ padding: '1.25rem', minWidth: 0 }}
+            style={{ padding: 'var(--spacing-15)', minWidth: 0 }}
           >
-            <h4 style={{ fontSize: '1rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Lightbulb size={16} color="var(--warning)" /> AI Assistant Insights
+            <h4 style={{ fontSize: 'var(--font-lg)', marginBottom: 'var(--spacing-075)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)' }}>
+              <Lightbulb size={16} color="var(--warning)" /> Smart Insights
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
 
@@ -905,9 +901,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                     animate={{ opacity: 1, height: 'auto' }}
                     transition={{ delay: idx * 0.1 }}
                     style={{
-                      display: 'flex', gap: '0.5rem', background: b.pct >= 100 ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
+                      display: 'flex', gap: 'var(--spacing-05)', background: b.pct >= 100 ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
                       border: `1px solid ${b.pct >= 100 ? 'var(--error)' : 'var(--warning)'}`,
-                      padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem',
+                      padding: 'var(--spacing-05) var(--spacing-075)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-xs)',
                       color: b.pct >= 100 ? 'var(--error)' : 'var(--warning)'
                     }}
                   >
@@ -926,22 +922,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
               >
                 {nomineeAlerts.length > 0 ? (
                   <div style={{
-                    display: 'flex', gap: '0.5rem', background: 'var(--warning-bg)', border: '1px solid var(--warning)',
-                    padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', color: 'var(--warning)'
+                    display: 'flex', gap: 'var(--spacing-05)', background: 'var(--warning-bg)', border: '1px solid var(--warning)',
+                    padding: 'var(--spacing-05) var(--spacing-075)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-xs)', color: 'var(--warning)'
                   }}>
                     <AlertTriangle size={16} style={{ flexShrink: 0 }} />
                     <div>
-                      <strong>Nominee Audit:</strong> {nomineeAlerts.length} investment accounts lack designated nominees.
-                      Select "List investments without nominees" in AI Chat.
+                      <strong>Nominee Audit:</strong> {nomineeAlerts.length} investment account{nomineeAlerts.length > 1 ? 's do' : ' does'} not have a designated nominee.
+                      Assign legal nominees in Portfolio &amp; Investments to safeguard your estate.
                     </div>
                   </div>
                 ) : (
                   <div style={{
-                    display: 'flex', gap: '0.5rem', background: 'var(--success-bg)', border: '1px solid var(--success)',
-                    padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', color: 'var(--success)'
+                    display: 'flex', gap: 'var(--spacing-05)', background: 'var(--success-bg)', border: '1px solid var(--success)',
+                    padding: 'var(--spacing-05) var(--spacing-075)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-xs)', color: 'var(--success)'
                   }}>
                     <ShieldCheck size={16} />
-                    <div>All active accounts have nominative details. Well done!</div>
+                    <div>All bank accounts and investment assets have designated legal nominees assigned.</div>
                   </div>
                 )}
               </motion.div>
@@ -952,14 +948,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
                 style={{
-                  display: 'flex', gap: '0.5rem', background: 'hsla(186, 100%, 50%, 0.05)', border: '1px solid var(--border-focus)',
-                  padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem'
+                  display: 'flex', gap: 'var(--spacing-05)', background: 'hsla(186, 100%, 50%, 0.05)', border: '1px solid var(--border-focus)',
+                  padding: 'var(--spacing-05) var(--spacing-075)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-xs)'
                 }}
               >
                 <Lightbulb size={16} color="var(--accent-1)" style={{ flexShrink: 0 }} />
                 <div>
-                  <strong>Tax Saver Alert:</strong> You can save up to ₹15,600 by shifting to the New Tax Regime slabs (FY25-26) or maximizing 80C under Old.
-                  View tax comparator.
+                  <strong>Tax Saver Alert:</strong> You can save up to ₹15,600 by shifting to the New Tax Regime slabs (FY 2026-27) or maximizing 80C under Old.
+                  Open the tax comparator to analyze your savings.
                 </div>
               </motion.div>
 
@@ -974,12 +970,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
               visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 70 } }
             }}
             whileHover={{ scale: 1.02 }}
-            style={{ padding: '1.25rem', minWidth: 0 }}
+            style={{ padding: 'var(--spacing-15)', minWidth: 0 }}
           >
-            <h4 style={{ fontSize: '1rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h4 style={{ fontSize: 'var(--font-lg)', marginBottom: 'var(--spacing-075)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)' }}>
               <Calendar size={16} color="var(--accent-1)" /> Upcoming Bill & Deposit Maturities
             </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '120px', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-05)', maxHeight: '120px', overflowY: 'auto' }}>
               {maturities.length > 0 ? (
                 maturities.map((m, idx) => (
                   <motion.div
@@ -989,20 +985,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                     transition={{ delay: idx * 0.05 }}
                     style={{
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.82rem'
+                      padding: 'var(--spacing-05) var(--spacing-075)', background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-sm)',
+                      fontSize: 'var(--font-sm)'
                     }}
                   >
                     <span style={{ fontWeight: 500 }}>{m.label}</span>
-                    <div style={{ display: 'flex', gap: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                    <div style={{ display: 'flex', gap: 'var(--spacing-075)', color: 'var(--text-secondary)', fontSize: 'var(--font-xs)' }}>
                       <span>Matures: {m.date}</span>
                       <span style={{ color: 'var(--accent-1)', fontWeight: 600 }}>{formatRupee(m.amount)}</span>
                     </div>
                   </motion.div>
                 ))
               ) : (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '1rem' }}>
-                  No upcoming maturities found in the next 60 days
+                <div style={{ color: 'var(--text-muted)', fontSize: 'var(--font-sm)', textAlign: 'center', padding: 'var(--spacing-1)' }}>
+                  No deposits or bonds maturing in the next 90 days. Active term deposits with maturity dates will appear here automatically.
                 </div>
               )}
             </div>
@@ -1015,12 +1011,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
               hidden: { opacity: 0, x: 30 },
               visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 70 } }
             }}
-            style={{ padding: '1.25rem', minWidth: 0 }}
+            style={{ padding: 'var(--spacing-15)', minWidth: 0 }}
           >
-            <h4 style={{ fontSize: '1rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h4 style={{ fontSize: 'var(--font-lg)', marginBottom: 'var(--spacing-075)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)' }}>
               <Users size={16} color="var(--accent-2)" /> Family Wealth Profiles
             </h4>
-            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 'var(--spacing-05)', flexWrap: 'wrap' }}>
               {profiles.map((p, idx) => (
                 <motion.div
                   key={p.id}
@@ -1030,8 +1026,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                   transition={{ delay: idx * 0.05, type: "spring", stiffness: 300 }}
                   className="glass-panel"
                   style={{
-                    padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
-                    fontSize: '0.78rem', background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'
+                    padding: 'var(--spacing-04) var(--spacing-075)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)',
+                    fontSize: 'var(--font-xs)', background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'
                   }}
                 >
                   <div style={{
@@ -1043,8 +1039,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                       <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : null}
                   </div>
-                  <span style={{ fontWeight: 600 }}>{p.name}</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>({p.relationship})</span>
+                  <span style={{ fontWeight: 'var(--fw-semibold)' }}>{p.name}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-2xs)' }}>({p.relationship})</span>
                 </motion.div>
               ))}
             </div>
@@ -1059,6 +1055,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 60, delay: 0.2 }}
+        className="mt-15"
       >
         <GoalTracker activeProfileId={activeProfileId} />
       </motion.div>

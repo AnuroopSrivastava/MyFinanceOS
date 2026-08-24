@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
+import { EmptyState, SectionHeader, InfoCallout } from '@financeos/ui';
 import { dbService } from '@financeos/database';
 import { useDbVersion } from '../hooks/useDbSync.js';
 import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
-import { formatRupee } from '../utils/currency.js';
+import { formatRupee } from '@financeos/shared';
 import { Info, TrendingUp } from 'lucide-react';
 
 interface SankeyNode {
@@ -23,13 +24,24 @@ interface SankeyLink {
 
 interface SankeyViewProps {
   dateRange: GlobalDateRange;
-
   activeProfileId: string;
 }
 
-const COLORS = [
-  '#10b981', '#ec4899', '#f59e0b', '#3b82f6', '#8b5cf6', 
-  '#14b8a6', '#f43f5e', '#84cc16', '#0ea5e9', '#d946ef'
+const INFLOW_COLORS = [
+  'var(--chart-income)',
+  'var(--chart-series-1)',
+  'var(--chart-series-7)',
+  'var(--chart-series-3)',
+  'var(--chart-series-5)'
+];
+
+const EXPENSE_COLORS = [
+  'var(--chart-expense)',
+  'var(--chart-series-6)',
+  'var(--chart-series-5)',
+  'var(--chart-series-4)',
+  'var(--error)',
+  'var(--badge-rose-text)'
 ];
 
 export const SankeyView: React.FC<SankeyViewProps> = ({ activeProfileId, dateRange }) => {
@@ -83,37 +95,38 @@ export const SankeyView: React.FC<SankeyViewProps> = ({ activeProfileId, dateRan
     // A. Income Nodes (Column 0, x=20)
     incomes.forEach((inc, idx) => {
       const id = `i${idx}`;
+      const color = INFLOW_COLORS[idx % INFLOW_COLORS.length];
       generatedNodes.push({
         id,
         name: inc[0],
         value: inc[1],
         x: 20,
         y: startY + idx * spacing,
-        color: COLORS[idx % COLORS.length]
+        color
       });
       generatedLinks.push({
         source: id,
         target: 'pool',
         value: inc[1],
-        color: `${COLORS[idx % COLORS.length]}33`
+        color: `color-mix(in srgb, ${color} 24%, transparent)`
       });
     });
 
     // B. Pool Node (Column 1, x=270)
     generatedNodes.push({
       id: 'pool',
-      name: 'FinanceOS Pool',
+      name: 'Cash Flow Hub',
       value: totalFlow,
       x: 270,
-      y: 140, // fixed around middle
-      color: '#3b82f6'
+      y: 140,
+      color: 'var(--chart-series-1)'
     });
 
     // C. Expense Nodes + Net Savings (Column 2, x=520)
     let outIdx = 0;
     expenses.forEach((exp, idx) => {
       const id = `o${idx}`;
-      const color = COLORS[(incomes.length + idx + 1) % COLORS.length];
+      const color = EXPENSE_COLORS[idx % EXPENSE_COLORS.length];
       generatedNodes.push({
         id,
         name: exp[0],
@@ -126,7 +139,7 @@ export const SankeyView: React.FC<SankeyViewProps> = ({ activeProfileId, dateRan
         source: 'pool',
         target: id,
         value: exp[1],
-        color: `${color}33`
+        color: `color-mix(in srgb, ${color} 24%, transparent)`
       });
       outIdx++;
     });
@@ -138,13 +151,13 @@ export const SankeyView: React.FC<SankeyViewProps> = ({ activeProfileId, dateRan
         value: netSavings,
         x: 520,
         y: startY + outIdx * spacing,
-        color: '#10b981'
+        color: 'var(--chart-income)'
       });
       generatedLinks.push({
         source: 'pool',
         target: 'savings',
         value: netSavings,
-        color: '#10b98133'
+        color: 'color-mix(in srgb, var(--chart-income) 24%, transparent)'
       });
     }
 
@@ -166,107 +179,58 @@ export const SankeyView: React.FC<SankeyViewProps> = ({ activeProfileId, dateRan
 
   if (transactions.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        {/* Page Header Banner */}
-        <div className="glass-panel" style={{
-          padding: '2.5rem 3rem',
-          borderRadius: '1.5rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '2rem',
-          background: 'var(--header-banner-grad)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)',
-          marginBottom: '0.5rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', flex: '1 1 min-content', minWidth: '280px' }}>
-            <div style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '12px',
-              background: 'var(--accent-grad)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 14px hsla(220, 80%, 50%, 0.25)',
-              flexShrink: 0,
-              marginTop: '0.2rem'
-            }}>
-              <TrendingUp size={22} color="#ffffff" />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
-                <h1 style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0, lineHeight: 1.25 }}>
-                  Sankey Cash Flow Diagram
-                </h1>
-              </div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
-                Trace money pathways from revenue channels down to ledger balances and savings pools
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="glass-panel animate-fade-in" style={{ padding: '2.5rem 1.5rem', textAlign: 'center', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-focus)', background: 'rgba(255, 255, 255, 0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 650, margin: 0, color: 'var(--text-primary)' }}>No transactions found</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>Add some income and expenses to see your cash flow diagram.</p>
-        </div>
+      <div className="gap-stack-lg">
+        <SectionHeader
+          variant="banner"
+          icon={<TrendingUp />}
+          title="Sankey Cash Flow Diagram"
+          description="Trace money pathways from revenue channels down to ledger balances and savings pools"
+        />
+        <EmptyState
+          icon={<TrendingUp size={28} />}
+          title="No cash flow transactions recorded"
+          description="Record income credits and expense debits in Banking & Double-Entry Ledger to visualize your money pathways."
+        />
       </div>
     );
   }
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {/* Page Header Banner */}
-      <div className="glass-panel" style={{
-        padding: '2.5rem 3rem',
-        borderRadius: '1.5rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '2rem',
-        background: 'var(--header-banner-grad)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)',
-        marginBottom: '0.5rem'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', flex: '1 1 min-content', minWidth: '280px' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
-            background: 'var(--accent-grad)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 14px hsla(220, 80%, 50%, 0.25)',
-            flexShrink: 0,
-            marginTop: '0.2rem'
-          }}>
-            <TrendingUp size={22} color="#ffffff" />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
-              <h1 style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0, lineHeight: 1.25 }}>
-                Sankey Cash Flow Diagram
-              </h1>
-            </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
-              Trace money pathways from revenue channels down to ledger balances and savings pools
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="gap-stack-lg animate-fade-in">
+      <SectionHeader
+        variant="banner"
+        icon={<TrendingUp />}
+        title="Sankey Cash Flow Diagram"
+        description="Trace money pathways from revenue channels down to ledger balances and savings pools"
+      />
 
-      <div className="glass-panel" style={{ padding: '1.5rem' }}>
+      <div className="glass-panel" data-interactive-card="off" style={{
+        padding: 'var(--spacing-2)',
+        borderRadius: 'var(--radius-md)',
+        background: 'var(--bg-panel)',
+        backgroundImage: 'var(--neo-convex-grad)',
+        border: '1px solid var(--border-color)',
+        borderTop: 'var(--neo-bevel-top)',
+        borderBottom: 'var(--neo-bevel-bottom)',
+        boxShadow: 'var(--neo-raised-md)'
+      }}>
 
       <div style={{
-        display: 'flex', justifyContent: 'center', background: 'rgba(0,0,0,0.2)',
-        padding: '1.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)'
+        display: 'flex', justifyContent: 'center', background: 'var(--bg-secondary)',
+        padding: 'var(--spacing-15)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)',
+        boxShadow: 'var(--neo-inset-md)',
+        overflowX: 'auto', WebkitOverflowScrolling: 'touch'
       }}>
-        <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ maxWidth: '640px', overflow: 'visible' }}>
+        <svg
+          role="img"
+          aria-label="Money flow diagram showing income sources and expense destinations"
+          width="100%"
+          height={height}
+          viewBox={`0 0 ${width} ${height}`}
+          style={{ minWidth: '480px', maxWidth: '640px', overflow: 'visible' }}
+        >
+          <title>Cash Flow Sankey Diagram</title>
+          <desc>Visual representation of income streams, central ledger aggregation, and expense allocation channels.</desc>
           
           {links.map((link, idx) => {
             const srcNode = nodes.find(n => n.id === link.source);
@@ -282,7 +246,10 @@ export const SankeyView: React.FC<SankeyViewProps> = ({ activeProfileId, dateRan
                 fill="none"
                 stroke={link.color}
                 strokeWidth={strokeWidth}
-                style={{ transition: 'all 0.3s ease' }}
+                style={{ transition: 'opacity 0.2s ease' }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.85')}
+                opacity={0.85}
               />
             );
           })}
@@ -291,7 +258,7 @@ export const SankeyView: React.FC<SankeyViewProps> = ({ activeProfileId, dateRan
             <g key={node.id} transform={`translate(${node.x}, ${node.y})`}>
               <rect
                 width={80}
-                height={30}
+                height={36}
                 rx={6}
                 fill={node.color}
                 opacity={0.85}
@@ -299,8 +266,8 @@ export const SankeyView: React.FC<SankeyViewProps> = ({ activeProfileId, dateRan
               />
               <text
                 x={40}
-                y={13}
-                fill="#fff"
+                y={15}
+                fill="var(--text-on-accent, #fff)"
                 fontSize={9}
                 fontWeight={600}
                 textAnchor="middle"
@@ -309,10 +276,11 @@ export const SankeyView: React.FC<SankeyViewProps> = ({ activeProfileId, dateRan
               </text>
               <text
                 x={40}
-                y={24}
-                fill="rgba(255,255,255,0.8)"
-                fontSize={7}
+                y={28}
+                fill="var(--text-on-accent-muted, rgba(255,255,255,0.8))"
+                fontSize={7.5}
                 textAnchor="middle"
+                fontFamily="var(--font-mono)"
               >
                 {formatRupee(node.value)}
               </text>
@@ -320,18 +288,35 @@ export const SankeyView: React.FC<SankeyViewProps> = ({ activeProfileId, dateRan
           ))}
         </svg>
       </div>
+    </div>
 
-      <div style={{
-        marginTop: '1rem', display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.02)',
-        padding: '0.8rem', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', color: 'var(--text-secondary)'
-      }}>
-        <Info size={16} color="var(--accent-1)" style={{ flexShrink: 0 }} />
-        <div>
-          The widths of the connecting lines (ribbons) represent the relative monetary amounts of your cash flow. 
-          Green paths typically represent net positive inflows/savings, while other colors show operational allocations.
-        </div>
+    {/* Screen-reader accessible data summary */}
+      <div className="sr-only" aria-live="polite">
+        <table>
+          <caption>Cash Flow Breakdown Summary</caption>
+          <thead>
+            <tr>
+              <th scope="col">Flow Channel</th>
+              <th scope="col">Category</th>
+              <th scope="col">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {nodes.map(node => (
+              <tr key={node.id}>
+                <td>{node.id.startsWith('i') ? 'Inflow' : node.id === 'pool' ? 'Consolidated Pool' : 'Outflow / Savings'}</td>
+                <td>{node.name}</td>
+                <td>{formatRupee(node.value)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      </div>
+
+      <InfoCallout variant="info" style={{ marginTop: 'var(--spacing-1)' }}>
+        The widths of the connecting lines (ribbons) represent the relative monetary amounts of your cash flow. 
+        Green paths typically represent net positive inflows/savings, while other colors show operational allocations.
+      </InfoCallout>
     </div>
   );
 };

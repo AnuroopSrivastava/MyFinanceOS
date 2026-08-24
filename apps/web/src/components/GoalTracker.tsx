@@ -1,43 +1,33 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Button, CurrencyInput, CircularProgress, Badge, IconButton, EmptyState, PanelHeader, FormField, FormActions, FormRow, type BadgeVariant } from '@financeos/ui';
 import { dbService } from '@financeos/database';
 import { SavingsGoal } from '@financeos/shared';
 import { Target, Plus, Trash2, Edit2, TrendingUp } from 'lucide-react';
-import { formatRupee } from '../utils/currency.js';
-import { CurrencyInput } from './ui/CurrencyInput.js';
+import { formatRupee } from '@financeos/shared';
+
 import { useDbSyncCallback } from '../hooks/useDbSync.js';
+import { ConfirmModal, useConfirmModal } from './ConfirmModal.js';
 
 interface GoalTrackerProps {
   activeProfileId: string;
 }
 
 const GOAL_ICONS = ['🎯', '🏠', '✈️', '🚗', '🎓', '💰', '🛡️', '📱', '💍', '🏥'];
-const GOAL_COLORS = ['#06b6d4', '#8b5cf6', '#f59e0b', '#ec4899', '#10b981', '#3b82f6', '#ef4444', '#14b8a6', '#f97316', '#6366f1'];
-
-const CircularProgress: React.FC<{ progress: number; color: string; size?: number }> = ({ progress, color, size = 72 }) => {
-  const radius = (size - 8) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (Math.min(progress, 100) / 100) * circumference;
-
-  return (
-    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
-      <circle
-        cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth="5"
-        strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
-        style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }}
-      />
-      <text
-        x={size / 2} y={size / 2} textAnchor="middle" dominantBaseline="central"
-        fill="#fff" fontSize={size * 0.19} fontWeight={700}
-        style={{ transform: 'rotate(90deg)', transformOrigin: 'center' }}
-      >
-        {Math.round(progress)}%
-      </text>
-    </svg>
-  );
-};
+const GOAL_COLORS = [
+  'var(--color-asset-cash)',    // Cyan
+  'var(--color-asset-stocks)',  // Emerald
+  'var(--color-asset-gold)',    // Gold / Amber
+  'var(--color-asset-crypto)',  // Indigo
+  'var(--color-asset-retirement)', // Pink
+  'var(--color-asset-fd)',      // Day Blue
+  'var(--color-asset-mf)',      // Violet
+  'var(--color-asset-realestate)', // Teal
+  'var(--warning)',             // Orange
+  'var(--error)',               // Crimson
+];
 
 export const GoalTracker: React.FC<GoalTrackerProps> = ({ activeProfileId }) => {
+  const { modal: confirmModal, openConfirm, closeConfirm } = useConfirmModal();
   const [goals, setGoals] = useState<SavingsGoal[]>(() => dbService.getGoals().filter(g => g.profileId === activeProfileId));
   const [showAdd, setShowAdd] = useState(false);
   const [editGoal, setEditGoal] = useState<SavingsGoal | null>(null);
@@ -48,15 +38,19 @@ export const GoalTracker: React.FC<GoalTrackerProps> = ({ activeProfileId }) => 
   const [currentAmount, setCurrentAmount] = useState(0);
   const [deadline, setDeadline] = useState('');
   const [icon, setIcon] = useState('🎯');
-  const [color, setColor] = useState('#06b6d4');
+  const [color, setColor] = useState('var(--color-asset-cash)');
 
   const refreshGoals = () => setGoals(dbService.getGoals().filter(g => g.profileId === activeProfileId));
+
+  useEffect(() => {
+    refreshGoals();
+  }, [activeProfileId]);
 
   useDbSyncCallback(refreshGoals);
 
   const resetForm = () => {
     setName(''); setTargetAmount(0); setCurrentAmount(0);
-    setDeadline(''); setIcon('🎯'); setColor('#06b6d4');
+    setDeadline(''); setIcon('🎯'); setColor('var(--color-asset-cash)');
     setShowAdd(false); setEditGoal(null);
   };
 
@@ -77,14 +71,15 @@ export const GoalTracker: React.FC<GoalTrackerProps> = ({ activeProfileId }) => 
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this savings goal?')) return;
-    await dbService.deleteGoal(id);
-    refreshGoals();
-  };
-
-  const handleAddContribution = async (goal: SavingsGoal, amount: number) => {
-    await dbService.updateGoal(goal.id, { currentAmount: goal.currentAmount + amount });
-    refreshGoals();
+    const goal = goals.find(g => g.id === id);
+    const details = goal ? ` for "${goal.name}"` : '';
+    openConfirm({
+      title: 'Delete Savings Goal',
+      message: `Permanently delete this savings goal${details}? Recorded progress and target tracking will be lost.`,
+      confirmLabel: 'Delete Goal',
+      isDanger: true,
+      onConfirm: async () => { await dbService.deleteGoal(id); refreshGoals(); }
+    });
   };
 
   const openEdit = (g: SavingsGoal) => {
@@ -94,79 +89,78 @@ export const GoalTracker: React.FC<GoalTrackerProps> = ({ activeProfileId }) => 
     setShowAdd(true);
   };
 
-  const getStatus = (g: SavingsGoal) => {
+  const getStatus = (g: SavingsGoal): { variant: BadgeVariant; label: string } => {
     const pct = g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0;
-    if (pct >= 100) return { label: 'Completed', color: 'var(--success)' };
-    if (!g.deadline) return { label: 'In Progress', color: 'var(--accent-1)' };
+    if (pct >= 100) return { variant: 'success', label: 'Completed' };
+    if (!g.deadline) return { variant: 'cyan', label: 'In Progress' };
     const daysLeft = Math.ceil((new Date(g.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     const remaining = g.targetAmount - g.currentAmount;
     const monthlyNeeded = daysLeft > 0 ? remaining / (daysLeft / 30) : remaining;
-    if (daysLeft <= 0 && pct < 100) return { label: 'Overdue', color: 'var(--error)' };
-    if (monthlyNeeded > g.targetAmount * 0.15) return { label: 'At Risk', color: 'var(--warning)' };
-    return { label: 'On Track', color: 'var(--success)' };
+    if (daysLeft <= 0 && pct < 100) return { variant: 'error', label: 'Overdue' };
+    if (monthlyNeeded > g.targetAmount * 0.15) return { variant: 'warning', label: 'At Risk' };
+    return { variant: 'success', label: 'On Track' };
   };
 
   const formContent = (
-    <form onSubmit={editGoal ? handleUpdate : handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-        <div>
-          <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>Goal Name</label>
-          <input className="form-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Emergency Fund" style={{ width: '100%', fontSize: '0.85rem' }} required />
-        </div>
-        <div>
-          <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>Deadline</label>
-          <input type="date" className="form-input" value={deadline} onChange={e => setDeadline(e.target.value)} style={{ width: '100%', fontSize: '0.85rem' }} />
-        </div>
-        <div>
-          <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>Target Amount (₹)</label>
-          <CurrencyInput value={targetAmount} onChange={e => setTargetAmount(parseFloat(e.target.value) || 0)} />
-        </div>
-        <div>
-          <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>Current Saved (₹)</label>
-          <CurrencyInput value={currentAmount} onChange={e => setCurrentAmount(parseFloat(e.target.value) || 0)} />
-        </div>
-      </div>
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Icon:</span>
+    <form onSubmit={editGoal ? handleUpdate : handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-075)', padding: 'var(--spacing-1)', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', boxShadow: 'var(--neo-inset-sm)' }}>
+      <FormRow gap="var(--spacing-075)">
+        <FormField label="Goal Name">
+          <input id="goal-name-input" className="form-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Emergency Fund" style={{ width: '100%', fontSize: 'var(--font-sm)' }} required />
+        </FormField>
+        <FormField label="Deadline">
+          <input id="goal-deadline-input" type="date" className="form-input" value={deadline} onChange={e => setDeadline(e.target.value)} style={{ width: '100%', fontSize: 'var(--font-sm)' }} />
+        </FormField>
+      </FormRow>
+      <FormRow gap="var(--spacing-075)">
+        <FormField label="Target Amount (₹)">
+          <CurrencyInput id="goal-target-amount" value={targetAmount} onChange={e => setTargetAmount(parseFloat(e.target.value) || 0)} />
+        </FormField>
+        <FormField label="Current Saved (₹)">
+          <CurrencyInput id="goal-current-amount" value={currentAmount} onChange={e => setCurrentAmount(parseFloat(e.target.value) || 0)} />
+        </FormField>
+      </FormRow>
+      <div style={{ display: 'flex', gap: 'var(--spacing-05)', alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)' }}>Icon:</span>
         {GOAL_ICONS.map(i => (
-          <button type="button" key={i} onPointerDown={() => setIcon(i)} style={{ fontSize: '1.2rem', background: icon === i ? 'rgba(255,255,255,0.1)' : 'transparent', border: icon === i ? '1px solid var(--accent-1)' : '1px solid transparent', borderRadius: '6px', padding: '0.2rem 0.4rem', cursor: 'pointer' }}>{i}</button>
+          <Button type="button" key={i} aria-label={`Select icon ${i}`} onClick={() => setIcon(i)} style={{ fontSize: 'var(--font-xl)', background: icon === i ? 'var(--bg-panel-hover)' : 'transparent', border: icon === i ? '1px solid var(--accent-1)' : '1px solid transparent', borderRadius: 'var(--radius-xs)', padding: 'var(--spacing-02) var(--spacing-04)', cursor: 'pointer' }}>{i}</Button>
         ))}
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>Color:</span>
+        <span style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', marginLeft: 'var(--spacing-05)' }}>Color:</span>
         {GOAL_COLORS.map(c => (
-          <button type="button" key={c} onPointerDown={() => setColor(c)} style={{ width: '20px', height: '20px', borderRadius: '50%', background: c, border: color === c ? '2px solid #fff' : '2px solid transparent', cursor: 'pointer' }} />
+          <Button type="button" key={c} aria-label={`Select color ${c}`} onClick={() => setColor(c)} style={{ width: '20px', height: '20px', borderRadius: '50%', background: c, border: color === c ? '2px solid var(--text-primary)' : '2px solid transparent', cursor: 'pointer' }} />
         ))}
       </div>
-      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-        <button type="button" className="btn btn-secondary" onPointerDown={resetForm} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', border: '1px solid var(--border-color)' }}>Cancel</button>
-        <button type="submit" className="btn btn-primary" style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}>{editGoal ? 'Update Goal' : 'Add Goal'}</button>
-      </div>
+      <FormActions
+        onCancel={resetForm}
+        submitLabel={editGoal ? 'Save Goal Changes' : 'Create Savings Goal'}
+      />
     </form>
   );
 
   return (
-    <div className="glass-panel" style={{ padding: '1.25rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h4 style={{ fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Target size={16} color="var(--accent-1)" /> Savings Goals
-        </h4>
-        <button
-          className="btn btn-primary"
-          onPointerDown={() => { resetForm(); setShowAdd(true); }}
-          style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', gap: '0.3rem' }}
-        >
-          <Plus size={14} /> New Goal
-        </button>
-      </div>
+    <>
+    <ConfirmModal state={confirmModal} onClose={closeConfirm} />
+    <div className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-125)' }}>
+      <PanelHeader
+        icon={<Target size={16} />}
+        title="Savings Goals"
+        action={
+          <Button
+            variant="primary"
+            onClick={() => { resetForm(); setShowAdd(true); }}
+            style={{ padding: 'var(--spacing-02) var(--spacing-06)', fontSize: 'var(--font-xs)', gap: 'var(--spacing-04)' }}
+          >
+            <Plus size={14} /> New Goal
+          </Button>
+        }
+      />
 
       {showAdd && formContent}
 
       {goals.length === 0 && !showAdd && (
-        <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-          No savings goals yet. Create your first goal to start tracking progress!
-        </div>
+        <EmptyState variant="dashed" title="No savings goals yet" description="Set a target for an emergency fund, home down payment, or vacation to track milestone progress." />
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem', marginTop: showAdd ? '0.75rem' : 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 'var(--spacing-075)', marginTop: showAdd ? 'var(--spacing-075)' : 0 }}>
         {goals.map(g => {
           const pct = g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0;
           const status = getStatus(g);
@@ -175,42 +169,39 @@ export const GoalTracker: React.FC<GoalTrackerProps> = ({ activeProfileId }) => 
           const monthlyNeeded = daysLeft && daysLeft > 0 ? remaining / (daysLeft / 30) : 0;
 
           return (
-            <div key={g.id} className="glass-panel" style={{ padding: '1rem', position: 'relative', borderColor: `${g.color}33` }}>
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <div key={g.id} className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-1)', position: 'relative', borderColor: `color-mix(in srgb, ${g.color} 20%, transparent)` }}>
+              <div style={{ display: 'flex', gap: 'var(--spacing-075)', alignItems: 'center' }}>
                 <CircularProgress progress={pct} color={g.color} size={64} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.25rem' }}>
-                    <span style={{ fontSize: '1.1rem' }}>{g.icon}</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.name}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)', marginBottom: 'var(--spacing-025)' }}>
+                    <span style={{ fontSize: 'var(--font-lg)' }}>{g.icon}</span>
+                    <span style={{ fontSize: 'var(--font-base)', fontWeight: 'var(--fw-semibold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.name}</span>
                   </div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: "'tnum' 1" }}>
                     {formatRupee(g.currentAmount)} / {formatRupee(g.targetAmount)}
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.3rem' }}>
-                    <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: `${status.color}22`, color: status.color, fontWeight: 600 }}>{status.label}</span>
+                  <div style={{ display: 'flex', gap: 'var(--spacing-05)', alignItems: 'center', marginTop: 'var(--spacing-04)' }}>
+                    <Badge variant={status.variant} size="sm">{status.label}</Badge>
                     {daysLeft !== null && pct < 100 && (
-                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{daysLeft}d left</span>
+                      <span style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }}>{daysLeft}d left</span>
                     )}
                   </div>
                 </div>
               </div>
               {monthlyNeeded > 0 && pct < 100 && (
-                <div style={{ marginTop: '0.5rem', fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <div style={{ marginTop: 'var(--spacing-05)', fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)' }}>
                   <TrendingUp size={12} /> Save {formatRupee(Math.round(monthlyNeeded))}/mo to stay on track
                 </div>
               )}
-              <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.5rem', justifyContent: 'flex-end' }}>
-                <button className="btn btn-secondary" onPointerDown={() => openEdit(g)} style={{ padding: '0.2rem 0.4rem', border: '1px solid var(--border-color)', fontSize: '0.7rem' }}>
-                  <Edit2 size={12} />
-                </button>
-                <button className="btn btn-secondary" onPointerDown={() => handleDelete(g.id)} style={{ padding: '0.2rem 0.4rem', border: '1px solid var(--border-color)', fontSize: '0.7rem' }}>
-                  <Trash2 size={12} color="var(--error)" />
-                </button>
+              <div style={{ display: 'flex', gap: 'var(--spacing-04)', marginTop: 'var(--spacing-05)', justifyContent: 'flex-end' }}>
+                <IconButton icon={<Edit2 size={12} />} label={`Edit ${g.name} goal`} onClick={() => openEdit(g)} />
+                <IconButton icon={<Trash2 size={12} />} variant="danger" label={`Delete ${g.name} goal`} onClick={() => handleDelete(g.id)} />
               </div>
             </div>
           );
         })}
       </div>
     </div>
+    </>
   );
 };

@@ -9,6 +9,7 @@ const mockAuthSession = vi.hoisted(() => ({
   isAuthenticated: vi.fn().mockReturnValue(true),
   getAccessToken: vi.fn().mockReturnValue('mockToken'),
   getUserProfile: vi.fn().mockReturnValue({ name: 'Admin User' }),
+  getSessionPin: vi.fn().mockReturnValue('mockPin'),
   login: vi.fn(),
   logout: vi.fn()
 }));
@@ -56,18 +57,19 @@ describe('DatabaseService - Comprehensive Tests', () => {
   });
 
   describe('Initialization & State', () => {
-    it('should correctly report uninitialized when localStorage is empty and unauthenticated', () => {
+    it('should correctly report uninitialized when localStorage is empty and unauthenticated', async () => {
       mockAuthSession.isAuthenticated.mockReturnValue(false);
-      expect(dbService.isInitialized()).toBe(false);
+      expect(await dbService.isInitialized()).toBe(false);
     });
 
-    it('should report initialized when cache exists in localStorage', () => {
+    it('should report initialized when cache exists in localStorage', async () => {
       vi.mocked(globalThis.localStorage.getItem).mockReturnValueOnce(JSON.stringify({ settings: {}, profiles: [] }));
-      expect(dbService.isInitialized()).toBe(true);
+      expect(await dbService.isInitialized()).toBe(true);
     });
 
     it('should initialize new db securely and save to storage', async () => {
       await dbService.initializeNewDb('Admin User');
+      await new Promise(r => setTimeout(r, 600));
       expect(globalThis.localStorage.setItem).toHaveBeenCalledWith('financeos_db_cache', expect.any(String));
       
       const profiles = dbService.getProfiles();
@@ -200,6 +202,7 @@ describe('DatabaseService - Comprehensive Tests', () => {
 
     it('should correctly handle profile deletion cascading', async () => {
       const profile = await dbService.addProfile({ name: 'User 2', role: 'Member', isNomineeProvided: false });
+      dbService.setSessionProfile(profile.id);
       
       const account = await dbService.addAccount({
         profileId: profile.id, name: 'Main', bankName: 'SBI', accountNumber: '1', ifscCode: 'S', accountType: 'Savings', balance: 5000

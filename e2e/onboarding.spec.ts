@@ -1,58 +1,85 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('FinanceOS Onboarding & Auth', () => {
-  test('should allow a new user to set up a PIN and access the dashboard', async ({ page }) => {
-    // 1. Go to the app
+test.describe('FinanceOS Landing & Onboarding', () => {
+  test('Landing page renders the public marketing surface without authentication', async ({ page }) => {
     await page.goto('/');
 
-    // 2. Expect to be on the Setup page because DB is uninitialized
-    // Assuming Setup.tsx renders a 'Welcome to FinanceOS' heading
+    // Brand heading in the sticky nav
     await expect(page.getByRole('heading', { name: 'MyFinanceOS' })).toBeVisible();
 
-    // 3. Fill in setup details
-    const nameInput = page.locator('input[placeholder*="Name" i]');
-    const pinInput = page.locator('input[placeholder*="PIN" i]');
+    // Nav links + auth CTA
+    await expect(page.getByRole('link', { name: 'How It Works' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign In' })).toBeVisible();
 
-    // In some cases the setup might ask for admin name and PIN
-    // We try to fill whatever inputs are visible on the setup form
-    if (await nameInput.isVisible()) {
-      await nameInput.fill('Admin User');
-    }
+    // Hero value prop
+    await expect(page.getByText('One Secure Workspace.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Get Started with Google' })).toBeVisible();
 
-    if (await pinInput.isVisible()) {
-      await pinInput.fill('123456');
+    // Trust badges below the hero
+    await expect(page.getByText('100% Local-First')).toBeVisible();
+    await expect(page.getByText('AES-256 Encryption')).toBeVisible();
+  });
 
-      // If there's a confirm PIN
-      const confirmInput = page.locator('input[placeholder*="Confirm" i]');
-      if (await confirmInput.isVisible()) {
-        await confirmInput.fill('123456');
-      }
-    }
+  test('Get Started triggers the auth flow (OAuth redirect or config error)', async ({ page }) => {
+    await page.goto('/');
 
-    // 4. Submit setup
-    const submitButton = page.locator('button', { hasText: /Get Started|Setup|Continue/i });
-    if (await submitButton.isVisible()) {
-      await submitButton.click();
-    }
+    // Click the primary CTA. Two outcomes are valid:
+    //  • Supabase env vars set → redirects to accounts.google.com
+    //  • Env vars missing    → inline error stays on the page
+    await page.getByRole('button', { name: 'Get Started with Google' }).click();
 
-    // 5. App should redirect to Login or auto-login to Dashboard
-    // Wait for either the Dashboard 'Net Worth' text or a Login prompt
-    const dashboardText = page.getByText('Net Worth', { exact: true });
-    const loginText = page.locator('text=Enter PIN');
+    // Wait up to 15 s for either the redirect or the inline error.
+    const errorMessage = page.getByText('Error authenticating with Google via Supabase.');
+    const googleRedirect = page.waitForURL(/accounts\.google\.com|accounts\.google\.de|accounts\.google\.in/, { timeout: 15_000 });
 
     await Promise.race([
-      expect(dashboardText).toBeVisible({ timeout: 10000 }),
-      expect(loginText).toBeVisible({ timeout: 10000 })
+      googleRedirect.catch(() => null),
+      errorMessage.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => null),
     ]);
 
-    if (await loginText.isVisible()) {
-      await page.locator('input[type="password"]').fill('123456');
-      await page.locator('button', { hasText: /Login|Unlock/i }).click();
-      await expect(dashboardText).toBeVisible({ timeout: 10000 });
-    }
+    // At least one outcome must have occurred.
+    const leftPage = !page.url().startsWith('http://localhost:3000/');
+    const showedError = await errorMessage.isVisible();
+    expect(leftPage || showedError).toBe(true);
+  });
+});
 
-    // 6. Verify we are in the dashboard
-    await expect(page.getByText('Net Worth', { exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Accounts' })).toBeVisible();
+/**
+ * Full authenticated onboarding journey.
+ * Skipped unless E2E_GOOGLE_CREDENTIALS is set (CI with a real Supabase
+ * session or a developer with a local .env).  The env var is expected to
+ * hold a JSON file path usable as Playwright's `storageState`.
+ */
+test.describe('Full OAuth → Dashboard journey', () => {
+  test.skip(
+    !process.env.E2E_GOOGLE_CREDENTIALS,
+    'requires E2E_GOOGLE_CREDENTIALS (a Playwright storageState JSON) to run',
+  );
+
+  test('new authenticated user reaches the app shell', async ({ browser }) => {
+    // Load a persisted Supabase session (OAuth already completed once).
+    const context = await browser.newContext({
+      storageState: process.env.E2E_GOOGLE_CREDENTIALS,
+    });
+    const page = await context.newPage();
+
+    await page.goto('/');
+
+    // After OAuth, App.tsx boots: either the Dashboard shell is visible
+    // (fresh user with no encrypted data → no PIN needed) or a PIN gate
+    // is shown (existing encrypted cloud backup).
+    const appShell  = page.getByText('Mission Control', { exact: true }).first();
+    const pinScreen = page.locator('input[type="password"]').first();
+
+    await Promise.race([
+      appShell.waitFor({ state: 'visible', timeout: 20_000 }),
+      pinScreen.waitFor({ state: 'visible', timeout: 20_000 }),
+    ]);
+
+    const landedOnApp = await appShell.isVisible();
+    const landedOnPin  = await pinScreen.isVisible();
+    expect(landedOnApp || landedOnPin).toBe(true);
+
+    await context.close();
   });
 });

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
 import { setTheme, getSavedTheme } from './index.js';
 
 beforeAll(() => {
@@ -10,7 +10,7 @@ beforeAll(() => {
     },
     writable: true
   });
-  
+
   // Mock document
   Object.defineProperty(globalThis, 'document', {
     value: {
@@ -50,6 +50,28 @@ describe('UI Theme Utilities', () => {
       vi.mocked(globalThis.localStorage.getItem).mockReturnValue(null);
       const theme = getSavedTheme();
       expect(theme).toBe('glass-cyan');
+    });
+  });
+
+  describe('Exported Components', () => {
+    it('should export all newly extracted core UI components', async () => {
+      const ui = await import('./index.js');
+      expect(ui.RadialGauge).toBeDefined();
+      expect(ui.Accordion).toBeDefined();
+      expect(ui.QuickstartGuide).toBeDefined();
+      expect(ui.SearchFilterBar).toBeDefined();
+      expect(ui.Badge).toBeDefined();
+      expect(ui.StatusBadge).toBeDefined();
+      expect(ui.Tabs).toBeDefined();
+      expect(ui.MetricCard).toBeDefined();
+      expect(ui.SectionHeader).toBeDefined();
+      expect(ui.TimelineSegmentedFilter).toBeDefined();
+      expect(ui.DateRangePicker).toBeDefined();
+      expect(ui.SummaryMetricGrid).toBeDefined();
+      expect(ui.FileDropzone).toBeDefined();
+      expect(ui.PaginationControls).toBeDefined();
+      expect(ui.CopyableField).toBeDefined();
+      expect(ui.FormRow).toBeDefined();
     });
   });
 });

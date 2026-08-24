@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Button } from '@financeos/ui';
 
 interface Props {
   children?: ReactNode;
@@ -26,24 +27,32 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div style={{
+        <div role="alert" style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh',
-          background: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '2rem', textAlign: 'center'
+          background: 'var(--bg-primary)', color: 'var(--text-primary)', padding: 'var(--spacing-2)', textAlign: 'center'
         }}>
-          <div className="glass-panel" style={{ padding: '2.5rem', maxWidth: '600px' }}>
-            <h1 style={{ marginBottom: '1rem', color: '#ff4d4f' }}>Oops, something went wrong.</h1>
-            <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
-              The application encountered an unexpected error. Please restart the app or reload the page.
+          <div className="glass-panel" data-interactive-card="off" style={{
+            padding: 'var(--spacing-25)', maxWidth: '600px',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-color)',
+            borderTop: 'var(--neo-bevel-top)',
+            borderBottom: 'var(--neo-bevel-bottom)',
+            backgroundImage: 'var(--neo-convex-grad)',
+            boxShadow: 'var(--neo-raised-lg)',
+          }}>
+            <h1 style={{ marginBottom: 'var(--spacing-1)', color: 'var(--error)' }}>Something went wrong.</h1>
+            <p style={{ marginBottom: 'var(--spacing-15)', color: 'var(--text-secondary)' }}>
+              FinanceOS hit an unexpected error. Your data is safe — reload the page to continue.
             </p>
-            <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', textAlign: 'left', overflowX: 'auto', marginBottom: '2rem' }}>
+            <div style={{ background: 'var(--bg-secondary)', boxShadow: 'var(--neo-inset-sm)', border: '1px solid var(--border-color)', padding: 'var(--spacing-1)', borderRadius: 'var(--radius-sm)', textAlign: 'left', overflowX: 'auto', marginBottom: 'var(--spacing-2)' }}>
               <code>{this.state.errorInfo?.toString()}</code>
             </div>
-            <button 
-              className="btn btn-primary"
+            <Button 
+              variant="primary"
               onClick={() => window.location.reload()}
             >
-              Reload Application
-            </button>
+              Reload page
+            </Button>
           </div>
         </div>
       );

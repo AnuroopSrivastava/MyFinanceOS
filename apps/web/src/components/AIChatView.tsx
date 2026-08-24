@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Button, IconButton, FormattedMarkdown, SectionHeader, Tabs, CopyableField, FormField } from '@financeos/ui';
 import { dbService } from '@financeos/database';
 import { useDbVersion } from '../hooks/useDbSync.js';
-import { MessageSquare, Send, Sparkles, User, ShieldCheck, Cloud, Settings, Compass } from 'lucide-react';
+import { MessageSquare, Send, Sparkles, User, ShieldCheck, Cloud, Settings, Compass, Trash2 } from 'lucide-react';
 import { aiService, AIMode } from '../utils/aiService.js';
+import { ConfirmModal, useConfirmModal } from './ConfirmModal.js';
 
 interface ChatMessage {
   id: string;
@@ -25,60 +27,8 @@ const QUICK_PROMPTS = [
   { label: '⚖️ Compare 2025 vs 2026', prompt: 'Compare 2025 vs 2026 financial metrics, savings rate, and portfolio trajectory.' }
 ];
 
-
-const FormattedMarkdown: React.FC<{ text: string }> = ({ text }) => {
-  const lines = text.split('\n');
-
-  const renderFormattedInline = (str: string) => {
-    // Split by bold syntax **
-    const parts = str.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((part, idx) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        const content = part.slice(2, -2);
-        return <strong key={idx} style={{ color: '#fff', fontWeight: 700 }}>{content}</strong>;
-      }
-      if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
-        const content = part.slice(1, -1);
-        return <em key={idx} style={{ color: 'var(--text-secondary)' }}>{content}</em>;
-      }
-      return part;
-    });
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-      {lines.map((line, lineIdx) => {
-        const trimmed = line.trim();
-        if (!trimmed) return <div key={lineIdx} style={{ height: '0.2rem' }} />;
-
-        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-          return (
-            <div key={lineIdx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', paddingLeft: '0.4rem' }}>
-              <span style={{ color: 'var(--accent-1)', fontSize: '0.9rem', lineHeight: '1.4' }}>•</span>
-              <span style={{ flex: 1 }}>{renderFormattedInline(trimmed.substring(2))}</span>
-            </div>
-          );
-        }
-
-        if (/^\d+\.\s/.test(trimmed)) {
-          const numMatch = trimmed.match(/^(\d+\.)\s*(.*)/);
-          if (numMatch) {
-            return (
-              <div key={lineIdx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', paddingLeft: '0.4rem' }}>
-                <span style={{ color: 'var(--accent-1)', fontWeight: 600, fontSize: '0.85rem' }}>{numMatch[1]}</span>
-                <span style={{ flex: 1 }}>{renderFormattedInline(numMatch[2])}</span>
-              </div>
-            );
-          }
-        }
-
-        return <div key={lineIdx}>{renderFormattedInline(line)}</div>;
-      })}
-    </div>
-  );
-};
-
 export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
+  const { modal: confirmModal, openConfirm, closeConfirm } = useConfirmModal();
   const [query, setQuery] = useState('');
   const [mode, setMode] = useState<AIMode>(aiService.getMode());
   const [apiKey, setApiKey] = useState(aiService.getApiKey());
@@ -128,7 +78,7 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
   const nps = useMemo(() => dbService.getNPS().filter(n => n.profileId === activeProfileId), [activeProfileId, dbVersion]);
   const pf = useMemo(() => dbService.getPF().filter(p => p.profileId === activeProfileId), [activeProfileId, dbVersion]);
 
-  const aiContext = useMemo(() => ({ accounts, transactions, stocks, mfs, fds, gold, nps, pf }), [accounts, transactions, stocks, mfs, fds, gold, nps, pf]);
+  const aiContext = useMemo(() => ({ accounts, transactions, stocks, mfs, fds, gold, nps, pf, tdsRecords: [], taxInputs: {} as any }), [accounts, transactions, stocks, mfs, fds, gold, nps, pf]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -173,7 +123,7 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
         setMessages(prev => [...prev, {
           id: 'm_' + (Date.now() + 1),
           sender: 'assistant',
-          text: 'An error occurred while processing your request. Please check your AI key or network connection.'
+          text: 'Unable to complete your request. Please check your Gemini API key in Settings, verify your internet connection, and try again.'
         }]);
       } finally {
         setIsProcessing(false);
@@ -187,167 +137,139 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
   };
 
   return (
-    <div className="animate-fade-in" style={{
-      display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)', gap: '1.25rem'
-    }}>
-
+    <div className="gap-stack-lg animate-fade-in" style={{ minHeight: 'calc(100dvh - 140px)', height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Page Header Banner */}
-      <div className="glass-panel" style={{
-        padding: '2.5rem 3rem',
-        borderRadius: '1.5rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '2rem',
-        background: 'var(--header-banner-grad)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)',
-        flexShrink: 0
-      }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', flex: '1 1 min-content', minWidth: '280px' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
-            background: 'var(--accent-grad)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 14px hsla(220, 80%, 50%, 0.25)',
-            flexShrink: 0,
-            marginTop: '0.2rem'
-          }}>
-            <Sparkles size={22} color="#ffffff" />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
-              <h1 style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0, lineHeight: 1.25 }}>
-                AI Financial Assistant
-              </h1>
-            </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, lineHeight: 1.4, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              {mode === 'local' ? (
-                <><ShieldCheck size={12} color="var(--success)" /> <span style={{ color: 'var(--success)' }}>Local offline model active</span></>
-              ) : (
-                <><Cloud size={12} color="var(--warning)" /> <span style={{ color: 'var(--warning)' }}>Cloud AI active (Gemini)</span></>
-              )}
-            </p>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{
-            display: 'flex', background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--radius-sm)',
-            padding: '3px', border: '1px solid var(--border-color)'
-          }}>
-            <button
-              type="button"
-              onPointerDown={() => handleModeChange('local')}
-              style={{
-                padding: '0.35rem 1rem', fontSize: '0.75rem', borderRadius: 'var(--radius-sm)',
-                background: mode === 'local' ? 'var(--accent-grad)' : 'transparent',
-                color: mode === 'local' ? '#fff' : 'var(--text-secondary)',
-                border: 'none', cursor: 'pointer', fontWeight: 600,
-                transition: 'all 0.2s ease',
-                boxShadow: mode === 'local' ? '0 2px 8px rgba(6, 182, 212, 0.25)' : 'none'
+      <SectionHeader
+        variant="banner"
+        icon={<Sparkles />}
+        title="AI Financial Assistant"
+        description={
+          mode === 'local' ? (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-025)' }}>
+              <ShieldCheck size={12} color="var(--success)" /> <span style={{ color: 'var(--success)' }}>Local Offline Mode (Zero cloud requests, 100% private)</span>
+            </span>
+          ) : (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-025)' }}>
+              <Cloud size={12} color="var(--warning)" /> <span style={{ color: 'var(--warning)' }}>Cloud AI Mode (Gemini API, advanced natural language)</span>
+            </span>
+          )
+        }
+        action={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-075)' }}>
+            <Tabs
+              tabs={[
+                { id: 'local', label: 'Local (Offline)' },
+                { id: 'cloud', label: 'Cloud (Gemini)' },
+              ]}
+              activeTab={mode}
+              onChange={(tabId) => handleModeChange(tabId as AIMode)}
+              variant="segmented"
+            />
+            <IconButton
+              label="Toggle AI settings"
+              icon={<Settings size={18} />}
+              onClick={() => setShowSettings(!showSettings)}
+            />
+            <IconButton
+              variant="danger"
+              label="Clear chat conversation history"
+              icon={<Trash2 size={18} />}
+              onClick={() => {
+                openConfirm({
+                  title: 'Clear Conversation History',
+                  message: 'Erase all messages and calculations in this AI conversation? This action cannot be undone.',
+                  confirmLabel: 'Clear History',
+                  isDanger: true,
+                  onConfirm: async () => {
+                    setMessages([initialWelcome]);
+                    await dbService.saveChatHistory(activeProfileId, [initialWelcome]);
+                  }
+                });
               }}
-            >
-              Local
-            </button>
-            <button
-              type="button"
-              onPointerDown={() => handleModeChange('cloud')}
-              style={{
-                padding: '0.35rem 1rem', fontSize: '0.75rem', borderRadius: 'var(--radius-sm)',
-                background: mode === 'cloud' ? 'var(--accent-grad)' : 'transparent',
-                color: mode === 'cloud' ? '#fff' : 'var(--text-secondary)',
-                border: 'none', cursor: 'pointer', fontWeight: 600,
-                transition: 'all 0.2s ease',
-                boxShadow: mode === 'cloud' ? '0 2px 8px rgba(6, 182, 212, 0.25)' : 'none'
-              }}
-            >
-              Cloud
-            </button>
+            />
           </div>
-          <button
-            type="button"
-            onPointerDown={() => setShowSettings(!showSettings)}
-            style={{
-              background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)',
-              borderRadius: 'var(--radius-sm)', padding: '0.4rem', cursor: 'pointer',
-              color: 'var(--text-secondary)', transition: 'background 0.2s ease'
-            }}
-          >
-            <Settings size={18} />
-          </button>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="glass-panel" style={{
-        display: 'flex', flexDirection: 'column', flex: 1, padding: '1rem',
-        borderRadius: 'var(--radius-lg)', overflow: 'hidden'
+      <div className="glass-panel" data-interactive-card="off" style={{
+        display: 'flex', flexDirection: 'column', flex: 1, padding: 'var(--spacing-125)',
+        borderRadius: 'var(--radius-lg)', overflow: 'hidden', minHeight: '480px'
       }}>
 
       {showSettings && (
-        <div className="glass-panel" style={{
-          padding: '1.25rem', marginBottom: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'flex-end',
+        <div className="glass-panel" data-interactive-card="off" style={{
+          padding: 'var(--spacing-125)', marginBottom: 'var(--spacing-125)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)',
           animation: 'fade-in 0.2s ease-out'
         }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Gemini API Key</label>
-            <input
-              type="password"
-              className="form-input"
-              style={{ width: '100%', padding: '0.6rem 0.8rem' }}
-              placeholder="Enter your API key..."
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-            />
+          <div style={{ display: 'flex', gap: 'var(--spacing-1)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <FormField label="Gemini API Key" htmlFor="gemini-api-key" style={{ flex: 1, margin: 0, minWidth: '220px' }}>
+              <input
+                id="gemini-api-key"
+                type="password"
+                className="form-input"
+                style={{ width: '100%', padding: 'var(--spacing-06) var(--spacing-08)' }}
+                placeholder="e.g. AIzaSy..."
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+            </FormField>
+            <Button type="button" variant="primary" onClick={handleSaveSettings} style={{ padding: 'var(--spacing-06) var(--spacing-125)' }}>Save Gemini API Key</Button>
           </div>
-          <button type="button" className="btn btn-primary" onPointerDown={handleSaveSettings} style={{ padding: '0.6rem 1.25rem' }}>Save Key</button>
+          {apiKey && (
+            <CopyableField secret value={apiKey} label="Active Key Reference" />
+          )}
         </div>
       )}
 
       {/* Messages Box */}
-      <div style={{
-        flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem',
-        padding: '0.5rem 0.5rem 1rem 0.5rem', marginBottom: '1rem', scrollbarWidth: 'thin'
-      }}>
+      <div
+        role="log"
+        aria-live="polite"
+        aria-label="Chat conversation history"
+        className="gap-stack-md flex-1 overflow-y-auto"
+        style={{
+          padding: 'var(--spacing-05)', marginBottom: 'var(--spacing-1)', scrollbarWidth: 'thin',
+          display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)'
+        }}
+      >
         {messages.map(m => (
           <div key={m.id} style={{
             display: 'flex',
             justifyContent: m.sender === 'user' ? 'flex-end' : 'flex-start',
-            gap: '0.75rem',
+            gap: 'var(--spacing-075)',
             alignItems: 'flex-start'
           }}>
             {m.sender === 'assistant' && (
               <div style={{
                 width: '36px', height: '36px', borderRadius: '10px', background: 'var(--bg-secondary)',
+                boxShadow: 'var(--neo-inset-sm)',
                 border: '1px solid var(--border-color)',
-                display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center', flexShrink: 0
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
               }}>
                 <Sparkles size={18} color="var(--accent-1)" />
               </div>
             )}
 
-            <div className={m.sender === 'user' ? "" : "glass-panel"} style={{
-              padding: '1rem 1.25rem',
-              maxWidth: '85%',
-              borderRadius: m.sender === 'user' ? '1rem 1rem 0 1rem' : '0 1rem 1rem 1rem',
-              fontSize: '0.92rem',
+            <div className={m.sender === 'user' ? "" : "glass-panel"} data-interactive-card={m.sender === 'user' ? undefined : 'off'} style={{
+              padding: m.sender === 'user' ? 'var(--spacing-075) var(--spacing-1)' : 'var(--spacing-085) var(--spacing-125)',
+              maxWidth: m.sender === 'user' ? 'min(80%, 640px)' : 'min(85%, 760px)',
+              borderRadius: m.sender === 'user' ? 'var(--radius-md) var(--radius-md) 4px var(--radius-md)' : '4px var(--radius-md) var(--radius-md) var(--radius-md)',
+              fontSize: 'var(--font-sm)',
               lineHeight: '1.6',
               background: m.sender === 'user' ? 'var(--accent-grad)' : 'var(--bg-panel)',
+              backgroundImage: m.sender === 'user' ? undefined : 'var(--neo-convex-grad)',
               border: m.sender === 'user' ? 'none' : '1px solid var(--border-color)',
+              borderTop: m.sender === 'user' ? undefined : 'var(--neo-bevel-top)',
               color: m.sender === 'user' ? '#fff' : 'var(--text-primary)',
-              boxShadow: m.sender === 'user' ? '0 4px 15px rgba(6, 182, 212, 0.2)' : '0 4px 15px rgba(0,0,0,0.1)'
+              boxShadow: m.sender === 'user' ? 'var(--neo-raised-md)' : 'var(--neo-raised-sm)'
             }}>
               <FormattedMarkdown text={m.text} />
             </div>
 
             {m.sender === 'user' && (
               <div style={{
-                width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)',
+                width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-secondary)',
+                boxShadow: 'var(--neo-inset-sm)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 border: '1px solid var(--border-color)'
               }}>
@@ -357,41 +279,53 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
           </div>
         ))}
         {isProcessing && (
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', animation: 'fade-in 0.3s ease' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div role="status" aria-live="polite" style={{ display: 'flex', gap: 'var(--spacing-075)', alignItems: 'center', animation: 'fade-in 0.3s ease' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--bg-secondary)', boxShadow: 'var(--neo-inset-sm)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Compass size={18} color="var(--accent-1)" style={{ animation: 'spin 2s linear infinite' }} />
             </div>
-            <div className="glass-panel" style={{ padding: '0.75rem 1.25rem', borderRadius: '0 1rem 1rem 1rem', fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-              <span className="typing-dot" style={{ background: 'currentColor', width: '4px', height: '4px', borderRadius: '50%', animation: 'bounce 1.4s infinite ease-in-out' }}></span>
-              <span className="typing-dot" style={{ background: 'currentColor', width: '4px', height: '4px', borderRadius: '50%', animation: 'bounce 1.4s infinite ease-in-out', animationDelay: '0.2s' }}></span>
-              <span className="typing-dot" style={{ background: 'currentColor', width: '4px', height: '4px', borderRadius: '50%', animation: 'bounce 1.4s infinite ease-in-out', animationDelay: '0.4s' }}></span>
-              <span style={{ marginLeft: '0.5rem' }}>Analyzing financial context...</span>
+            <div className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-06) var(--spacing-1)', borderRadius: '4px var(--radius-md) var(--radius-md) var(--radius-md)', fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', display: 'flex', gap: 'var(--spacing-04)', alignItems: 'center' }}>
+              <span className="typing-dot" style={{ background: 'currentColor', width: '4px', height: '4px', borderRadius: '50%' }}></span>
+              <span className="typing-dot" style={{ background: 'currentColor', width: '4px', height: '4px', borderRadius: '50%', animationDelay: '0.2s' }}></span>
+              <span className="typing-dot" style={{ background: 'currentColor', width: '4px', height: '4px', borderRadius: '50%', animationDelay: '0.4s' }}></span>
+              <span style={{ marginLeft: 'var(--spacing-04)' }}>Analyzing financial context...</span>
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* One-click Quick Prompts */}
-      <div className="mobile-tabs-scroll" style={{
-        display: 'flex', gap: '0.6rem', overflowX: 'auto', paddingBottom: '0.75rem', marginBottom: '0.5rem'
-      }}>
+      {/* One-click Quick Prompts Ribbon */}
+      <div
+        className="mobile-tabs-scroll"
+        style={{
+          display: 'flex',
+          gap: 'var(--spacing-05)',
+          overflowX: 'auto',
+          paddingBottom: 'var(--spacing-075)',
+          marginBottom: 'var(--spacing-05)',
+          scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch'
+        }}
+      >
         {QUICK_PROMPTS.map((qp, i) => (
           <button
             key={i}
             type="button"
-            className="btn glass-panel"
-            onPointerDown={() => processQueryText(qp.prompt)}
+            className="badge-tag interactive-card interactive-card--normal"
+            onClick={() => processQueryText(qp.prompt)}
             disabled={isProcessing}
             style={{
-              fontSize: '0.78rem', padding: '0.5rem 1rem', whiteSpace: 'nowrap',
-              borderRadius: '2rem', border: '1px solid var(--border-color)',
-              color: 'var(--text-primary)', fontWeight: 500,
-              background: 'rgba(255,255,255,0.03)', transition: 'all 0.2s ease',
-              display: 'flex', alignItems: 'center', gap: '0.25rem'
+              fontSize: 'var(--font-xs)', padding: 'var(--spacing-04) var(--spacing-075)', whiteSpace: 'nowrap',
+              borderRadius: 'var(--radius-pill)', border: '1px solid var(--border-color)',
+              borderTop: 'var(--neo-bevel-top)',
+              color: 'var(--text-secondary)', fontWeight: 'var(--fw-medium)',
+              background: 'var(--bg-panel)',
+              backgroundImage: 'var(--neo-convex-grad)',
+              boxShadow: 'var(--neo-raised-sm)',
+              display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-025)',
+              cursor: 'pointer', flexShrink: 0,
+              transition: 'all var(--transition-fast)'
             }}
-            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
-            onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
           >
             {qp.label}
           </button>
@@ -399,21 +333,40 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
       </div>
 
       {/* Input box */}
-      <form onSubmit={handleSend} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'rgba(0,0,0,0.15)', padding: '0.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }}>
+      <form onSubmit={handleSend} style={{ display: 'flex', gap: 'var(--spacing-05)', alignItems: 'center', background: 'var(--bg-secondary)', padding: 'var(--spacing-04) var(--spacing-05)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', boxShadow: 'var(--neo-inset-sm)' }}>
         <input
           type="text"
-          style={{ flex: 1, padding: '0.6rem 1rem', background: 'transparent', border: 'none', color: '#fff', fontSize: '0.95rem', outline: 'none' }}
+          aria-label="Ask AI financial assistant"
+          style={{ flex: 1, padding: 'var(--spacing-05) var(--spacing-075)', background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: 'var(--font-sm)', outline: 'none', fontFamily: 'var(--font-body)' }}
           placeholder={mode === 'local' ? "Ask AI: 'Compare my tax slabs' or 'Net worth'..." : "Ask Gemini anything about your finances..."}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           disabled={isProcessing}
         />
-        <button type="submit" className="btn btn-primary" style={{ padding: '0.6rem', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} disabled={isProcessing || !query.trim()}>
-          <Send size={18} />
-        </button>
+        <Button
+          type="submit"
+          variant="primary"
+          aria-label="Send query"
+          style={{
+            padding: 0,
+            borderRadius: '50%',
+            width: '38px',
+            height: '38px',
+            minWidth: '38px',
+            minHeight: '38px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}
+          disabled={isProcessing || !query.trim()}
+        >
+          <Send size={16} />
+        </Button>
       </form>
 
     </div>
+    <ConfirmModal state={confirmModal} onClose={closeConfirm} />
     </div>
   );
 };

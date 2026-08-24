@@ -1,20 +1,20 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Button, CurrencyInput, Badge, StatusBadge, SectionHeader, Modal, SearchFilterBar, IconButton, PanelHeader, EmptyState, InfoCallout, FileDropzone, FormRow, FormField, FormActions, ActionRow, chartTooltipStyle, chartTooltipItemStyle, useReducedMotion } from '@financeos/ui';
+import { motion } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { useDbSyncCallback } from '../hooks/useDbSync.js';
-import { BankAccount, Transaction, AccountType, RecurringTransaction } from '@financeos/shared';
+import { BankAccount, Transaction, AccountType, RecurringTransaction, formatRupee, downloadBlob, todayStamp, parseRupeeToNumber } from '@financeos/shared';
 import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
 import {
   Plus, Upload, Download, Landmark, Search, Trash2, CreditCard,
-  HelpCircle, AlertCircle, RefreshCw, Edit2, Tag, Filter, PieChart as PieIcon, ArrowUpRight,
-  ArrowDownLeft, MoreHorizontal, ArrowRightLeft, Calendar, FileText
+  RefreshCw, Edit2, PieChart as PieIcon, ArrowUpRight,
+  ArrowDownLeft, ArrowRightLeft, Calendar, FileText
 } from 'lucide-react';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip
 } from 'recharts';
-import { formatRupee } from '../utils/currency.js';
-import { CurrencyInput } from './ui/CurrencyInput.js';
 import { exportToCSV } from '../utils/exportCsv.js';
+import { ConfirmModal, useConfirmModal } from './ConfirmModal.js';
 
 interface ParsedTx {
   id: string;
@@ -177,6 +177,7 @@ interface LedgerViewProps {
 }
 
 export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRange }) => {
+  const reduceMotion = useReducedMotion();
   // DB States
   const [accounts, setAccounts] = useState<BankAccount[]>(() => dbService.getAccounts().filter(a => a.profileId === activeProfileId));
   const [transactions, setTransactions] = useState<Transaction[]>(() => dbService.getTransactions().filter(t => t.profileId === activeProfileId));
@@ -184,7 +185,23 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
   const [stocks, setStocks] = useState(() => dbService.getStocks().filter(s => s.profileId === activeProfileId));
   const [mfs, setMfs] = useState(() => dbService.getMutualFunds().filter(m => m.profileId === activeProfileId));
   const [searchQuery, setSearchQuery] = useState('');
-  const filteredTransactions = React.useMemo(() => filterByDateRange(transactions, dateRange, t => t.date), [transactions, dateRange]);
+  const searchRef = React.useRef<HTMLInputElement>(null);
+  const { modal: confirmModal, openConfirm, closeConfirm } = useConfirmModal();
+  const [accFormError, setAccFormError] = useState<string | null>(null);
+
+  const refreshData = () => {
+    setAccounts(dbService.getAccounts().filter(a => a.profileId === activeProfileId));
+    setTransactions(dbService.getTransactions().filter(t => t.profileId === activeProfileId));
+    setRecurringTxs(dbService.getRecurringTransactions().filter(r => r.profileId === activeProfileId));
+    setStocks(dbService.getStocks().filter(s => s.profileId === activeProfileId));
+    setMfs(dbService.getMutualFunds().filter(m => m.profileId === activeProfileId));
+  };
+
+  useDbSyncCallback(refreshData);
+
+  useEffect(() => {
+    refreshData();
+  }, [activeProfileId]);
 
   // Modals / Add States
   const [showAddAccount, setShowAddAccount] = useState(false);
@@ -239,10 +256,13 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
   };
 
   const handleDeleteRecurring = async (id: string) => {
-    if (confirm('Are you sure you want to stop this automated recurring transaction scheduler?')) {
-      await dbService.deleteRecurringTransaction(id);
-      refreshData();
-    }
+    openConfirm({
+      title: 'Stop Recurring Transaction',
+      message: 'This will stop future automatic postings. The transaction history already recorded stays unchanged.',
+      confirmLabel: 'Stop',
+      isDanger: true,
+      onConfirm: async () => { await dbService.deleteRecurringTransaction(id); refreshData(); }
+    });
   };
 
   // Form: Account
@@ -279,7 +299,6 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedTag, setSelectedTag] = useState<string>('All');
 
-  // Available tags in transactions
   const availableTags = useMemo(() => {
     const set = new Set<string>();
     transactions.forEach(t => { if (t.tag) set.add(t.tag); });
@@ -323,7 +342,16 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
       }
     });
 
-    const colors = ['#06b6d4', '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#ef4444', '#14b8a6'];
+    const colors = [
+      'var(--color-asset-cash)',
+      'var(--color-asset-stocks)',
+      'var(--color-asset-fd)',
+      'var(--color-asset-mf)',
+      'var(--color-asset-gold)',
+      'var(--color-asset-retirement)',
+      'var(--error)',
+      'var(--color-asset-realestate)'
+    ];
     const data = Object.entries(catMap)
       .map(([name, value], idx) => ({
         name,
@@ -345,77 +373,112 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
       .slice(0, 5);
   }, [transactions, dateRange]);
 
-  const refreshData = () => {
-    setAccounts(dbService.getAccounts().filter(a => a.profileId === activeProfileId));
-    setTransactions(dbService.getTransactions().filter(t => t.profileId === activeProfileId));
-    setRecurringTxs(dbService.getRecurringTransactions().filter(r => r.profileId === activeProfileId));
-    setStocks(dbService.getStocks().filter(s => s.profileId === activeProfileId));
-    setMfs(dbService.getMutualFunds().filter(m => m.profileId === activeProfileId));
-  };
-
-  useDbSyncCallback(refreshData);
-
+  // Keyboard accelerators: '/' to focus search, 'N' / 'Ctrl+N' to add transaction, 'A' to add account
   useEffect(() => {
-    refreshData();
-  }, [activeProfileId]);
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const tag = target.tagName;
+      const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
+
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
+        e.preventDefault();
+        setShowAddTx(true);
+        return;
+      }
+
+      if (!isInput) {
+        if (e.key === '/') {
+          e.preventDefault();
+          searchRef.current?.focus();
+        } else if (e.key === 'n' || e.key === 'N') {
+          e.preventDefault();
+          setShowAddTx(true);
+        } else if (e.key === 'a' || e.key === 'A') {
+          e.preventDefault();
+          setShowAddAccount(true);
+        }
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
 
   const handleAddAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAccName.trim() || !newAccBank.trim()) {
-      alert("Please fill in the required fields: Account Label Name and Bank Institution.");
+      setAccFormError('Enter an account name and bank to continue.');
       return;
     }
+    setAccFormError(null);
 
-    await dbService.addAccount({
-      profileId: activeProfileId,
-      name: newAccName,
-      bankName: newAccBank,
-      accountNumber: newAccNumber || 'N/A',
-      ifscCode: 'N/A',
-      accountType: newAccType,
-      balance: parseFloat(newAccBalance) || 0,
-      nomineeName: newAccNominee || undefined
-    });
+    try {
+      await dbService.addAccount({
+        profileId: activeProfileId,
+        name: newAccName.trim(),
+        bankName: newAccBank.trim(),
+        accountNumber: newAccNumber.trim() || 'N/A',
+        ifscCode: 'N/A',
+        accountType: newAccType,
+        balance: typeof newAccBalance === 'string' ? (parseRupeeToNumber(newAccBalance) || 0) : (newAccBalance || 0),
+        nomineeName: newAccNominee.trim() || undefined
+      });
 
-    // Reset Form
-    setNewAccName('');
-    setNewAccBank('');
-    setNewAccNumber('');
-    setNewAccBalance('');
-    setNewAccNominee('');
-    setShowAddAccount(false);
-    refreshData();
+      // Reset Form
+      setNewAccName('');
+      setNewAccBank('');
+      setNewAccNumber('');
+      setNewAccBalance('');
+      setNewAccNominee('');
+      setShowAddAccount(false);
+      refreshData();
+    } catch (err) {
+      console.error('Failed to add account:', err);
+    }
   };
 
   const handleEditAccountSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editAccName || !editAccBank) return;
+    if (!editAccName.trim() || !editAccBank.trim()) return;
 
-    await dbService.updateAccount(editAccId, {
-      name: editAccName,
-      bankName: editAccBank,
-      accountNumber: editAccNumber || 'N/A',
-      accountType: editAccType,
-      balance: parseFloat(editAccBalance) || 0,
-      nomineeName: editAccNominee || undefined
-    });
+    try {
+      await dbService.updateAccount(editAccId, {
+        name: editAccName.trim(),
+        bankName: editAccBank.trim(),
+        accountNumber: editAccNumber.trim() || 'N/A',
+        accountType: editAccType,
+        balance: typeof editAccBalance === 'string' ? (parseRupeeToNumber(editAccBalance) || 0) : (editAccBalance || 0),
+        nomineeName: editAccNominee.trim() || undefined
+      });
 
-    setShowEditAccount(false);
-    refreshData();
+      setShowEditAccount(false);
+      refreshData();
+    } catch (err) {
+      console.error('Failed to update account:', err);
+    }
   };
 
-  const handleDeleteAccount = async (id: string) => {
-    if (confirm('Are you sure you want to completely remove this bank account? This will also remove ALL associated transactions.')) {
-      await dbService.deleteAccount(id);
-      refreshData();
-    }
+  const handleDeleteAccount = (id: string) => {
+    openConfirm({
+      title: 'Remove Bank Account',
+      message: 'This will permanently delete this account and all associated transactions. This action cannot be undone.',
+      confirmLabel: 'Delete Account',
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          await dbService.deleteAccount(id);
+          refreshData();
+        } catch (err) {
+          console.error('Failed to delete account:', err);
+        }
+      }
+    });
   };
 
   const openEditAccount = (acc: BankAccount) => {
     setEditAccId(acc.id);
     setEditAccName(acc.name);
     setEditAccBank(acc.bankName);
-    setEditAccNumber(acc.accountNumber);
+    setEditAccNumber(acc.accountNumber === 'N/A' ? '' : (acc.accountNumber || ''));
     setEditAccType(acc.accountType);
     setEditAccBalance(acc.balance.toString());
     setEditAccNominee(acc.nomineeName || '');
@@ -446,10 +509,13 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
   };
 
   const handleDeleteTx = async (id: string) => {
-    if (confirm('Delete this transaction? This will automatically reverse the account balance update.')) {
-      await dbService.deleteTransaction(id);
-      refreshData();
-    }
+    openConfirm({
+      title: 'Delete Transaction',
+      message: 'Permanently delete this transaction? The corresponding account balance will be automatically adjusted.',
+      confirmLabel: 'Delete Transaction',
+      isDanger: true,
+      onConfirm: async () => { await dbService.deleteTransaction(id); refreshData(); }
+    });
   };
 
   // CSV Statement Parser & File Loader
@@ -458,7 +524,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
     if (!csvContent.trim()) return;
     const parsed = parseStatementText(csvContent);
     if (parsed.length === 0) {
-      setImportStatus('No valid transactions found in statement. Please verify the format.');
+      setImportStatus('Could not parse transactions from text. Ensure each line contains a valid date (e.g. DD-MM-YYYY), narration, and amount.');
       return;
     }
     setParsedReviewTxs(parsed);
@@ -466,8 +532,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
     setCsvContent('');
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleStatementFile = (file: File) => {
     if (!file) return;
 
     const reader = new FileReader();
@@ -475,13 +540,18 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
       const text = event.target?.result as string;
       const parsed = parseStatementText(text);
       if (parsed.length === 0) {
-        setImportStatus('Could not extract transactions from file. Please check structure.');
+        setImportStatus('Could not extract transactions from file. Verify column headers or ensure rows include dates, descriptions, and numeric amounts.');
         return;
       }
       setParsedReviewTxs(parsed);
       setStatementAccount(accounts[0]?.id || '');
     };
     reader.readAsText(file);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleStatementFile(file);
   };
 
   const handleImportVerified = async () => {
@@ -524,965 +594,983 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', `financeos_ledger_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadBlob(`financeos_ledger_${todayStamp()}.csv`, blob);
   };
 
-
-
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={{
-        hidden: { opacity: 0 },
-        visible: {
-          opacity: 1,
-          transition: { staggerChildren: 0.1 }
-        }
-      }}
-      style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
-    >
+    <>
+      <ConfirmModal state={confirmModal} onClose={closeConfirm} />
+      <motion.div
+        {...(reduceMotion ? { initial: false, animate: false } : { initial: "hidden", animate: "visible" })}
+        variants={{
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: { staggerChildren: 0.1 }
+          }
+        }}
+        className="gap-stack-xl"
+      >
 
-      {/* Page Header Banner */}
-      <div className="glass-panel" style={{
-        padding: '2.5rem 3rem',
-        borderRadius: '1.5rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '2rem',
-        background: 'var(--header-banner-grad)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
-            background: 'var(--accent-grad)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 14px hsla(220, 80%, 50%, 0.25)',
-            flexShrink: 0
-          }}>
-            <Landmark size={22} color="#ffffff" />
-          </div>
-          <div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0 }}>
-              Banking & Double-Entry Ledger
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.83rem', marginTop: '0.15rem', margin: 0 }}>
-              Manage personal accounts, journal records, and statement syncs
-            </p>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="btn btn-secondary" onClick={exportLedgerToCSV} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
-            <Download size={16} /> Export CSV
-          </motion.button>
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="btn btn-primary" onClick={() => setShowAddTx(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
-            <Plus size={16} /> Add Transaction
-          </motion.button>
-        </div>
-      </div>
-
-      {/* Grid: Left - Accounts List, Right - Statement Import */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.25rem' }} className="responsive-stack">
-
-        {/* Accounts Overview */}
-        <motion.div
-          className="glass-panel"
-          variants={{
-            hidden: { opacity: 0, y: 20 },
-            visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 80 } }
-          }}
-          style={{ padding: '1.5rem' }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 650, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Landmark size={18} color="var(--accent-1)" /> Linked Accounts
-            </h3>
-            <button className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.85rem', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)' }} onPointerDown={() => setShowAddAccount(true)}>
-              <Plus size={14} /> Add Account
-            </button>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-            {accounts.map((acc, idx) => (
-              <motion.div
-                key={acc.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1 + (idx * 0.05), type: "spring" }}
-                whileHover={{ y: -2, scale: 1.01 }}
-                style={{ 
-                  padding: '1.15rem', 
-                  background: 'linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)', 
-                  border: '1px solid var(--border-color)', 
-                  borderRadius: 'var(--radius-md)',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-              >
-                <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--accent-grad)' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.6rem' }}>
-                  <div>
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 650, color: 'var(--text-primary)', marginBottom: '0.1rem' }}>{acc.name}</h4>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{acc.bankName}</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-                    <button onPointerDown={() => openEditAccount(acc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} title="Edit Account">
-                      <Edit2 size={15} />
-                    </button>
-                    <button onPointerDown={() => handleDeleteAccount(acc.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)' }} title="Delete Account">
-                      <Trash2 size={15} />
-                    </button>
-                    {acc.accountType === 'CreditCard' ? <CreditCard size={18} color="var(--accent-1)" style={{ marginLeft: '0.2rem' }} /> : <Landmark size={18} color="var(--accent-2)" style={{ marginLeft: '0.2rem' }} />}
-                  </div>
-                </div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 700, margin: '0.6rem 0', fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
-                  {formatRupee(acc.balance)}
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                  <span style={{ fontFamily: 'monospace' }}>{acc.accountNumber}</span>
-                  {acc.nomineeName && <span style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.5rem', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '1rem' }}>✓ Nominee</span>}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Right Column Container */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-          {/* Automated Bills & SIPs Scheduler */}
-          <motion.div
-            className="glass-panel"
-            variants={{
-              hidden: { opacity: 0, x: 20 },
-              visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 80 } }
-            }}
-            style={{ padding: '1.5rem' }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 650, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <RefreshCw size={18} color="var(--accent-2)" /> Automated SIPs & Bills
-              </h3>
-              <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)' }} onPointerDown={() => setShowAddRecurring(true)}>
-                <Plus size={14} style={{ display: 'inline', marginRight: '0.25rem' }} /> Scheduler
-              </button>
+        {/* Page Header Banner */}
+        <SectionHeader
+          variant="banner"
+          icon={<Landmark size={22} color="var(--text-on-action)" />}
+          title="Banking & Double-Entry Ledger"
+          description="Manage personal accounts, journal records, and statement syncs"
+          action={
+            <div style={{ display: 'flex', gap: 'var(--spacing-075)', flexWrap: 'wrap' }}>
+              <Button variant="secondary" className="mobile-w-full" onClick={exportLedgerToCSV} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-04)', padding: 'var(--spacing-05) var(--spacing-1)', fontSize: 'var(--font-sm)' }}>
+                <Download size={16} /> Export CSV
+              </Button>
+              <Button variant="primary" className="mobile-w-full" onClick={() => setShowAddTx(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-04)', padding: 'var(--spacing-05) var(--spacing-1)', fontSize: 'var(--font-sm)' }}>
+                <Plus size={16} /> Add Transaction
+              </Button>
             </div>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-              Autocommitted recurring transactions. Posted automatically on due date.
-            </p>
+          }
+        />
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxHeight: '180px', overflowY: 'auto' }}>
-              {recurringTxs.map(rt => {
-                const accName = accounts.find(a => a.id === rt.accountId)?.name || 'Account';
-                return (
-                  <div key={rt.id} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '0.5rem', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)',
-                    borderRadius: 'var(--radius-sm)', fontSize: '0.8rem'
-                  }}>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{rt.description}</div>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                        {rt.frequency} ({accName}) • Next: {rt.nextDueDate}
-                      </span>
+        {/* Grid: Left - Accounts List, Right - Statement Import */}
+        <div className="card-grid-lg responsive-stack" style={{ gridTemplateColumns: '2fr 1fr' }}>
+
+          {/* Accounts Overview */}
+          <motion.div
+            className="glass-panel" data-interactive-card="off"
+            variants={{
+              hidden: { opacity: 0, y: 20 },
+              visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 80 } }
+            }}
+            {...(reduceMotion ? { initial: false, animate: false } : {})}
+            style={{ padding: 'var(--spacing-15)' }}
+          >
+            <PanelHeader
+              icon={<Landmark size={18} />}
+              title="Bank & Cash Accounts"
+              action={
+                <Button variant="secondary" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)', padding: 'var(--spacing-04) var(--spacing-085)', fontSize: 'var(--font-sm)', borderRadius: 'var(--radius-sm)' }} onClick={() => setShowAddAccount(true)}>
+                  <Plus size={14} /> Add Account
+                </Button>
+              }
+            />
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
+              gap: 'var(--spacing-1)',
+            }}>
+              {accounts.map((acc) => (
+                <div
+                  key={acc.id}
+                  className="glass-panel"
+                  data-interactive-card="off"
+                  style={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    padding: '1.15rem 1.25rem',
+                    borderRadius: 'var(--radius-md)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '0.85rem',
+                    borderLeft: `4px solid ${acc.accountType === 'CreditCard' ? 'var(--accent-1)' : 'var(--accent-2, #f59e0b)'}`,
+                    backgroundImage: 'var(--neo-convex-grad)',
+                    boxShadow: 'var(--neo-raised-sm)',
+                  }}
+                >
+                  {/* Top Row: Icon Badge + Name/Bank + Action Buttons */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem', position: 'relative', zIndex: 5 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: 1 }}>
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        minWidth: '36px',
+                        minHeight: '36px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: acc.accountType === 'CreditCard' ? 'rgba(6, 182, 212, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                        border: `1px solid ${acc.accountType === 'CreditCard' ? 'rgba(6, 182, 212, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: acc.accountType === 'CreditCard' ? 'var(--accent-1)' : 'var(--accent-2, #f59e0b)',
+                        flexShrink: 0
+                      }}>
+                        {acc.accountType === 'CreditCard' ? <CreditCard size={18} /> : <Landmark size={18} />}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <h4 style={{
+                          fontSize: 'var(--font-base)',
+                          fontWeight: 'var(--fw-bold)',
+                          color: 'var(--text-primary)',
+                          margin: 0,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}>
+                          {acc.name}
+                        </h4>
+                        <span style={{
+                          fontSize: 'var(--font-xs)',
+                          color: 'var(--text-secondary)',
+                          display: 'block',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          marginTop: '2px'
+                        }}>
+                          {acc.bankName || acc.accountType}
+                        </span>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontWeight: 650, color: rt.type === 'Income' ? 'var(--success)' : 'var(--text-primary)' }}>
-                        {rt.type === 'Income' ? '+' : '-'}{formatRupee(rt.amount)}
-                      </span>
-                      <button
-                        onPointerDown={() => handleDeleteRecurring(rt.id)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)', padding: '0.1rem' }}
-                        title="Delete Scheduler"
-                      >
-                        <Trash2 size={12} />
-                      </button>
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexShrink: 0, position: 'relative', zIndex: 10 }}>
+                      <IconButton
+                        icon={<Edit2 size={14} />}
+                        label="Edit Account"
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditAccount(acc);
+                        }}
+                      />
+                      <IconButton
+                        icon={<Trash2 size={14} />}
+                        label="Delete Account"
+                        variant="danger"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteAccount(acc.id);
+                        }}
+                      />
                     </div>
                   </div>
-                );
-              })}
-              {recurringTxs.length === 0 && (
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1rem' }}>
-                  No active recurring schedules configured.
+
+                  {/* Middle Row: Balance Display */}
+                  <div style={{ margin: '0.15rem 0' }}>
+                    <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '0.15rem', fontWeight: 600 }}>
+                      Available Balance
+                    </div>
+                    <div className="tabular-nums" style={{
+                      fontSize: 'clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem)',
+                      fontWeight: 'var(--fw-heavy)',
+                      fontFamily: 'var(--font-display)',
+                      color: 'var(--text-primary)',
+                      lineHeight: 1.2,
+                      wordBreak: 'break-word'
+                    }}>
+                      {formatRupee(acc.balance)}
+                    </div>
+                  </div>
+
+                  {/* Bottom Row: Account Number & Nominee / Type Badge */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    paddingTop: '0.5rem',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+                    fontSize: 'var(--font-xs)',
+                    color: 'var(--text-secondary)'
+                  }}>
+                    <span style={{
+                      fontFamily: 'monospace',
+                      letterSpacing: '0.04em',
+                      fontSize: '0.78rem',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      {acc.accountNumber ? `•••• ${acc.accountNumber.slice(-4)}` : '••••'}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      {acc.nomineeName && (
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: 'var(--radius-pill)',
+                          background: 'rgba(16, 185, 129, 0.12)',
+                          border: '1px solid rgba(16, 185, 129, 0.25)',
+                          color: '#10b981',
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                          whiteSpace: 'nowrap'
+                        }}>
+                          ✓ Nominee
+                        </span>
+                      )}
+                      <span style={{
+                        padding: '0.15rem 0.45rem',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--surface-tint)',
+                        border: '1px solid var(--border-color)',
+                        fontSize: '0.68rem',
+                        color: 'var(--text-muted)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.03em',
+                        fontWeight: 600
+                      }}>
+                        {acc.accountType || 'Bank'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
+              ))}
+              {accounts.length === 0 && (
+                <EmptyState
+                  variant="minimal"
+                  size="sm"
+                  title="No bank or cash accounts linked"
+                  description="Click '+ Add Account' above to start tracking your account balances and cash flow."
+                />
               )}
             </div>
           </motion.div>
 
-          {/* Statement Import (CSV / manual copy-paste) */}
-          <motion.div
-            className="glass-panel"
-            variants={{
-              hidden: { opacity: 0, x: 20 },
-              visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 80 } }
-            }}
-            style={{ padding: '1.5rem' }}
-          >
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 650, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Upload size={18} color="var(--accent-1)" /> Statement Smart-Import
-            </h3>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem', lineHeight: 1.4 }}>
-              Upload statement files or paste logs to automatically extract, categorize, and verify entries.
-            </p>
+          {/* Right Column Container */}
+          <div className="gap-stack-lg">
 
-            <form onSubmit={handleCSVImport}>
-              <div className="form-group" style={{ marginBottom: '0.75rem' }}>
-                <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-primary)', fontWeight: 500 }}>Upload Statement File (.csv, .txt)</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="file"
-                    accept=".csv,.txt"
-                    onChange={handleFileUpload}
-                    style={{
-                      fontSize: '0.8rem', width: '100%', padding: '0.6rem',
-                      background: 'rgba(255,255,255,0.02)', border: '1px dashed var(--border-color)',
-                      borderRadius: 'var(--radius-sm)', cursor: 'pointer', color: 'var(--text-primary)'
-                    }}
-                  />
-                </div>
-              </div>
-              <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.75rem 0' }}>— OR —</div>
-              <textarea
-                className="form-input"
-                style={{ height: '80px', fontSize: '0.8rem', fontFamily: 'monospace', marginBottom: '1rem', padding: '0.75rem' }}
-                placeholder="Paste statement text here...&#10;15-Jul-2026 Swiggy Delivery -720&#10;16-Jul-2026 Salary Credit +150000"
-                value={csvContent}
-                onChange={(e) => setCsvContent(e.target.value)}
+            {/* Automated Bills & SIPs Scheduler */}
+            <motion.div
+              className="glass-panel" data-interactive-card="off"
+              variants={{
+                hidden: { opacity: 0, x: 20 },
+                visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 80 } }
+              }}
+              {...(reduceMotion ? { initial: false, animate: false } : {})}
+              style={{ padding: 'var(--spacing-15)' }}
+            >
+              <PanelHeader
+                icon={<RefreshCw size={18} />}
+                title="Automated SIPs & Bills"
+                action={
+                  <Button variant="secondary" style={{ padding: 'var(--spacing-04) var(--spacing-075)', fontSize: 'var(--font-sm)', borderRadius: 'var(--radius-sm)' }} onClick={() => setShowAddRecurring(true)}>
+                    <Plus size={14} style={{ display: 'inline', marginRight: 'var(--spacing-025)' }} /> Add Recurring
+                  </Button>
+                }
               />
-              <button type="submit" className="btn btn-secondary" style={{ width: '100%', fontSize: '0.85rem', padding: '0.65rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-                <Search size={16} /> Analyze Statement Text
-              </button>
-            </form>
+              <p style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-075)' }}>
+                Recurring transactions that post automatically on their due date.
+              </p>
 
-            {importStatus && (
-              <div style={{
-                marginTop: '0.75rem', padding: '0.5rem', background: 'rgba(255,255,255,0.03)',
-                borderRadius: 'var(--radius-sm)', fontSize: '0.72rem', color: 'var(--accent-1)', display: 'flex', gap: '0.25rem'
-              }}>
-                <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                <span>{importStatus}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-06)', maxHeight: 'var(--chart-height-sm)', overflowY: 'auto' }}>
+                {recurringTxs.map(rt => {
+                  const accName = accounts.find(a => a.id === rt.accountId)?.name || 'Account';
+                  return (
+                    <ActionRow
+                      key={rt.id}
+                      variant="filled"
+                      wrapDescription
+                      title={rt.description}
+                      description={`${rt.frequency} (${accName}) • Next: ${rt.nextDueDate}`}
+                      action={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)' }}>
+                          <span className="tabular-nums" style={{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--font-sm)', color: rt.type === 'Income' ? 'var(--success)' : 'var(--text-primary)' }}>
+                            {rt.type === 'Income' ? '+' : '-'}{formatRupee(rt.amount)}
+                          </span>
+                          <IconButton
+                            icon={<Trash2 size={14} />}
+                            label="Delete recurring transaction"
+                            variant="danger"
+                            size="sm"
+                            onClick={() => handleDeleteRecurring(rt.id)}
+                          />
+                        </div>
+                      }
+                    />
+                  );
+                })}
+                {recurringTxs.length === 0 && (
+                  <EmptyState
+                    variant="minimal"
+                    size="sm"
+                    title="No recurring schedules active"
+                    description="Automate SIPs, rent payments, and regular salary deposits with recurring rules."
+                  />
+                )}
               </div>
-            )}
-          </motion.div>
+            </motion.div>
+
+            {/* Statement Import (CSV / manual copy-paste) */}
+            <motion.div
+              className="glass-panel" data-interactive-card="off"
+              variants={{
+                hidden: { opacity: 0, x: 20 },
+                visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 80 } }
+              }}
+              style={{ padding: 'var(--spacing-15)' }}
+            >
+              <PanelHeader icon={<Upload size={18} />} title="Statement Smart-Import" />
+              <p style={{ fontSize: 'var(--font-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-1)', lineHeight: 1.4 }}>
+                Upload statement files or paste logs to automatically extract, categorize, and verify entries.
+              </p>
+
+              <form onSubmit={handleCSVImport}>
+                <FileDropzone
+                  accept=".csv,.txt"
+                  label="Upload Statement (.csv, .txt)"
+                  sublabel="Drag & drop bank statement or click to browse"
+                  onFileSelect={handleStatementFile}
+                  variant="compact"
+                  style={{ marginBottom: 'var(--spacing-075)' }}
+                />
+                <div style={{ textAlign: 'center', fontSize: 'var(--font-xs)', color: 'var(--text-muted)', margin: 'var(--spacing-075) 0' }}>— OR —</div>
+                <textarea
+                  className="form-input"
+                  style={{ height: '80px', fontSize: 'var(--font-sm)', fontFamily: 'var(--font-mono)', marginBottom: 'var(--spacing-1)', padding: 'var(--spacing-075)' }}
+                  placeholder="Paste statement text here...&#10;15-Jul-2026 Swiggy Delivery -720&#10;16-Jul-2026 Salary Credit +150000"
+                  value={csvContent}
+                  onChange={(e) => setCsvContent(e.target.value)}
+                />
+                <Button type="submit" variant="secondary" style={{ width: '100%', fontSize: 'var(--font-sm)', padding: 'var(--spacing-06)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 'var(--spacing-05)' }}>
+                  <Search size={16} /> Analyze Statement Text
+                </Button>
+              </form>
+
+              {importStatus && (
+                <InfoCallout variant="info" style={{ marginTop: 'var(--spacing-075)' }}>
+                  {importStatus}
+                </InfoCallout>
+              )}
+            </motion.div>
+
+          </div>
 
         </div>
 
-      </div>
-
-      {/* Category Analytics & Top Spends Panel */}
-      {categoryAnalytics.data.length > 0 && (
-        <motion.div
-           initial="hidden"
-           whileInView="visible"
-           viewport={{ once: true, margin: "-50px" }}
-           variants={{
-             hidden: { opacity: 0 },
-             visible: {
-               opacity: 1,
-               transition: { staggerChildren: 0.15 }
-             }
-           }}
-           style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="responsive-stack"
-        >
-          {/* Donut chart */}
+        {/* Category Analytics & Top Spends Panel */}
+        {categoryAnalytics.data.length > 0 && (
           <motion.div
-            className="glass-panel"
+            {...(reduceMotion ? { initial: false, animate: false } : { initial: "hidden", whileInView: "visible", viewport: { once: true, margin: "-50px" } })}
             variants={{
-              hidden: { opacity: 0, y: 30 },
-              visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 70 } }
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: { staggerChildren: 0.15 }
+              }
             }}
-            style={{ padding: '1.5rem' }}
+            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }} className="card-grid responsive-stack"
           >
-            <h4 style={{ fontSize: '1.1rem', fontWeight: 650, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <PieIcon size={18} color="var(--accent-2)" /> Expense Distribution by Category
-            </h4>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap' }}>
-              <div style={{ width: '140px', height: '140px' }}>
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie data={categoryAnalytics.data} cx="50%" cy="50%" innerRadius={42} outerRadius={65} paddingAngle={2} dataKey="value">
-                      {categoryAnalytics.data.map((entry, i) => (
-                        <Cell key={i} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(v: any) => formatRupee(v)} contentStyle={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)', borderRadius: '8px' }} />
-                  </PieChart>
-                </ResponsiveContainer>
+            {/* Donut chart */}
+            <motion.div
+              className="glass-panel" data-interactive-card="off"
+              variants={{
+                hidden: { opacity: 0, y: 30 },
+                visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 70 } }
+              }}
+              {...(reduceMotion ? { initial: false, animate: false } : {})}
+              style={{ padding: 'var(--spacing-15)', backgroundImage: 'var(--neo-convex-grad)', boxShadow: 'var(--neo-raised-md)' }}
+            >
+              <PanelHeader icon={<PieIcon size={18} />} title="Expense Distribution by Category" />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap' }}>
+                <div style={{ width: 'var(--chart-height-sm)', height: 'var(--chart-height-sm)' }}>
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie data={categoryAnalytics.data} cx="50%" cy="50%" innerRadius={42} outerRadius={65} paddingAngle={2} dataKey="value">
+                        {categoryAnalytics.data.map((entry, i) => (
+                          <Cell key={i} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v: any) => formatRupee(v)} contentStyle={chartTooltipStyle} itemStyle={chartTooltipItemStyle} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-04)', fontSize: 'var(--font-xs)', maxWidth: '200px' }}>
+                  {categoryAnalytics.data.slice(0, 5).map((cat, i) => (
+                    <motion.div
+                      key={i}
+                      {...(reduceMotion ? { initial: false, animate: false } : { initial: { opacity: 0, x: 20 }, whileInView: { opacity: 1, x: 0 }, viewport: { once: true } })}
+                      transition={{ delay: i * 0.1 }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-05)' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: cat.color }} />
+                        <span style={{ color: 'var(--text-secondary)' }}>{cat.name}</span>
+                      </div>
+                      <span className="tabular-nums" style={{ fontWeight: 'var(--fw-semibold)' }}>{cat.pct}%</span>
+                    </motion.div>
+                  ))}
+                </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.75rem', maxWidth: '200px' }}>
-                {categoryAnalytics.data.slice(0, 5).map((cat, i) => (
+            </motion.div>
+
+            {/* Top 5 Spends */}
+            <motion.div
+              className="glass-panel" data-interactive-card="off"
+              variants={{
+                hidden: { opacity: 0, y: 30 },
+                visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 70 } }
+              }}
+              {...(reduceMotion ? { initial: false, animate: false } : {})}
+              style={{ padding: 'var(--spacing-15)' }}
+            >
+              <PanelHeader icon={<ArrowUpRight size={18} />} title="Highest Single Spends" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-04)' }}>
+                {topSpends.map((t, idx) => (
                   <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: 20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
+                    key={t.id}
+                    {...(reduceMotion ? { initial: false, animate: false, whileHover: undefined } : { whileHover: { scale: 1.02 } })}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
                     viewport={{ once: true }}
-                    transition={{ delay: i * 0.1 }}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}
+                    transition={{ delay: idx * 0.1 }}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--spacing-04) var(--spacing-06)', background: 'var(--surface-faint)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-xs)' }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: cat.color }} />
-                      <span style={{ color: 'var(--text-secondary)' }}>{cat.name}</span>
+                    <div>
+                      <div style={{ fontWeight: 'var(--fw-semibold)' }}>{t.description}</div>
+                      <span style={{ fontSize: 'var(--font-2xs)', color: 'var(--text-muted)' }}>{t.date} • {t.category}</span>
                     </div>
-                    <span style={{ fontWeight: 600 }}>{cat.pct}%</span>
+                    <span className="tabular-nums" style={{ fontWeight: 'var(--fw-heavy)', color: 'var(--error)' }}>{formatRupee(t.amount)}</span>
                   </motion.div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           </motion.div>
+        )}
 
-          {/* Top 5 Spends */}
-          <motion.div
-            className="glass-panel"
-            variants={{
-              hidden: { opacity: 0, y: 30 },
-              visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 70 } }
-            }}
-            style={{ padding: '1.5rem' }}
-          >
-            <h4 style={{ fontSize: '1.1rem', fontWeight: 650, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <ArrowUpRight size={18} color="var(--error)" /> Highest Single Spends
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              {topSpends.map((t, idx) => (
-                <motion.div
-                  key={t.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ delay: idx * 0.1 }}
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem' }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{t.description}</div>
-                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{t.date} • {t.category}</span>
-                  </div>
-                  <span style={{ fontWeight: 700, color: 'var(--error)' }}>{formatRupee(t.amount)}</span>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-
-      {/* Main Journal Transactions Table */}
-      <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-50px" }}
-        variants={{
-          hidden: { opacity: 0, y: 20 },
-          visible: { opacity: 1, y: 0, transition: { type: "tween", duration: 0.4 } }
-        }}
-        className="glass-panel"
-        style={{ padding: '0', overflow: 'hidden' }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', flexWrap: 'wrap', gap: '1.25rem', background: 'rgba(255,255,255,0.01)' }}>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 650, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <FileText size={18} color="var(--accent-1)" /> Ledger Journal Log
-          </h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '0.15rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', borderRight: '1px solid rgba(255,255,255,0.08)', paddingRight: '0.4rem' }}>
-                <Filter size={14} style={{ color: 'var(--text-muted)', marginLeft: '0.4rem' }} />
-                <select
-                  value={selectedCategory}
-                  onChange={e => setSelectedCategory(e.target.value)}
-                  style={{ fontSize: '0.8rem', padding: '0.3rem 0.5rem', background: 'transparent', border: 'none', color: 'inherit', outline: 'none', cursor: 'pointer' }}
-                >
-                  <option value="All">All Categories</option>
-                  {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
-              {availableTags.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', borderRight: '1px solid rgba(255,255,255,0.08)', paddingRight: '0.4rem', paddingLeft: '0.4rem' }}>
-                   <Tag size={14} style={{ color: 'var(--text-muted)' }} />
-                   <select
-                    value={selectedTag}
-                    onChange={e => setSelectedTag(e.target.value)}
-                    style={{ fontSize: '0.8rem', padding: '0.3rem 0.5rem', background: 'transparent', border: 'none', color: 'inherit', outline: 'none', cursor: 'pointer' }}
+        {/* Main Journal Transactions Table */}
+        <motion.div
+          {...(reduceMotion ? { initial: false, animate: false } : { initial: "hidden", whileInView: "visible", viewport: { once: true, margin: "-50px" } })}
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0, transition: { type: "tween", duration: 0.4 } }
+          }}
+          className="glass-panel" data-interactive-card="off"
+          style={{ padding: '0', overflow: 'hidden' }}
+        >
+          <div className="flex-between flex-wrap gap-stack-md p-15" style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--surface-faint)' }}>
+            <PanelHeader
+              icon={<FileText size={18} />}
+              title="Ledger Journal Log"
+              style={{ marginBottom: 0 }}
+            />
+            <div className="flex-1" style={{ maxWidth: '760px', minWidth: 'min(100%, 300px)' }}>
+              <SearchFilterBar
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                placeholder="Search transactions by narration, category, tag, or amount (Press /)"
+                inputRef={searchRef}
+                filters={[
+                  {
+                    id: 'category',
+                    label: 'Category',
+                    value: selectedCategory,
+                    options: [
+                      { value: 'All', label: 'All Categories' },
+                      ...availableCategories.map(c => ({ value: c, label: c }))
+                    ],
+                    onChange: setSelectedCategory
+                  },
+                  ...(availableTags.length > 0 ? [{
+                    id: 'tag',
+                    label: 'Tag',
+                    value: selectedTag,
+                    options: [
+                      { value: 'All', label: 'All Tags' },
+                      ...availableTags.map(t => ({ value: t, label: t }))
+                    ],
+                    onChange: setSelectedTag
+                  }] : [])
+                ]}
+                actions={
+                  <Button
+                    variant="secondary"
+                    className="mobile-w-full"
+                    onClick={() => {
+                      exportToCSV('ledger_transactions', [
+                        { label: 'Date', key: 'date' },
+                        { label: 'Description', key: 'description' },
+                        { label: 'Category', key: 'category' },
+                        { label: 'Type', key: 'type' },
+                        { label: 'Amount (INR)', key: 'amount' }
+                      ], filteredTxs);
+                    }}
+                    style={{ padding: 'var(--spacing-04) var(--spacing-08)', fontSize: 'var(--font-sm)', gap: 'var(--spacing-04)', display: 'flex', alignItems: 'center' }}
                   >
-                    <option value="All">All Tags</option>
-                    {availableTags.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-              )}
-
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <Search size={14} style={{ position: 'absolute', left: '10px', color: 'var(--text-muted)' }} />
-                <input
-                  type="text"
-                  style={{ padding: '0.3rem 0.5rem 0.3rem 2rem', background: 'transparent', border: 'none', color: 'inherit', outline: 'none', fontSize: '0.8rem', width: '160px' }}
-                  placeholder="Search ledger..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+                    <Download size={14} />
+                    <span>Export CSV</span>
+                  </Button>
+                }
+              />
             </div>
-
-            <button
-              className="btn btn-secondary"
-              onPointerDown={() => {
-                exportToCSV('ledger_transactions', [
-                  { label: 'Date', key: 'date' },
-                  { label: 'Description', key: 'description' },
-                  { label: 'Category', key: 'category' },
-                  { label: 'Type', key: 'type' },
-                  { label: 'Amount (INR)', key: 'amount' }
-                ], filteredTxs);
-              }}
-              style={{ padding: '0.45rem 0.8rem', fontSize: '0.8rem', gap: '0.4rem', display: 'flex', alignItems: 'center' }}
-            >
-              <Download size={14} />
-              <span>Export</span>
-            </button>
           </div>
-        </div>
 
-        <div className="table-responsive" style={{ margin: 0, padding: 0 }}>
-          <table className="custom-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead style={{ background: 'rgba(0,0,0,0.2)' }}>
-              <tr>
-                <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Transaction</th>
-                <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Account</th>
-                <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Category</th>
-                <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid rgba(255,255,255,0.05)', textAlign: 'right' }}>Amount</th>
-                <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid rgba(255,255,255,0.05)', textAlign: 'center', width: '50px' }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTxs.length > 0 ? (
-                filteredTxs.slice(0, 500).map((tx, idx) => {
-                  const accName = accounts.find(a => a.id === tx.accountId)?.name || 'External';
+          <div className="table-responsive" style={{ margin: 0, padding: 0 }}>
+            <table className="custom-table">
+              <caption style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0, padding: 0, margin: -1 }}>
+                Ledger journal log: transaction, account, category, and amount for each entry
+              </caption>
+              <thead style={{ background: 'var(--surface-tint-strong)' }}>
+                <tr>
+                  <th scope="col">Transaction</th>
+                  <th scope="col">Account</th>
+                  <th scope="col">Category</th>
+                  <th scope="col" className="numeric-cell">Amount</th>
+                  <th scope="col" aria-label="Actions" style={{ textAlign: 'center', width: '50px' }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTxs.length > 0 ? (
+                  filteredTxs.slice(0, 500).map((tx, idx) => {
+                    const accName = accounts.find(a => a.id === tx.accountId)?.name || 'External';
 
-                  // Transaction Type styling map
-                  const typeStyles = {
-                    Income: { icon: <ArrowDownLeft size={16} />, color: 'var(--success)', bg: 'rgba(16, 185, 129, 0.15)' },
-                    Expense: { icon: <ArrowUpRight size={16} />, color: 'var(--text-primary)', bg: 'rgba(255,255,255,0.08)' },
-                    Transfer: { icon: <ArrowRightLeft size={16} />, color: 'var(--accent-1)', bg: 'rgba(56, 189, 248, 0.15)' }
-                  };
+                    // Transaction Type styling map
+                    const typeStyles = {
+                      Income: { icon: <ArrowDownLeft size={16} />, color: 'var(--color-inflow)', bg: 'var(--color-inflow-bg)', badge: 'emerald' as const },
+                      Expense: { icon: <ArrowUpRight size={16} />, color: 'var(--text-primary)', bg: 'var(--border-strong)', badge: 'rose' as const },
+                      Transfer: { icon: <ArrowRightLeft size={16} />, color: 'var(--color-transfer)', bg: 'var(--color-transfer-bg)', badge: 'cyan' as const }
+                    };
 
-                  const style = typeStyles[tx.type as keyof typeof typeStyles];
+                    const style = typeStyles[tx.type as keyof typeof typeStyles];
 
-                  return (
-                    <motion.tr
-                      key={tx.id}
-                      initial={{ opacity: 0, y: 5 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true, margin: "-20px" }}
-                      transition={{ delay: Math.min((idx % 10) * 0.03, 0.3) }}
-                      style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background-color 0.2s', cursor: 'pointer' }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                      <td style={{ padding: '1rem 1.25rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                          <div style={{
-                            width: '40px', height: '40px', borderRadius: '50%',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            background: style.bg, color: style.color
-                          }}>
-                            {style.icon}
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{tx.description}</div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                              <Calendar size={12} />
-                              {tx.date}
+                    return (
+                      <motion.tr
+                        key={tx.id}
+                        {...(reduceMotion ? { initial: false, animate: false } : { initial: { opacity: 0, y: 5 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, margin: "-20px" } })}
+                        transition={{ delay: Math.min((idx % 10) * 0.03, 0.3) }}
+                        style={{ borderBottom: '1px solid var(--border-faint)', transition: 'background-color 0.2s' }}
+                        onMouseEnter={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'var(--surface-faint)'}
+                        onMouseLeave={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
+                            <div style={{
+                              width: '40px', height: '40px', borderRadius: '50%',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              background: style.bg, color: style.color
+                            }}>
+                              {style.icon}
+                            </div>
+                            <div>
+                              <div style={{ fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', fontSize: 'var(--font-base)', color: 'var(--text-primary)', lineHeight: 1.4 }}>{tx.description}</div>
+                              <div className="tabular-nums" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)', fontSize: 'var(--font-xs)', color: 'var(--text-muted)', marginTop: 'var(--spacing-02)' }}>
+                                <Calendar size={12} />
+                                {tx.date}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: '1rem 1.25rem', fontSize: '0.85rem' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.2rem 0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                           <Landmark size={12} style={{ marginRight: '0.4rem', opacity: 0.7 }} />
-                           {accName}
-                        </span>
-                      </td>
-                      <td style={{ padding: '1rem 1.25rem' }}>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{tx.category}</span>
-                        {tx.tag && <span style={{ marginLeft: '0.5rem', fontSize: '0.68rem', padding: '0.15rem 0.4rem', background: 'rgba(255,255,255,0.08)', borderRadius: '12px' }}>{tx.tag}</span>}
-                      </td>
-                      <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>
-                        <div style={{ fontWeight: 600, fontSize: '1rem', color: tx.type === 'Income' ? 'var(--success)' : 'inherit', fontFamily: 'monospace' }}>
-                          {tx.type === 'Income' ? '+' : tx.type === 'Expense' ? '-' : ''}{formatRupee(tx.amount)}
-                        </div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          {tx.type}
-                        </div>
-                      </td>
-                      <td style={{ padding: '1rem 1.25rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                        <div className="action-menu-container" style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
-                         <button
-                            className="btn btn-icon"
-                            style={{ padding: '0.4rem', background: 'transparent', color: 'var(--text-muted)', border: 'none' }}
-                            onPointerDown={(e) => {
-                              // Prevent row click if any
-                              e.stopPropagation();
-                              handleDeleteTx(tx.id);
-                            }}
-                            title="Delete Transaction"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem 1rem' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-                      <RefreshCw size={24} style={{ opacity: 0.2 }} />
-                      <span>No transactions match your criteria</span>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </motion.div>
-
-      {/* Dialog: Add Account */}
-      {showAddAccount && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '440px', padding: '1.5rem 2rem' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>Link New Account</h3>
-            <form onSubmit={handleAddAccount}>
-              <div className="form-group">
-                <label className="form-label">Account Label Name</label>
-                <input type="text" className="form-input" value={newAccName} onChange={(e) => setNewAccName(e.target.value)} placeholder="e.g. HDFC Salary account" required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Bank Institution</label>
-                <input type="text" className="form-input" value={newAccBank} onChange={(e) => setNewAccBank(e.target.value)} placeholder="e.g. HDFC Bank" required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Account Number (Encrypted on disk)</label>
-                <input type="text" className="form-input" value={newAccNumber} onChange={(e) => setNewAccNumber(e.target.value)} placeholder="e.g. 501004829103" />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label className="form-label">Account Type</label>
-                  <select value={newAccType} onChange={(e) => setNewAccType(e.target.value as AccountType)}>
-                    <option value="Savings">Savings</option>
-                    <option value="Current">Current</option>
-                    <option value="CreditCard">Credit Card</option>
-                    <option value="Cash">Cash in Hand</option>
-                    <option value="Loan">Loan/Debt</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Opening Balance</label>
-                  <CurrencyInput className="form-input" value={newAccBalance} onChange={(e) => setNewAccBalance(e.target.value)} placeholder="0.00" />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Designated Nominee Name</label>
-                <input type="text" className="form-input" value={newAccNominee} onChange={(e) => setNewAccNominee(e.target.value)} placeholder="Nominee full name" />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onPointerDown={() => setShowAddAccount(false)}>Cancel</button>
-                <button 
-                  type="button" 
-                  className="btn btn-primary"
-                  onPointerDown={(e) => handleAddAccount(e as any)}
-                >
-                  Link Account
-                </button>
-              </div>
-            </form>
+                        </td>
+                        <td>
+                          <Badge size="sm" icon={<Landmark size={12} />}>{accName}</Badge>
+                        </td>
+                        <td>
+                          <Badge size="sm">{tx.category}</Badge>
+                          {tx.tag && <Badge size="sm" variant="indigo" style={{ marginLeft: 'var(--spacing-05)' }}>{tx.tag}</Badge>}
+                        </td>
+                        <td className="numeric-cell">
+                          <div style={{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--font-lg)', color: tx.type === 'Income' ? 'var(--success)' : 'inherit', fontFamily: 'var(--font-display)' }}>
+                            {tx.type === 'Income' ? '+' : tx.type === 'Expense' ? '-' : ''}{formatRupee(tx.amount)}
+                          </div>
+                          <div style={{ marginTop: 'var(--spacing-02)' }}>
+                            <Badge size="sm" variant={style.badge}>{tx.type}</Badge>
+                          </div>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <div className="action-menu-container" style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+                            <IconButton
+                              icon={<Trash2 size={16} />}
+                              label="Delete transaction"
+                              variant="ghost"
+                              size="md"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTx(tx.id);
+                              }}
+                            />
+                          </div>
+                        </td>
+                      </motion.tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: 'var(--spacing-15)' }}>
+                      <EmptyState
+                        variant="dashed"
+                        size="sm"
+                        icon={<RefreshCw size={24} />}
+                        title={transactions.length === 0 ? "No transactions recorded in this ledger" : "No transactions match your current search or category filters"}
+                        description={transactions.length === 0 ? "Record your first income or expense to begin tracking cash flow." : "Try clearing your search query or selecting 'All Categories'."}
+                        action={transactions.length === 0 ? (
+                          <Button variant="primary" size="sm" onClick={() => setShowAddTx(true)}>
+                            <Plus size={14} /> Add First Transaction
+                          </Button>
+                        ) : (searchQuery || selectedCategory !== 'All' || selectedTag !== 'All') ? (
+                          <Button variant="secondary" size="sm" onClick={() => { setSearchQuery(''); setSelectedCategory('All'); setSelectedTag('All'); }}>
+                            Clear Filters
+                          </Button>
+                        ) : undefined}
+                      />
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-        </div>
-      )}
+        </motion.div>
 
-      {/* Dialog: Edit Account */}
-      {showEditAccount && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '400px', padding: '1.5rem 2rem' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>Edit Bank Account</h3>
-            <form onSubmit={handleEditAccountSubmit}>
-              <div className="form-group">
-                <label className="form-label">Account Nickname</label>
-                <input type="text" className="form-input" value={editAccName} onChange={(e) => setEditAccName(e.target.value)} placeholder="e.g. Primary Savings" required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Bank Name</label>
-                <input type="text" className="form-input" value={editAccBank} onChange={(e) => setEditAccBank(e.target.value)} placeholder="e.g. HDFC Bank" required />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label className="form-label">Account Type</label>
-                  <select className="form-input" value={editAccType} onChange={(e) => setEditAccType(e.target.value as AccountType)}>
-                    <option value="Savings">Savings</option>
-                    <option value="Current">Current</option>
-                    <option value="CreditCard">Credit Card</option>
-                    <option value="Wallet">Digital Wallet</option>
-                    <option value="Loan">Loan</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Current Balance (₹)</label>
-                  <CurrencyInput className="form-input" value={editAccBalance} onChange={(e) => setEditAccBalance(e.target.value)} placeholder="0.00" required />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Account Number (Optional)</label>
-                <input type="text" className="form-input" value={editAccNumber} onChange={(e) => setEditAccNumber(e.target.value)} placeholder="XXXX1234" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Nominee Name (Optional)</label>
-                <input type="text" className="form-input" value={editAccNominee} onChange={(e) => setEditAccNominee(e.target.value)} placeholder="Registered nominee" />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onPointerDown={() => setShowEditAccount(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Save Changes</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Dialog: Add Transaction */}
-      {showAddTx && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '440px', padding: '1.5rem 2rem' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>Log Ledger Entry</h3>
-            <form onSubmit={handleAddTx}>
-              <div className="form-group">
-                <label className="form-label">Source Account</label>
-                <select value={newTxAccount} onChange={(e) => setNewTxAccount(e.target.value)}>
-                  {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({formatRupee(a.balance)})</option>)}
+        {/* Dialog: Add Account */}
+        <Modal isOpen={showAddAccount} onClose={() => setShowAddAccount(false)} title="Add Bank Account" size="sm">
+          <form onSubmit={handleAddAccount}>
+            <FormField label="Account Label Name" htmlFor="ledger-acc-name">
+              <input id="ledger-acc-name" type="text" className="form-input" value={newAccName} onChange={(e) => setNewAccName(e.target.value)} placeholder="e.g. HDFC Salary account" required />
+            </FormField>
+            <FormField label="Bank Institution" htmlFor="ledger-acc-bank">
+              <input id="ledger-acc-bank" type="text" className="form-input" value={newAccBank} onChange={(e) => setNewAccBank(e.target.value)} placeholder="e.g. HDFC Bank" required />
+            </FormField>
+            <FormField label="Account Number (Encrypted on disk)" htmlFor="ledger-acc-number">
+              <input id="ledger-acc-number" type="text" className="form-input" value={newAccNumber} onChange={(e) => setNewAccNumber(e.target.value)} placeholder="e.g. 501004829103" />
+            </FormField>
+            <FormRow>
+              <FormField label="Account Type" htmlFor="ledger-acc-type">
+                <select id="ledger-acc-type" value={newAccType} onChange={(e) => setNewAccType(e.target.value as AccountType)}>
+                  <option value="Savings">Savings</option>
+                  <option value="Current">Current</option>
+                  <option value="CreditCard">Credit Card</option>
+                  <option value="Cash">Cash in Hand</option>
+                  <option value="Loan">Loan/Debt</option>
                 </select>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label className="form-label">Transaction Type</label>
-                  <select value={newTxType} onChange={(e) => setNewTxType(e.target.value as any)}>
-                    <option value="Expense">Expense (-)</option>
-                    <option value="Income">Income (+)</option>
-                    <option value="Transfer">Transfer (⇅)</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Transaction Amount</label>
-                  <CurrencyInput className="form-input" value={newTxAmount} onChange={(e) => setNewTxAmount(e.target.value)} placeholder="0.00" required />
-                </div>
-              </div>
+              </FormField>
+              <FormField label="Opening Balance" htmlFor="ledger-acc-balance">
+                <CurrencyInput id="ledger-acc-balance" className="form-input tabular-nums" value={newAccBalance} onChange={(e) => setNewAccBalance(e.target.value)} placeholder="0.00" />
+              </FormField>
+            </FormRow>
+            <FormField label="Designated Nominee Name" htmlFor="ledger-acc-nominee">
+              <input id="ledger-acc-nominee" type="text" className="form-input" value={newAccNominee} onChange={(e) => setNewAccNominee(e.target.value)} placeholder="Nominee full name" />
+            </FormField>
+            <FormActions
+              submitLabel="Add Bank Account"
+              submitType="submit"
+              onCancel={() => setShowAddAccount(false)}
+              style={{ marginTop: 'var(--spacing-1)' }}
+            />
+          </form>
+        </Modal>
 
-              {newTxType === 'Transfer' && (
-                <div className="form-group">
-                  <label className="form-label">Destination Account</label>
-                  <select value={newTxRefAcc} onChange={(e) => setNewTxRefAcc(e.target.value)}>
-                    <option value="">-- Choose Account --</option>
-                    {accounts.filter(a => a.id !== newTxAccount).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                  </select>
-                </div>
-              )}
-
-              <div className="form-group">
-                <label className="form-label">Date</label>
-                <input type="date" className="form-input" value={newTxDate} onChange={(e) => setNewTxDate(e.target.value)} required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Category</label>
-                <select value={newTxCategory} onChange={(e) => setNewTxCategory(e.target.value)}>
-                  <option value="Food & Dining">Food & Dining</option>
-                  <option value="Salary">Salary</option>
-                  <option value="Investments">Investments</option>
-                  <option value="Utilities">Utilities</option>
-                  <option value="Transportation">Transportation</option>
-                  <option value="Business Sales">Business Sales</option>
-                  <option value="Business Purchase">Business Purchase</option>
-                  <option value="Rent">Rent</option>
-                  <option value="Miscellaneous">Miscellaneous</option>
+        {/* Dialog: Edit Account */}
+        <Modal isOpen={showEditAccount} onClose={() => setShowEditAccount(false)} title="Edit Bank Account" size="sm">
+          <form onSubmit={handleEditAccountSubmit}>
+            <FormField label="Account Nickname" htmlFor="ledger-edit-acc-name">
+              <input id="ledger-edit-acc-name" type="text" className="form-input" value={editAccName} onChange={(e) => setEditAccName(e.target.value)} placeholder="e.g. Primary Savings" required />
+            </FormField>
+            <FormField label="Bank Name" htmlFor="ledger-edit-acc-bank">
+              <input id="ledger-edit-acc-bank" type="text" className="form-input" value={editAccBank} onChange={(e) => setEditAccBank(e.target.value)} placeholder="e.g. HDFC Bank" required />
+            </FormField>
+            <FormRow>
+              <FormField label="Account Type" htmlFor="ledger-edit-acc-type">
+                <select id="ledger-edit-acc-type" className="form-input" value={editAccType} onChange={(e) => setEditAccType(e.target.value as AccountType)}>
+                  <option value="Savings">Savings</option>
+                  <option value="Current">Current</option>
+                  <option value="CreditCard">Credit Card</option>
+                  <option value="Cash">Cash in Hand</option>
+                  <option value="Loan">Loan/Debt</option>
                 </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Description (Encrypted on disk)</label>
-                <input type="text" className="form-input" value={newTxDesc} onChange={(e) => setNewTxDesc(e.target.value)} placeholder="e.g. Amazon shopping purchase" required />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onPointerDown={() => setShowAddTx(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Record Entry</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+              </FormField>
+              <FormField label="Current Balance (₹)" htmlFor="ledger-edit-acc-balance">
+                <CurrencyInput id="ledger-edit-acc-balance" className="form-input tabular-nums" value={editAccBalance} onChange={(e) => setEditAccBalance(e.target.value)} placeholder="0.00" required />
+              </FormField>
+            </FormRow>
+            <FormField label="Account Number (Optional)" htmlFor="ledger-edit-acc-number">
+              <input id="ledger-edit-acc-number" type="text" className="form-input" value={editAccNumber} onChange={(e) => setEditAccNumber(e.target.value)} placeholder="XXXX1234" />
+            </FormField>
+            <FormField label="Nominee Name (Optional)" htmlFor="ledger-edit-acc-nominee">
+              <input id="ledger-edit-acc-nominee" type="text" className="form-input" value={editAccNominee} onChange={(e) => setEditAccNominee(e.target.value)} placeholder="Registered nominee" />
+            </FormField>
+            <FormActions
+              submitLabel="Save Changes"
+              submitType="submit"
+              onCancel={() => setShowEditAccount(false)}
+              style={{ marginTop: 'var(--spacing-1)' }}
+            />
+          </form>
+        </Modal>
 
-      {/* Dialog: Add Recurring Scheduler */}
-      {showAddRecurring && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '400px', padding: '1.5rem 2rem' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>Create Automated Transaction Scheduler</h3>
-            <form onSubmit={handleAddRecurring}>
-              <div className="form-group">
-                <label className="form-label">Description / Template Name</label>
-                <input type="text" className="form-input" value={recDesc} onChange={(e) => setRecDesc(e.target.value)} placeholder="e.g. HDFC Index Fund SIP" required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Amount (₹)</label>
-                <CurrencyInput className="form-input" value={recAmount} onChange={(e) => setRecAmount(e.target.value)} placeholder="e.g. 10000" required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Transaction Type</label>
-                <select value={recType} onChange={(e) => setRecType(e.target.value as any)}>
-                  <option value="Expense">Expense (Withdrawal)</option>
-                  <option value="Income">Income (Deposit)</option>
-                  <option value="Transfer">Transfer</option>
+        {/* Dialog: Add Transaction */}
+        <Modal isOpen={showAddTx} onClose={() => setShowAddTx(false)} title="Add Transaction" size="sm">
+          <form onSubmit={handleAddTx}>
+            <FormField label="Source Account" htmlFor="ledger-tx-account">
+              <select id="ledger-tx-account" value={newTxAccount} onChange={(e) => setNewTxAccount(e.target.value)}>
+                {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({formatRupee(a.balance)})</option>)}
+              </select>
+            </FormField>
+            <FormRow columns="1fr 1.2fr">
+              <FormField label="Transaction Type" htmlFor="ledger-tx-type">
+                <select id="ledger-tx-type" value={newTxType} onChange={(e) => setNewTxType(e.target.value as any)}>
+                  <option value="Expense">Expense (-)</option>
+                  <option value="Income">Income (+)</option>
+                  <option value="Transfer">Transfer (⇅)</option>
                 </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Category</label>
-                <input type="text" className="form-input" value={recCategory} onChange={(e) => setRecCategory(e.target.value)} placeholder="e.g. Investments" required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Source Account</label>
-                <select value={recAccount} onChange={(e) => setRecAccount(e.target.value)}>
+              </FormField>
+              <FormField label="Transaction Amount" htmlFor="ledger-tx-amount">
+                <CurrencyInput id="ledger-tx-amount" className="form-input tabular-nums" value={newTxAmount} onChange={(e) => setNewTxAmount(e.target.value)} placeholder="0.00" required />
+              </FormField>
+            </FormRow>
+
+            {newTxType === 'Transfer' && (
+              <FormField label="Destination Account" htmlFor="ledger-tx-ref-account">
+                <select id="ledger-tx-ref-account" value={newTxRefAcc} onChange={(e) => setNewTxRefAcc(e.target.value)}>
                   <option value="">-- Choose Account --</option>
-                  {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({a.bankName})</option>)}
+                  {accounts.filter(a => a.id !== newTxAccount).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
-              </div>
-              {recType === 'Transfer' && (
-                <div className="form-group">
-                  <label className="form-label">Destination Account</label>
-                  <select value={recRefAccount} onChange={(e) => setRecRefAccount(e.target.value)}>
-                    <option value="">-- Select Destination --</option>
-                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({a.bankName})</option>)}
-                  </select>
-                </div>
-              )}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label className="form-label">Frequency</label>
-                  <select value={recFrequency} onChange={(e) => setRecFrequency(e.target.value as any)}>
-                    <option value="Weekly">Weekly</option>
-                    <option value="Monthly">Monthly</option>
-                    <option value="Quarterly">Quarterly</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">SIP Start Date</label>
-                  <input type="date" className="form-input" value={recStartDate} onChange={(e) => setRecStartDate(e.target.value)} required />
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label className="form-label">Annual Step-Up % (Optional)</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={recStepUpPct}
-                    onChange={(e) => setRecStepUpPct(e.target.value)}
-                    placeholder="e.g. 10"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Link Asset (Optional)</label>
-                  <select value={recTargetAssetId} onChange={(e) => setRecTargetAssetId(e.target.value)}>
-                    <option value="">-- None --</option>
-                    {mfs.length > 0 && (
-                      <optgroup label="Mutual Funds">
-                        {mfs.map(m => <option key={m.id} value={m.id}>{m.schemeName}</option>)}
-                      </optgroup>
-                    )}
-                    {stocks.length > 0 && (
-                      <optgroup label="Stocks">
-                        {stocks.map(s => <option key={s.id} value={s.id}>{s.symbol} ({s.name})</option>)}
-                      </optgroup>
-                    )}
-                  </select>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onPointerDown={() => setShowAddRecurring(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Schedule SIP/Bill</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+              </FormField>
+            )}
 
-      {/* Dialog: Parsed Statement Review Grid */}
-      {parsedReviewTxs.length > 0 && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '850px', padding: '1.5rem 2rem', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div>
-                <h3 style={{ fontSize: '1.25rem', margin: 0 }}>Review Bank Statement Entries</h3>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>Verify parsed dates, amounts, and categories before committing to ledger.</p>
-              </div>
-              <button onPointerDown={() => setParsedReviewTxs([])} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.25rem' }}>&times;</button>
-            </div>
+            <FormField label="Date" htmlFor="ledger-tx-date">
+              <input id="ledger-tx-date" type="date" className="form-input tabular-nums" value={newTxDate} onChange={(e) => setNewTxDate(e.target.value)} required />
+            </FormField>
+            <FormField label="Category" htmlFor="ledger-tx-category">
+              <select id="ledger-tx-category" value={newTxCategory} onChange={(e) => setNewTxCategory(e.target.value)}>
+                <option value="Food & Dining">Food & Dining</option>
+                <option value="Salary">Salary</option>
+                <option value="Investments">Investments</option>
+                <option value="Utilities">Utilities</option>
+                <option value="Transportation">Transportation</option>
+                <option value="Business Sales">Business Sales</option>
+                <option value="Business Purchase">Business Purchase</option>
+                <option value="Rent">Rent</option>
+                <option value="Miscellaneous">Miscellaneous</option>
+              </select>
+            </FormField>
+            <FormField label="Description (Encrypted on disk)" htmlFor="ledger-tx-desc">
+              <input id="ledger-tx-desc" type="text" className="form-input" value={newTxDesc} onChange={(e) => setNewTxDesc(e.target.value)} placeholder="e.g. Amazon shopping purchase" required />
+            </FormField>
+            <FormActions
+              submitLabel="Save Transaction"
+              submitType="submit"
+              onCancel={() => setShowAddTx(false)}
+              style={{ marginTop: 'var(--spacing-1)' }}
+            />
+          </form>
+        </Modal>
 
-            <div className="form-group" style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem', background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
-              <label className="form-label" style={{ margin: 0, whiteSpace: 'nowrap', fontSize: '0.82rem' }}>Import into Account:</label>
-              <select
-                value={statementAccount}
-                onChange={(e) => setStatementAccount(e.target.value)}
-                style={{ width: '220px', padding: '0.35rem 0.5rem', background: 'var(--bg-primary)', color: '#fff', border: '1px solid var(--border-color)', borderRadius: '4px' }}
-              >
+        {/* Dialog: Add Recurring Scheduler */}
+        <Modal isOpen={showAddRecurring} onClose={() => setShowAddRecurring(false)} title="Add Recurring Transaction" size="sm">
+          <form onSubmit={handleAddRecurring}>
+            <FormField label="Description / Template Name" htmlFor="ledger-rec-desc">
+              <input id="ledger-rec-desc" type="text" className="form-input" value={recDesc} onChange={(e) => setRecDesc(e.target.value)} placeholder="e.g. HDFC Index Fund SIP" required />
+            </FormField>
+            <FormField label="Amount (₹)" htmlFor="ledger-rec-amount">
+              <CurrencyInput id="ledger-rec-amount" className="form-input tabular-nums" value={recAmount} onChange={(e) => setRecAmount(e.target.value)} placeholder="e.g. 10000" required />
+            </FormField>
+            <FormField label="Transaction Type" htmlFor="ledger-rec-type">
+              <select id="ledger-rec-type" value={recType} onChange={(e) => setRecType(e.target.value as any)}>
+                <option value="Expense">Expense (Withdrawal)</option>
+                <option value="Income">Income (Deposit)</option>
+                <option value="Transfer">Transfer</option>
+              </select>
+            </FormField>
+            <FormField label="Category" htmlFor="ledger-rec-category">
+              <input id="ledger-rec-category" type="text" className="form-input" value={recCategory} onChange={(e) => setRecCategory(e.target.value)} placeholder="e.g. Investments" required />
+            </FormField>
+            <FormField label="Source Account" htmlFor="ledger-rec-account">
+              <select id="ledger-rec-account" value={recAccount} onChange={(e) => setRecAccount(e.target.value)}>
+                <option value="">-- Choose Account --</option>
                 {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({a.bankName})</option>)}
               </select>
-            </div>
+            </FormField>
+            {recType === 'Transfer' && (
+              <FormField label="Destination Account" htmlFor="ledger-rec-ref-account">
+                <select id="ledger-rec-ref-account" value={recRefAccount} onChange={(e) => setRecRefAccount(e.target.value)}>
+                  <option value="">-- Select Destination --</option>
+                  {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({a.bankName})</option>)}
+                </select>
+              </FormField>
+            )}
+            <FormRow>
+              <FormField label="Frequency" htmlFor="ledger-rec-frequency">
+                <select id="ledger-rec-frequency" value={recFrequency} onChange={(e) => setRecFrequency(e.target.value as any)}>
+                  <option value="Weekly">Weekly</option>
+                  <option value="Monthly">Monthly</option>
+                  <option value="Quarterly">Quarterly</option>
+                </select>
+              </FormField>
+              <FormField label="Schedule Start Date" htmlFor="ledger-rec-start-date">
+                <input id="ledger-rec-start-date" type="date" className="form-input tabular-nums" value={recStartDate} onChange={(e) => setRecStartDate(e.target.value)} required />
+              </FormField>
+            </FormRow>
+            <FormRow>
+              <FormField label="Annual Step-Up % (Optional)" htmlFor="ledger-rec-stepup">
+                <input
+                  id="ledger-rec-stepup"
+                  type="number"
+                  className="form-input tabular-nums"
+                  value={recStepUpPct}
+                  onChange={(e) => setRecStepUpPct(e.target.value)}
+                  placeholder="e.g. 10"
+                />
+              </FormField>
+              <FormField label="Link Asset (Optional)" htmlFor="ledger-rec-target-asset">
+                <select id="ledger-rec-target-asset" value={recTargetAssetId} onChange={(e) => setRecTargetAssetId(e.target.value)}>
+                  <option value="">-- None --</option>
+                  {mfs.length > 0 && (
+                    <optgroup label="Mutual Funds">
+                      {mfs.map(m => <option key={m.id} value={m.id}>{m.schemeName}</option>)}
+                    </optgroup>
+                  )}
+                  {stocks.length > 0 && (
+                    <optgroup label="Stocks">
+                      {stocks.map(s => <option key={s.id} value={s.id}>{s.symbol} ({s.name})</option>)}
+                    </optgroup>
+                  )}
+                </select>
+              </FormField>
+            </FormRow>
+            <FormActions
+              submitLabel="Create Recurring Schedule"
+              submitType="submit"
+              onCancel={() => setShowAddRecurring(false)}
+              style={{ marginTop: 'var(--spacing-1)' }}
+            />
+          </form>
+        </Modal>
 
-            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1.25rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>
-              <table className="custom-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={{ width: '40px', textAlign: 'center' }}>
-                      <input
-                        type="checkbox"
-                        checked={parsedReviewTxs.every(t => t.selected)}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          setParsedReviewTxs(prev => prev.map(t => ({ ...t, selected: val })));
-                        }}
-                      />
-                    </th>
-                    <th>Date</th>
-                    <th>Narration Description</th>
-                    <th>Type</th>
-                    <th>Category</th>
-                    <th style={{ textAlign: 'right' }}>Amount (₹)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {parsedReviewTxs.map((tx) => (
-                    <tr key={tx.id} style={{ opacity: tx.selected ? 1 : 0.5 }}>
-                      <td style={{ textAlign: 'center' }}>
-                        <input
-                          type="checkbox"
-                          checked={tx.selected}
-                          onChange={(e) => {
-                            const val = e.target.checked;
-                            setParsedReviewTxs(prev => prev.map(t => t.id === tx.id ? { ...t, selected: val } : t));
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          className="form-input"
-                          style={{ padding: '0.2rem 0.4rem', fontSize: '0.8rem', width: '110px' }}
-                          value={tx.date}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setParsedReviewTxs(prev => prev.map(t => t.id === tx.id ? { ...t, date: val } : t));
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          className="form-input"
-                          style={{ padding: '0.2rem 0.4rem', fontSize: '0.8rem', width: '220px' }}
-                          value={tx.description}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setParsedReviewTxs(prev => prev.map(t => t.id === tx.id ? { ...t, description: val } : t));
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <select
-                          value={tx.type}
-                          onChange={(e) => {
-                            const val = e.target.value as any;
-                            setParsedReviewTxs(prev => prev.map(t => t.id === tx.id ? { ...t, type: val } : t));
-                          }}
-                          style={{ padding: '0.2rem 0.4rem', fontSize: '0.78rem', background: 'var(--bg-primary)', color: '#fff', border: '1px solid var(--border-color)', borderRadius: '4px' }}
-                        >
-                          <option value="Expense">Expense</option>
-                          <option value="Income">Income</option>
-                          <option value="Transfer">Transfer</option>
-                        </select>
-                      </td>
-                      <td>
-                        <select
-                          value={tx.category}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setParsedReviewTxs(prev => prev.map(t => t.id === tx.id ? { ...t, category: val } : t));
-                          }}
-                          style={{ padding: '0.2rem 0.4rem', fontSize: '0.78rem', background: 'var(--bg-primary)', color: '#fff', border: '1px solid var(--border-color)', borderRadius: '4px' }}
-                        >
-                          <option value="Food & Dining">Food & Dining</option>
-                          <option value="Salary">Salary</option>
-                          <option value="Investments">Investments</option>
-                          <option value="Utilities">Utilities</option>
-                          <option value="Transportation">Transportation</option>
-                          <option value="CreditCard Dues">CreditCard Dues</option>
-                          <option value="Rent">Rent</option>
-                          <option value="Business Sales">Business Sales</option>
-                          <option value="Business Purchase">Business Purchase</option>
-                          <option value="Miscellaneous">Miscellaneous</option>
-                        </select>
-                      </td>
-                      <td>
-                        <CurrencyInput
-                          className="form-input"
-                          style={{ padding: '0.2rem 0.4rem', fontSize: '0.8rem', width: '120px', textAlign: 'right' }}
-                          value={tx.amount}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            setParsedReviewTxs(prev => prev.map(t => t.id === tx.id ? { ...t, amount: val } : t));
-                          }}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button className="btn btn-secondary" onPointerDown={() => setParsedReviewTxs([])}>Cancel</button>
-              <button
-                className="btn btn-primary"
-                onPointerDown={handleImportVerified}
+        {/* Dialog: Parsed Statement Review Grid */}
+        <Modal
+          isOpen={parsedReviewTxs.length > 0}
+          onClose={() => setParsedReviewTxs([])}
+          title="Review & Categorize Statement Entries"
+          description="Verify transaction dates, amounts, and categories before committing to your permanent journal."
+          size="xl"
+          style={{ maxWidth: '850px' }}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setParsedReviewTxs([])}>Cancel</Button>
+              <Button
+                variant="primary"
+                onClick={handleImportVerified}
                 disabled={parsedReviewTxs.filter(t => t.selected).length === 0}
               >
                 Import {parsedReviewTxs.filter(t => t.selected).length} Verified Entries
-              </button>
-            </div>
+              </Button>
+            </>
+          }
+        >
+          <div className="form-group" style={{ display: 'flex', gap: 'var(--spacing-1)', alignItems: 'center', marginBottom: 'var(--spacing-1)', background: 'var(--bg-secondary)', padding: 'var(--spacing-075)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', boxShadow: 'var(--neo-inset-sm)' }}>
+            <label htmlFor="statement-import-account" className="form-label" style={{ margin: 0, whiteSpace: 'nowrap', fontSize: 'var(--font-sm)' }}>Import into Account:</label>
+            <select
+              id="statement-import-account"
+              value={statementAccount}
+              onChange={(e) => setStatementAccount(e.target.value)}
+              style={{ width: '220px', padding: 'var(--spacing-04) var(--spacing-05)', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xs)' }}
+            >
+              {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({a.bankName})</option>)}
+            </select>
           </div>
-        </div>
-      )}
 
-    </motion.div>
+          <div style={{ overflowX: 'auto', overflowY: 'auto', marginBottom: 'var(--spacing-125)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>
+            <table className="custom-table" style={{ width: '100%', minWidth: '780px', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th scope="col" style={{ width: '40px', textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={parsedReviewTxs.every(t => t.selected)}
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            setParsedReviewTxs(prev => prev.map(t => ({ ...t, selected: val })));
+                          }}
+                        />
+                      </th>
+                      <th scope="col">Date</th>
+                      <th scope="col">Narration Description</th>
+                      <th scope="col">Type</th>
+                      <th scope="col">Category</th>
+                      <th scope="col" style={{ textAlign: 'right' }}>Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {parsedReviewTxs.map((tx) => (
+                      <tr key={tx.id} style={{ opacity: tx.selected ? 1 : 0.5 }}>
+                        <td style={{ textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={tx.selected}
+                            onChange={(e) => {
+                              const val = e.target.checked;
+                              setParsedReviewTxs(prev => prev.map(t => t.id === tx.id ? { ...t, selected: val } : t));
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="form-input"
+                            style={{ padding: 'var(--spacing-02) var(--spacing-04)', fontSize: 'var(--font-sm)', width: '110px' }}
+                            value={tx.date}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setParsedReviewTxs(prev => prev.map(t => t.id === tx.id ? { ...t, date: val } : t));
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="form-input"
+                            style={{ padding: 'var(--spacing-02) var(--spacing-04)', fontSize: 'var(--font-sm)', width: '220px' }}
+                            value={tx.description}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setParsedReviewTxs(prev => prev.map(t => t.id === tx.id ? { ...t, description: val } : t));
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <select
+                            value={tx.type}
+                            onChange={(e) => {
+                              const val = e.target.value as any;
+                              setParsedReviewTxs(prev => prev.map(t => t.id === tx.id ? { ...t, type: val } : t));
+                            }}
+                            style={{ padding: 'var(--spacing-02) var(--spacing-04)', fontSize: 'var(--font-xs)', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xs)' }}
+                          >
+                            <option value="Expense">Expense</option>
+                            <option value="Income">Income</option>
+                            <option value="Transfer">Transfer</option>
+                          </select>
+                        </td>
+                        <td>
+                          <select
+                            value={tx.category}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setParsedReviewTxs(prev => prev.map(t => t.id === tx.id ? { ...t, category: val } : t));
+                            }}
+                            style={{ padding: 'var(--spacing-02) var(--spacing-04)', fontSize: 'var(--font-xs)', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xs)' }}
+                          >
+                            <option value="Food & Dining">Food & Dining</option>
+                            <option value="Salary">Salary</option>
+                            <option value="Investments">Investments</option>
+                            <option value="Utilities">Utilities</option>
+                            <option value="Transportation">Transportation</option>
+                            <option value="CreditCard Dues">CreditCard Dues</option>
+                            <option value="Rent">Rent</option>
+                            <option value="Business Sales">Business Sales</option>
+                            <option value="Business Purchase">Business Purchase</option>
+                            <option value="Miscellaneous">Miscellaneous</option>
+                          </select>
+                        </td>
+                        <td>
+                          <CurrencyInput
+                            className="form-input"
+                            style={{ padding: 'var(--spacing-02) var(--spacing-04)', fontSize: 'var(--font-sm)', width: '120px', textAlign: 'right' }}
+                            value={tx.amount}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              setParsedReviewTxs(prev => prev.map(t => t.id === tx.id ? { ...t, amount: val } : t));
+                            }}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+          </div>
+        </Modal>
+
+      </motion.div>
+    </>
   );
 };

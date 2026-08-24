@@ -1,8 +1,9 @@
 import React from 'react';
+import { Button, IconButton, chartTooltipStyle, chartTooltipItemStyle } from '@financeos/ui';
 import { Plus, Trash2 } from 'lucide-react';
 import { PortfolioCategory } from '@financeos/shared';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { formatRupee } from '../../utils/currency.js';
+import { formatRupee } from '@financeos/shared';
 
 interface PortfolioDistributionProps {
   portfolio: PortfolioCategory[];
@@ -10,7 +11,10 @@ interface PortfolioDistributionProps {
   onUpdatePortfolio: (portfolio: PortfolioCategory[]) => void;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#ffc658'];
+const COLORS = [
+  'var(--chart-series-1)', 'var(--chart-series-2)', 'var(--chart-series-3)', 'var(--chart-series-4)',
+  'var(--chart-series-5)', 'var(--chart-series-6)', 'var(--chart-series-7)', 'var(--chart-series-8)',
+];
 
 export const PortfolioDistribution: React.FC<PortfolioDistributionProps> = ({
   portfolio,
@@ -45,16 +49,16 @@ export const PortfolioDistribution: React.FC<PortfolioDistributionProps> = ({
   ];
 
   return (
-    <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-      <h3 style={{ fontSize: '1.15rem', fontWeight: 650, marginBottom: '1.25rem' }}>Step 2: Portfolio Distribution</h3>
+    <div className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-15)', marginBottom: 'var(--spacing-15)' }}>
+      <h3 style={{ fontSize: 'var(--font-lg)', fontWeight: 'var(--fw-bold)', marginBottom: 'var(--spacing-125)' }}>Step 2: Portfolio Distribution</h3>
       
-      <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 'var(--spacing-2)', flexWrap: 'wrap' }}>
         
         {/* Categories List */}
-        <div style={{ flex: '1 1 400px' }}>
+        <div style={{ flex: '1 1 400px', minWidth: 0 }}>
           {portfolio.length === 0 && (
-            <div style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              No categories added. Start building your portfolio!
+            <div style={{ color: 'var(--text-muted)', fontSize: 'var(--font-sm)', marginBottom: 'var(--spacing-1)' }}>
+              No asset classes configured. Click "Add Category" below to allocate capital across Equity, Debt, Gold, or Real Estate.
             </div>
           )}
 
@@ -63,17 +67,17 @@ export const PortfolioDistribution: React.FC<PortfolioDistributionProps> = ({
               key={cat.id}
               style={{
                 display: 'flex',
-                gap: '0.75rem',
+                gap: 'var(--spacing-075)',
                 alignItems: 'center',
-                marginBottom: '0.85rem',
-                background: 'rgba(255, 255, 255, 0.02)',
-                padding: '0.75rem 0.85rem',
+                marginBottom: 'var(--spacing-085)',
+                background: 'var(--surface-tint)',
+                padding: 'var(--spacing-075) var(--spacing-085)',
                 borderRadius: 'var(--radius-md)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
+                border: '1px solid var(--border-subtle)',
                 flexWrap: 'wrap'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flex: '1 1 180px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-06)', flex: '1 1 180px' }}>
                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: COLORS[index % COLORS.length], flexShrink: 0 }} />
                 <input
                   type="text"
@@ -81,46 +85,50 @@ export const PortfolioDistribution: React.FC<PortfolioDistributionProps> = ({
                   value={cat.name}
                   onChange={e => handleUpdate(cat.id, { name: e.target.value })}
                   placeholder="Category (e.g., Mutual Funds)"
-                  style={{ flex: 1, minWidth: '130px', fontSize: '0.9rem' }}
+                  aria-label={`Category name ${index + 1}`}
+                  style={{ flex: 1, minWidth: '130px', fontSize: 'var(--font-base)' }}
                 />
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'space-between', flex: '1 1 180px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-075)', justifyContent: 'space-between', flex: '1 1 180px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)' }}>
                   <input
                     type="number"
                     className="form-input"
                     value={cat.percentage}
                     onChange={e => handleUpdate(cat.id, { percentage: Number(e.target.value) })}
                     min="0" max="100"
-                    style={{ width: '65px', textAlign: 'center', fontSize: '0.85rem' }}
+                    aria-label={`${cat.name || 'Category'} allocation percentage`}
+                    style={{ width: '65px', textAlign: 'center', fontSize: 'var(--font-sm)' }}
                   />
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>%</span>
+                  <span style={{ fontSize: 'var(--font-sm)', color: 'var(--text-secondary)' }}>%</span>
                 </div>
 
-                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--font-base)', fontWeight: 'var(--fw-heavy)', color: 'var(--text-primary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: "'tnum' 1" }}>
                   {formatRupee((totalInvestmentAmount * cat.percentage) / 100)}
                 </div>
 
-                <button
-                  className="btn btn-secondary"
-                  style={{ padding: '0.45rem', borderRadius: '50%', flexShrink: 0 }}
-                  onPointerDown={() => handleRemove(cat.id)}
-                  title="Remove Category"
-                >
-                  <Trash2 size={15} color="var(--error)" />
-                </button>
+                <IconButton
+                  variant="danger"
+                  label={`Remove category ${cat.name || index + 1}`}
+                  icon={<Trash2 size={15} />}
+                  onClick={() => handleRemove(cat.id)}
+                  style={{ flexShrink: 0 }}
+                />
               </div>
             </div>
           ))}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem' }}>
-            <button className="btn btn-primary" onPointerDown={handleAddCategory}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--spacing-15)' }}>
+            <Button variant="primary" onClick={handleAddCategory}>
               <Plus size={16} /> Add Category
-            </button>
+            </Button>
             <div style={{ 
-              fontSize: '1rem', 
-              fontWeight: 'bold', 
+              fontFamily: 'var(--font-display)',
+              fontSize: 'var(--font-base)', 
+              fontWeight: 'var(--fw-heavy)', 
+              fontVariantNumeric: 'tabular-nums',
+              fontFeatureSettings: "'tnum' 1",
               color: unallocatedPercentage > 0 ? 'var(--warning)' : 'var(--success)'
             }}>
               Unallocated Cash: {unallocatedPercentage}% ({formatRupee((totalInvestmentAmount * unallocatedPercentage) / 100)})
@@ -129,8 +137,8 @@ export const PortfolioDistribution: React.FC<PortfolioDistributionProps> = ({
         </div>
 
         {/* Pie Chart Visualization */}
-        <div style={{ flex: '1 1 300px', height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Allocation Visualizer</h3>
+        <div style={{ flex: '1 1 300px', height: 'var(--chart-height-md)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <h3 style={{ fontSize: 'var(--font-base)', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-05)' }}>Allocation Visualizer</h3>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -144,13 +152,13 @@ export const PortfolioDistribution: React.FC<PortfolioDistributionProps> = ({
                 stroke="none"
               >
                 {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.name === 'Unallocated' ? '#444' : COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={entry.name === 'Unallocated' ? 'var(--border-subtle)' : COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip 
                 formatter={(value: any) => [`${value}%`, 'Allocation']}
-                contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}
-                itemStyle={{ color: '#fff' }}
+                contentStyle={chartTooltipStyle}
+                itemStyle={chartTooltipItemStyle}
               />
             </PieChart>
           </ResponsiveContainer>

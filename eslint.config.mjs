@@ -36,6 +36,26 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/web-dist/**', '**/release/**', '*.js']
+    // Config files and scripts run in Node — relax browser-only lint globals.
+    files: ['**/*.mjs', '**/scripts/**/*.{js,mjs}'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+      },
+    },
+  },
+  {
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/.next/**',
+      '**/out/**',
+      '**/coverage/**',
+      '**/playwright-report/**',
+      '**/test-results/**',
+      'tmp/**',
+      '*.js'
+    ]
   }
 );

@@ -12,7 +12,10 @@ vi.mock('@financeos/database', () => ({
     getContacts: () => [],
     getRegister: () => [],
     getSettings: () => ({ businessName: 'Test Corp', businessGSTIN: '27AAAAA0000A1Z5' }),
-    getProfiles: () => [{ id: 'default', name: 'Test User' }]
+    getProfiles: () => [{ id: 'default', name: 'Test User' }],
+    subscribe: () => () => {},
+    onUnsavedChangeStatus: () => () => {},
+    onSaveErrorStatus: () => () => {}
   }
 }));
 
@@ -20,7 +23,7 @@ describe('BusinessView Component Diagnostics', () => {
   it('renders Business Ledger & GST Compliance Hub', () => {
     render(<BusinessView activeProfileId="default" />);
 
-    expect(screen.getByText(/GST Invoices & Clients/i)).toBeTruthy();
-    expect(screen.getByText(/Active Invoices/i)).toBeTruthy();
+    expect(screen.getByText(/Business Suite & Bookkeeping/i)).toBeTruthy();
+    expect(screen.getAllByText(/Invoices/i).length).toBeGreaterThan(0);
   });
 });

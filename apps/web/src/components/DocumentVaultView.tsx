@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Badge, Button, IconButton, FormField, FormActions, FileDropzone, EmptyState, Modal, SectionHeader, Tabs, InfoCallout, FormRow, IconInput } from '@financeos/ui';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EncryptedDocument } from '@financeos/shared';
+import { dbService } from '@financeos/database';
+import { useDbSyncCallback } from '../hooks/useDbSync.js';
 import {
   FileText, ShieldCheck, Lock, Upload, Search, Tag, Eye, Trash2,
   CheckCircle2, AlertTriangle, FileCode, HardDrive, Key, Sparkles, Filter, Plus, X
@@ -10,10 +13,14 @@ interface DocumentVaultViewProps {
   profileId: string;
 }
 
-const INITIAL_DOCS: EncryptedDocument[] = [];
-
 export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId }) => {
-  const [documents, setDocuments] = useState<EncryptedDocument[]>(INITIAL_DOCS);
+  const [documents, setDocuments] = useState<EncryptedDocument[]>(() => {
+    try {
+      return dbService.getEncryptedDocuments(profileId);
+    } catch {
+      return [];
+    }
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [activeDoc, setActiveDoc] = useState<EncryptedDocument | null>(null);
@@ -22,7 +29,22 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
   const [newCategory, setNewCategory] = useState<EncryptedDocument['category']>('Tax');
   const [newTags, setNewTags] = useState('');
   const [newNotes, setNewNotes] = useState('');
+  const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
+
+  const refreshDocuments = useCallback(() => {
+    try {
+      setDocuments(dbService.getEncryptedDocuments(profileId));
+    } catch {
+      setDocuments([]);
+    }
+  }, [profileId]);
+
+  useEffect(() => {
+    refreshDocuments();
+  }, [profileId, refreshDocuments]);
+
+  useDbSyncCallback(refreshDocuments);
 
   const categories = ['All', 'Tax', 'Insurance', 'PAN', 'Property', 'MutualFund', 'Loan', 'Other'];
 
@@ -34,7 +56,7 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
     return matchesCategory && matchesSearch;
   });
 
-  const handleUpload = (e: React.FormEvent) => {
+  const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
 
@@ -44,23 +66,26 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
       title: newTitle,
       category: newCategory,
       uploadDate: new Date().toISOString().split('T')[0],
-      fileSizeFormatted: (Math.random() * 2 + 0.5).toFixed(1) + ' MB',
+      fileSizeFormatted: selectedUploadFile ? `${(selectedUploadFile.size / (1024 * 1024)).toFixed(1)} MB` : `${(Math.random() * 2 + 0.5).toFixed(1)} MB`,
       tags: newTags.split(',').map(t => t.trim()).filter(Boolean),
       notes: newNotes,
       isEncrypted: true,
       ocrSummary: `AI Auto-Indexed Document (${newCategory}). Encrypted using local AES-256 vault.`
     };
 
-    setDocuments([newDoc, ...documents]);
+    await dbService.addEncryptedDocument(newDoc);
+    refreshDocuments();
     setNewTitle('');
     setNewTags('');
     setNewNotes('');
+    setSelectedUploadFile(null);
     setIsUploading(false);
     showToast('Document encrypted and stored securely in local vault!');
   };
 
-  const handleDelete = (id: string) => {
-    setDocuments(documents.filter(d => d.id !== id));
+  const handleDelete = async (id: string) => {
+    await dbService.deleteEncryptedDocument(id);
+    refreshDocuments();
     if (activeDoc?.id === id) setActiveDoc(null);
     showToast('Document deleted from vault.');
   };
@@ -78,254 +103,178 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
         hidden: { opacity: 0 },
         visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
       }}
-      style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-125)' }}
     >
       {/* Page Header Banner */}
-      <div className="glass-panel" style={{
-        padding: '2.5rem 3rem',
-        borderRadius: '1.5rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '2rem',
-        background: 'var(--header-banner-grad)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)',
-        marginBottom: '0.5rem'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', flex: '1 1 min-content', minWidth: '280px' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
-            background: 'var(--accent-grad)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 14px hsla(220, 80%, 50%, 0.25)',
-            flexShrink: 0,
-            marginTop: '0.2rem'
-          }}>
-            <Lock size={22} color="#ffffff" />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
-              <h1 style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0, lineHeight: 1.25 }}>
-                Encrypted Document Vault
-              </h1>
-              <span style={{
-                background: 'rgba(59, 130, 246, 0.12)',
-                color: 'var(--accent-1)',
-                border: '1px solid rgba(59, 130, 246, 0.3)',
-                padding: '0.2rem 0.5rem',
-                borderRadius: '2rem',
-                fontSize: '0.7rem',
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.3rem',
-                whiteSpace: 'nowrap'
-              }}>
-                <ShieldCheck size={12} /> AES-256 Encrypted
-              </span>
-            </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
-              Store PAN, Aadhaar, Property Deeds, Tax returns, and Policy docs with local encryption & AI indexing
-            </p>
-          </div>
-        </div>
-
-        <motion.button
-          whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-          className="btn btn-primary"
-          onClick={() => setIsUploading(!isUploading)}
-          style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: 'var(--radius-sm)', flexShrink: 0 }}
-        >
-          <Upload size={16} />
-          <span>Upload Document</span>
-        </motion.button>
-      </div>
+      <SectionHeader
+        variant="banner"
+        icon={<Lock />}
+        title="Encrypted Document Vault"
+        badge={<><ShieldCheck size={12} /> AES-256 Encrypted</>}
+        description="Store PAN, Aadhaar, Property Deeds, Tax returns, and Policy docs with local encryption & AI indexing"
+        action={
+          <Button
+            variant="primary"
+            onClick={() => setIsUploading(!isUploading)}
+            style={{ padding: 'var(--spacing-05) var(--spacing-1)', fontSize: 'var(--font-sm)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)', borderRadius: 'var(--radius-sm)' }}
+          >
+            <Upload size={16} /> {isUploading ? 'Cancel Upload' : 'Upload Document'}
+          </Button>
+        }
+      />
 
       {notification && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          style={{
-            padding: '0.75rem 1rem',
-            background: 'var(--success-bg)',
-            border: '1px solid var(--success)',
-            color: 'var(--success)',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: '0.85rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}
-        >
-          <CheckCircle2 size={16} /> {notification}
-        </motion.div>
+        <InfoCallout variant="success">
+          {notification}
+        </InfoCallout>
       )}
 
-      {/* Upload Modal / Form Panel */}
-      <AnimatePresence>
-        {isUploading && (
-          <motion.form
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            onSubmit={handleUpload}
-            className="glass-panel"
-            style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
-          >
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Lock size={18} color="var(--accent-1)" /> Encrypt & Store Document
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }} className="responsive-stack">
-              <div className="form-group">
-                <label className="form-label">Document Title</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Life Insurance Policy 2026"
-                  value={newTitle}
-                  onChange={e => setNewTitle(e.target.value)}
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Category</label>
-                <select
-                  value={newCategory}
-                  onChange={e => setNewCategory(e.target.value as any)}
-                  className="form-input"
-                >
-                  <option value="Tax">Tax Return / Form 16</option>
-                  <option value="Insurance">Insurance Policy</option>
-                  <option value="PAN">PAN / Aadhaar / Identity</option>
-                  <option value="Property">Property & Title Deeds</option>
-                  <option value="MutualFund">Mutual Fund / CAS Statement</option>
-                  <option value="Loan">Loan Agreement</option>
-                  <option value="Passport">Passport / Visa</option>
-                  <option value="Other">Other Document</option>
-                </select>
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }} className="responsive-stack">
-              <div className="form-group">
-                <label className="form-label">Tags (Comma Separated)</label>
-                <input
-                  type="text"
-                  placeholder="KYC, Section80C, HDFC"
-                  value={newTags}
-                  onChange={e => setNewTags(e.target.value)}
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Notes / Description</label>
-                <input
-                  type="text"
-                  placeholder="Optional notes..."
-                  value={newNotes}
-                  onChange={e => setNewNotes(e.target.value)}
-                  className="form-input"
-                />
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.5rem' }}>
-              <button
-                type="button"
-                onPointerDown={() => setIsUploading(false)}
-                className="btn btn-secondary"
-                style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+      {/* Upload Modal */}
+      <Modal
+        isOpen={isUploading}
+        onClose={() => setIsUploading(false)}
+        title="Encrypt & Store Document"
+        description="Securely store PAN, Aadhaar, Insurance, and Property deeds in your local AES-256 vault."
+        size="lg"
+      >
+        <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-125)' }}>
+          <FileDropzone
+            label="Drop document to encrypt & index, or click to browse"
+            sublabel="Supports PDF, PNG, JPG, JSON, and CSV up to 10MB"
+            selectedFile={selectedUploadFile}
+            onFileSelect={(file) => {
+              setSelectedUploadFile(file);
+              if (!newTitle) {
+                setNewTitle(file.name.replace(/\.[^/.]+$/, ''));
+              }
+            }}
+            onFileRemove={() => setSelectedUploadFile(null)}
+          />
+
+          <FormRow>
+            <FormField label="Document Title" htmlFor="doc-title-input">
+              <input
+                id="doc-title-input"
+                type="text"
+                required
+                placeholder="e.g. Life Insurance Policy 2026"
+                value={newTitle}
+                onChange={e => setNewTitle(e.target.value)}
+                className="form-input"
+              />
+            </FormField>
+            <FormField label="Category" htmlFor="doc-category-select">
+              <select
+                id="doc-category-select"
+                value={newCategory}
+                onChange={e => setNewCategory(e.target.value as any)}
+                className="form-input"
               >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-              >
-                <ShieldCheck size={14} /> Save Encrypted File
-              </button>
-            </div>
-          </motion.form>
-        )}
-      </AnimatePresence>
+                <option value="Tax">Tax Return / Form 16</option>
+                <option value="Insurance">Insurance Policy</option>
+                <option value="PAN">PAN / Aadhaar / Identity</option>
+                <option value="Property">Property & Title Deeds</option>
+                <option value="MutualFund">Mutual Fund / CAS Statement</option>
+                <option value="Loan">Loan Agreement</option>
+                <option value="Passport">Passport / Visa</option>
+                <option value="Other">Other Document</option>
+              </select>
+            </FormField>
+          </FormRow>
+          <FormRow>
+            <FormField label="Tags (Comma Separated)" htmlFor="doc-tags-input">
+              <input
+                id="doc-tags-input"
+                type="text"
+                placeholder="KYC, Section80C, HDFC"
+                value={newTags}
+                onChange={e => setNewTags(e.target.value)}
+                className="form-input"
+              />
+            </FormField>
+            <FormField label="Notes / Description" htmlFor="doc-notes-input">
+              <input
+                id="doc-notes-input"
+                type="text"
+                placeholder="Optional notes or policy number..."
+                value={newNotes}
+                onChange={e => setNewNotes(e.target.value)}
+                className="form-input"
+              />
+            </FormField>
+          </FormRow>
+          <FormActions
+            divided
+            onCancel={() => setIsUploading(false)}
+            submitLabel="Save Encrypted File"
+          />
+        </form>
+      </Modal>
 
       {/* Filter and Search Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.85rem', width: '100%' }}>
-        <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '200px', width: '100%' }}>
-          <Search size={14} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-          <input
-            type="text"
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--spacing-085)', width: '100%' }}>
+        <div style={{ flex: '1 1 220px', minWidth: '200px', width: '100%' }}>
+          <IconInput
+            id="doc-search-input"
+            icon={<Search size={14} />}
+            aria-label="Search documents"
             placeholder="Search documents, tags, OCR..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="form-input"
-            style={{ paddingLeft: '2.4rem', fontSize: '0.85rem', borderRadius: '2rem', height: '38px', width: '100%' }}
+            size="sm"
+            style={{ borderRadius: 'var(--radius-md)', height: '38px' }}
           />
         </div>
 
-        {/* Category Pills with Horizontal Touch Scroll */}
-        <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', paddingBottom: '0.2rem', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onPointerDown={() => setSelectedCategory(cat)}
-              style={{
-                padding: '0.4rem 0.85rem',
-                borderRadius: '2rem',
-                fontSize: '0.8rem',
-                fontWeight: selectedCategory === cat ? 600 : 400,
-                border: selectedCategory === cat ? '1px solid var(--accent-1)' : '1px solid rgba(255, 255, 255, 0.08)',
-                background: selectedCategory === cat ? 'var(--accent-1)' : 'rgba(255, 255, 255, 0.04)',
-                color: selectedCategory === cat ? '#fff' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.2s ease',
-                flexShrink: 0
-              }}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        {/* Category Filter Tabs */}
+        <Tabs
+          tabs={categories.map(cat => ({ id: cat, label: cat }))}
+          activeTab={selectedCategory}
+          onChange={setSelectedCategory}
+          variant="segmented"
+        />
       </div>
 
       {/* Documents Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: 'var(--spacing-1)' }}>
         {filteredDocs.map(doc => (
           <motion.div
             key={doc.id}
-            className="glass-panel"
+            className="glass-panel" data-interactive-card="off"
             variants={{
               hidden: { opacity: 0, y: 15 },
               visible: { opacity: 1, y: 0 }
             }}
-            style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+            style={{
+              padding: 'var(--spacing-125)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              background: 'var(--bg-panel)',
+              backgroundImage: 'var(--neo-convex-grad)',
+              border: '1px solid var(--border-color)',
+              borderTop: 'var(--neo-bevel-top)',
+              borderBottom: 'var(--neo-bevel-bottom)',
+              boxShadow: 'var(--neo-raised-sm)',
+              borderRadius: 'var(--radius-md)'
+            }}
           >
             <div>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{
-                    padding: '0.6rem',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'rgba(59, 130, 246, 0.1)',
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 'var(--spacing-075)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-075)' }}>
+                  <div className="neo-socket" style={{
+                    width: '36px',
+                    height: '36px',
                     color: 'var(--accent-1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
+                    flexShrink: 0
                   }}>
-                    <FileText size={20} />
+                    <FileText size={18} />
                   </div>
                   <div>
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 600, margin: 0, color: 'var(--text-primary)' }}>
+                    <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 'var(--fw-semibold)', margin: 0, color: 'var(--text-primary)' }}>
                       {doc.title}
                     </h4>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                    <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', marginTop: 'var(--spacing-02)', display: 'flex', gap: 'var(--spacing-04)', alignItems: 'center' }}>
                       <span>{doc.uploadDate}</span>
                       <span>•</span>
                       <span>{doc.fileSizeFormatted}</span>
@@ -333,28 +282,28 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
                   </div>
                 </div>
 
-                <button
-                  onPointerDown={() => handleDelete(doc.id)}
-                  style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', opacity: 0.7, padding: '0.2rem' }}
-                  title="Delete Document"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <IconButton
+                  variant="danger"
+                  onClick={() => handleDelete(doc.id)}
+                  label={`Delete ${doc.title}`}
+                  icon={<Trash2 size={16} />}
+                />
               </div>
 
               {/* AI OCR Summary */}
               {doc.ocrSummary && (
                 <div style={{
-                  padding: '0.6rem 0.75rem',
-                  background: 'rgba(0, 0, 0, 0.2)',
+                  padding: 'var(--spacing-06) var(--spacing-075)',
+                  background: 'var(--bg-secondary)',
+                  boxShadow: 'var(--neo-inset-sm)',
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border-color)',
-                  fontSize: '0.78rem',
+                  fontSize: 'var(--font-xs)',
                   color: 'var(--text-secondary)',
-                  marginBottom: '0.75rem',
+                  marginBottom: 'var(--spacing-075)',
                   display: 'flex',
                   alignItems: 'flex-start',
-                  gap: '0.4rem'
+                  gap: 'var(--spacing-04)'
                 }}>
                   <Sparkles size={14} color="var(--accent-1)" style={{ flexShrink: 0, marginTop: '2px' }} />
                   <div>
@@ -365,13 +314,13 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
               )}
 
               {/* Tags */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-04)', marginBottom: 'var(--spacing-075)' }}>
                 {doc.tags.map((tag, idx) => (
                   <span key={idx} style={{
-                    fontSize: '0.7rem',
-                    padding: '0.15rem 0.5rem',
+                    fontSize: 'var(--font-xs)',
+                    padding: 'var(--spacing-02) var(--spacing-05)',
                     borderRadius: '4px',
-                    background: 'rgba(255, 255, 255, 0.06)',
+                    background: 'var(--surface-tint)',
                     color: 'var(--accent-1)',
                     border: '1px solid rgba(255, 255, 255, 0.08)'
                   }}>
@@ -385,158 +334,123 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              paddingTop: '0.75rem',
+              paddingTop: 'var(--spacing-075)',
               borderTop: '1px solid var(--border-color)',
-              fontSize: '0.75rem'
+              fontSize: 'var(--font-xs)'
             }}>
-              <span style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <HardDrive size={12} /> Stored in AES Local Keyring
+              <span style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)' }}>
+                <HardDrive size={12} /> Stored encrypted on this device
               </span>
-              <button
-                onPointerDown={() => setActiveDoc(doc)}
-                style={{ background: 'none', border: 'none', color: 'var(--accent-1)', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setActiveDoc(doc)}
+                style={{
+                  fontSize: 'var(--font-xs)',
+                  color: 'var(--accent-1)',
+                  padding: 'var(--spacing-02) var(--spacing-04)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--spacing-02)'
+                }}
               >
                 <Eye size={12} /> View Details
-              </button>
+              </Button>
             </div>
           </motion.div>
         ))}
 
         {filteredDocs.length === 0 && (
-          <div className="glass-panel" style={{
-            gridColumn: '1 / -1',
-            padding: '2.5rem 1.5rem',
-            textAlign: 'center',
-            borderRadius: 'var(--radius-md)',
-            border: '1px dashed var(--border-focus)',
-            background: 'rgba(255, 255, 255, 0.02)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '0.75rem'
-          }}>
-            <div style={{
-              padding: '1rem',
-              borderRadius: '50%',
-              background: 'rgba(59, 130, 246, 0.1)',
-              color: 'var(--accent-1)',
-              border: '1px solid rgba(59, 130, 246, 0.2)',
-              marginBottom: '0.25rem'
-            }}>
-              <FileCode size={32} />
-            </div>
-            <h4 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>No documents found</h4>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0, maxWidth: '420px', lineHeight: 1.5 }}>
-              Upload financial documents to store them with hardware-accelerated local AES-256 encryption.
-            </p>
-            <button
-              className="btn btn-primary"
-              onPointerDown={() => setIsUploading(true)}
-              style={{ marginTop: '0.5rem', padding: '0.5rem 1.25rem', fontSize: '0.85rem', borderRadius: '2rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-            >
-              <Upload size={14} /> Upload First Document
-            </button>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <EmptyState
+              icon={<FileCode size={28} />}
+              title={documents.length === 0 ? "No documents in your encrypted vault" : "No documents match your filter"}
+              description={documents.length === 0 ? "Upload PAN, Aadhaar, Insurance policies, or Property deeds with local zero-knowledge encryption." : "Try selecting 'All' categories or searching with a different keyword."}
+              action={documents.length === 0 ? (
+                <Button
+                  variant="primary"
+                  onClick={() => setIsUploading(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)' }}
+                >
+                  <Upload size={14} /> Upload First Document
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }}
+                >
+                  Clear Filters
+                </Button>
+              )}
+            />
           </div>
         )}
       </div>
 
       {/* Document Details Modal */}
-      <AnimatePresence>
+      <Modal
+        isOpen={!!activeDoc}
+        onClose={() => setActiveDoc(null)}
+        title={activeDoc?.title || 'Document Details'}
+        size="md"
+      >
         {activeDoc && (
-          <div style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '1rem', background: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(8px)'
-          }}>
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-panel"
-              style={{ width: '100%', maxWidth: '500px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Lock size={18} color="var(--accent-1)" />
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>{activeDoc.title}</h3>
-                </div>
-                <button
-                  onPointerDown={() => setActiveDoc(null)}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}
-                >
-                  <X size={18} />
-                </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', fontSize: 'var(--font-sm)' }}>
+            <div>
+              <span style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', display: 'block', marginBottom: 'var(--spacing-025)' }}>Category</span>
+              <Badge variant="cyan" size="sm">{activeDoc.category}</Badge>
+            </div>
+
+            <div>
+              <span style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', display: 'block', marginBottom: 'var(--spacing-025)' }}>AI Summary Extraction</span>
+              <div style={{
+                marginTop: 'var(--spacing-04)',
+                padding: 'var(--spacing-075)',
+                background: 'rgba(0,0,0,0.2)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)'
+              }}>
+                {activeDoc.ocrSummary || 'No AI summary generated yet.'}
               </div>
+            </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem' }}>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Category</span>
-                  <span style={{
-                    display: 'inline-block',
-                    marginTop: '0.25rem',
-                    padding: '0.25rem 0.6rem',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'rgba(59, 130, 246, 0.15)',
-                    color: 'var(--accent-1)',
-                    fontWeight: 600,
-                    fontSize: '0.78rem'
-                  }}>
-                    {activeDoc.category}
-                  </span>
-                </div>
-
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>AI Summary Extraction</span>
-                  <div style={{
-                    marginTop: '0.3rem',
-                    padding: '0.75rem',
-                    background: 'rgba(0,0,0,0.2)',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-color)',
-                    color: 'var(--text-primary)'
-                  }}>
-                    {activeDoc.ocrSummary || 'No AI summary generated yet.'}
-                  </div>
-                </div>
-
-                {activeDoc.notes && (
-                  <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Notes</span>
-                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.2rem' }}>{activeDoc.notes}</p>
-                  </div>
-                )}
-
-                <div style={{
-                  padding: '0.6rem 0.75rem',
-                  background: 'rgba(16, 185, 129, 0.1)',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                  borderRadius: 'var(--radius-sm)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  fontSize: '0.78rem',
-                  color: 'var(--success)'
-                }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <Key size={14} /> Key ID: 0x8F9A...C4B2
-                  </span>
-                  <span>AES-256 GCM</span>
-                </div>
+            {activeDoc.notes && (
+              <div>
+                <span style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', display: 'block', marginBottom: 'var(--spacing-025)' }}>Notes</span>
+                <p style={{ color: 'var(--text-secondary)', marginTop: 'var(--spacing-02)', margin: 0 }}>{activeDoc.notes}</p>
               </div>
+            )}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '0.5rem' }}>
-                <button
-                  onPointerDown={() => setActiveDoc(null)}
-                  className="btn btn-primary"
-                  style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}
-                >
-                  Close Vault Inspector
-                </button>
-              </div>
-            </motion.div>
+            <div style={{
+              padding: 'var(--spacing-06) var(--spacing-075)',
+              background: 'var(--badge-emerald-bg)',
+              border: '1px solid var(--badge-emerald-border)',
+              borderRadius: 'var(--radius-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: 'var(--font-xs)',
+              color: 'var(--badge-emerald-text)'
+            }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)' }}>
+                <Key size={14} /> Key ID: 0x8F9A...C4B2
+              </span>
+              <span>AES-256 GCM</span>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 'var(--spacing-05)' }}>
+              <Button
+                variant="primary"
+                onClick={() => setActiveDoc(null)}
+                style={{ padding: 'var(--spacing-04) var(--spacing-1)', fontSize: 'var(--font-sm)' }}
+              >
+                Close Vault Inspector
+              </Button>
+            </div>
           </div>
         )}
-      </AnimatePresence>
+      </Modal>
     </motion.div>
   );
 };

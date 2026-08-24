@@ -6,15 +6,13 @@ describe('AuthSessionManager', () => {
     authSession.logout();
   });
 
-  it('should login and logout correctly', () => {
-    expect(authSession.isAuthenticated()).toBe(false);
-    authSession.login('mock_token', { name: 'test' });
-    expect(authSession.isAuthenticated()).toBe(true);
-    expect(authSession.getAccessToken()).toBe('mock_token');
-    expect(authSession.getUserProfile()).toEqual({ name: 'test' });
+  it('should login and logout correctly', async () => {
+    expect(await authSession.isAuthenticated()).toBe(false);
+    authSession.setSessionPin('mock_pin');
+    expect(authSession.getSessionPin()).toBe('mock_pin');
 
-    authSession.logout();
-    expect(authSession.isAuthenticated()).toBe(false);
-    expect(() => authSession.getAccessToken()).toThrow();
+    await authSession.logout();
+    expect(await authSession.isAuthenticated()).toBe(false);
+    expect(authSession.getSessionPin()).toBeNull();
   });
 });

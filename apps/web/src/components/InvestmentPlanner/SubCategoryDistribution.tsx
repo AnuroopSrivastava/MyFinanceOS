@@ -1,7 +1,8 @@
 import React from 'react';
+import { Button, FormField, IconButton } from '@financeos/ui';
 import { Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { SubInvestment, InvestmentMethod, PortfolioCategory } from '@financeos/shared';
-import { formatRupee } from '../../utils/currency.js';
+import { formatRupee } from '@financeos/shared';
 
 interface SubCategoryDistributionProps {
   category: PortfolioCategory;
@@ -40,103 +41,112 @@ export const SubCategoryDistribution: React.FC<SubCategoryDistributionProps> = (
   const unallocatedAmount = (categoryAmount * unallocatedPercentage) / 100;
 
   return (
-    <div className="glass-panel" style={{ padding: '1.25rem', marginBottom: '1rem', borderLeft: '4px solid var(--accent-1)' }}>
+<div className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-125)', marginBottom: 'var(--spacing-1)' }}>
       <div 
-        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
+        aria-label={`${category.name || 'Unnamed Category'} Allocation Accordion`}
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', outline: 'none' }}
         onClick={() => setIsExpanded(!isExpanded)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsExpanded(!isExpanded);
+          }
+        }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)' }}>
           {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-          <h3 style={{ fontSize: '1.1rem', margin: 0 }}>{category.name || 'Unnamed Category'} Allocation</h3>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--font-lg)', fontWeight: 'var(--fw-bold)', letterSpacing: '-0.01em', margin: 0 }}>{category.name || 'Unnamed Category'} Allocation</h3>
         </div>
-        <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--font-base)', fontWeight: 'var(--fw-heavy)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: "'tnum' 1" }}>
           Total Available: {formatRupee(categoryAmount)}
         </div>
       </div>
 
       {isExpanded && (
-        <div style={{ marginTop: '1.5rem' }}>
+        <div style={{ marginTop: 'var(--spacing-15)' }}>
           {category.subInvestments.length === 0 && (
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>
-              No specific assets added yet.
+            <div style={{ color: 'var(--text-muted)', fontSize: 'var(--font-sm)', marginBottom: 'var(--spacing-1)' }}>
+              No specific funds or instruments added to this category. Click "Add Asset" below to set up SIP or lumpsum targets.
             </div>
           )}
 
           {category.subInvestments.map((sub, index) => (
-            <div key={sub.id} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', marginBottom: '1rem', background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
-              <div style={{ flex: 1.5 }}>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Asset Name</label>
+            <div key={sub.id} style={{ display: 'flex', gap: 'var(--spacing-1)', alignItems: 'flex-start', marginBottom: 'var(--spacing-1)', background: 'var(--surface-tint)', padding: 'var(--spacing-1)', borderRadius: 'var(--radius-sm)', flexWrap: 'wrap', minWidth: 0 }}>
+              <FormField label="Asset Name" style={{ flex: '1.5 1 180px', minWidth: 0 }}>
                 <input
                   type="text"
                   className="form-input"
                   value={sub.name}
                   onChange={e => handleUpdate(sub.id, { name: e.target.value })}
                   placeholder="e.g. Nifty 50 Index"
-                  style={{ width: '100%', marginTop: '0.25rem' }}
+                  aria-label={`Asset name ${index + 1}`}
+                  style={{ width: '100%' }}
                 />
-              </div>
-              
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Allocation %</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+              </FormField>
+
+              <FormField label="Allocation %" style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)' }}>
                   <input
                     type="number"
                     className="form-input"
                     value={sub.percentage}
                     onChange={e => handleUpdate(sub.id, { percentage: Number(e.target.value) })}
                     min="0" max="100"
-                    style={{ width: '70px' }}
+                    aria-label={`${sub.name || 'Asset'} allocation percentage`}
+                    style={{ width: '80px' }}
                   />
-                  <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: 'var(--font-base)', color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: "'tnum' 1" }}>
                     ({formatRupee((categoryAmount * sub.percentage) / 100)})
                   </span>
                 </div>
-              </div>
+              </FormField>
 
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Method</label>
+              <FormField label="Method" style={{ flex: 1 }}>
                 <select
                   className="form-input"
                   value={sub.method}
                   onChange={e => handleUpdate(sub.id, { method: e.target.value as InvestmentMethod })}
-                  style={{ width: '100%', marginTop: '0.25rem' }}
+                  aria-label={`${sub.name || 'Asset'} investment method`}
+                  style={{ width: '100%' }}
                 >
                   <option value="SIP">SIP</option>
                   <option value="Lumpsum">Lumpsum</option>
                 </select>
-              </div>
+              </FormField>
 
               {sub.method === 'SIP' && (
-                <div style={{ flex: 0.8 }}>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Step-up %/yr</label>
+                <FormField label="Step-up %/yr" style={{ flex: 0.8 }}>
                   <input
                     type="number"
                     className="form-input"
                     value={sub.stepUpPercentage || ''}
                     onChange={e => handleUpdate(sub.id, { stepUpPercentage: Number(e.target.value) })}
                     placeholder="e.g. 10"
-                    style={{ width: '100%', marginTop: '0.25rem' }}
+                    aria-label={`${sub.name || 'Asset'} annual step-up percentage`}
+                    style={{ width: '100%' }}
                   />
-                </div>
+                </FormField>
               )}
 
-              <button
-                className="btn btn-secondary"
-                style={{ padding: '0.5rem', marginTop: '1.4rem' }}
-                onPointerDown={() => handleRemove(sub.id)}
-                title="Remove Asset"
-              >
-                <Trash2 size={16} color="var(--error)" />
-              </button>
+              <IconButton
+                variant="danger"
+                label={`Remove asset ${sub.name || index + 1}`}
+                icon={<Trash2 size={16} />}
+                onClick={() => handleRemove(sub.id)}
+                style={{ marginTop: 'var(--spacing-125)' }}
+              />
             </div>
           ))}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-            <button className="btn btn-secondary" onPointerDown={handleAdd} style={{ fontSize: '0.85rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--spacing-1)', borderTop: '1px solid var(--border-color)', paddingTop: 'var(--spacing-1)' }}>
+            <Button variant="secondary" onClick={handleAdd} style={{ fontSize: 'var(--font-sm)' }}>
               <Plus size={16} /> Add Asset
-            </button>
+            </Button>
             
-            <div style={{ fontSize: '0.9rem', color: unallocatedPercentage > 0 ? 'var(--warning)' : 'var(--success)' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--font-base)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: "'tnum' 1", color: unallocatedPercentage > 0 ? 'var(--warning)' : 'var(--success)' }}>
               Unallocated: {unallocatedPercentage}% ({formatRupee(unallocatedAmount)})
             </div>
           </div>

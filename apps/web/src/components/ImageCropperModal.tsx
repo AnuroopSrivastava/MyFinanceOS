@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
+import { Button, Modal } from '@financeos/ui';
 import Cropper from 'react-easy-crop';
-import { X, RotateCcw, RotateCw } from 'lucide-react';
-import { createPortal } from 'react-dom';
+import { RotateCcw, RotateCw } from 'lucide-react';
 
 interface ImageCropperModalProps {
   isOpen: boolean;
@@ -95,40 +95,34 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({ isOpen, on
   const [rotation, setRotation] = useState(0);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
 
+  const [cropError, setCropError] = useState<string | null>(null);
+
   const onCropCompleteInternal = useCallback((croppedArea: any, croppedAreaPixels: any) => {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 
   const handleSave = async () => {
     try {
+      setCropError(null);
       const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels, rotation);
       onCropComplete(croppedImage);
       onClose();
     } catch (e) {
       console.error(e);
-      alert('Error cropping image');
+      setCropError('Could not crop this image. Please try another one.');
     }
   };
 
-  if (!isOpen) return null;
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Adjust Profile Picture" size="md">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}>
+        {cropError && (
+          <div style={{ padding: 'var(--spacing-05) var(--spacing-075)', background: 'var(--error-bg)', color: 'var(--error)', border: '1px solid var(--error)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-sm)' }}>
+            {cropError}
+          </div>
+        )}
 
-  return createPortal(
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)',
-      backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem'
-    }}>
-      <div className="glass-panel animate-fade-in" style={{
-        width: '100%', maxWidth: '500px', padding: '1.5rem', borderRadius: '1.25rem',
-        border: '1px solid var(--border-color)', background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.98) 100%)',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)',
-        display: 'flex', flexDirection: 'column', gap: '1rem'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Adjust Profile Picture</h3>
-          <button onPointerDown={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={18} /></button>
-        </div>
-
-        <div style={{ position: 'relative', width: '100%', height: '300px', background: '#000', borderRadius: '0.75rem', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', width: '100%', height: '300px', background: '#000', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
           <Cropper
             image={imageSrc}
             crop={crop}
@@ -144,60 +138,59 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({ isOpen, on
           />
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', minWidth: '40px' }}>Zoom</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-075)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
+            <span style={{ fontSize: 'var(--font-sm)', color: 'var(--text-secondary)', minWidth: '40px' }}>Zoom</span>
             <input
               type="range"
               value={zoom}
               min={1}
               max={3}
               step={0.1}
-              aria-labelledby="Zoom"
+              aria-label="Zoom"
               onChange={(e) => setZoom(Number(e.target.value))}
               style={{ flex: 1, accentColor: 'var(--accent-1)' }}
             />
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', minWidth: '40px' }}>Rotate</span>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <button
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
+            <span style={{ fontSize: 'var(--font-sm)', color: 'var(--text-secondary)', minWidth: '40px' }}>Rotate</span>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)' }}>
+              <Button
                 type="button"
-                onPointerDown={() => setRotation(rotation - 90)}
-                className="btn btn-secondary"
-                style={{ padding: '0.4rem', borderRadius: '50%', flexShrink: 0 }}
+                onClick={() => setRotation(rotation - 90)}
+                variant="secondary"
+                style={{ padding: 'var(--spacing-04)', borderRadius: '50%', flexShrink: 0 }}
               >
                 <RotateCcw size={16} />
-              </button>
+              </Button>
               <input
                 type="range"
                 value={rotation}
                 min={0}
                 max={360}
                 step={1}
-                aria-labelledby="Rotation"
+                aria-label="Rotation"
                 onChange={(e) => setRotation(Number(e.target.value))}
                 style={{ flex: 1, accentColor: 'var(--accent-1)' }}
               />
-              <button
+              <Button
                 type="button"
-                onPointerDown={() => setRotation(rotation + 90)}
-                className="btn btn-secondary"
-                style={{ padding: '0.4rem', borderRadius: '50%', flexShrink: 0 }}
+                onClick={() => setRotation(rotation + 90)}
+                variant="secondary"
+                style={{ padding: 'var(--spacing-04)', borderRadius: '50%', flexShrink: 0 }}
               >
                 <RotateCw size={16} />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-          <button type="button" onPointerDown={onClose} className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }}>Cancel</button>
-          <button type="button" onPointerDown={handleSave} className="btn btn-primary" style={{ padding: '0.5rem 1.25rem' }}>Apply Image</button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-075)', marginTop: 'var(--spacing-05)' }}>
+          <Button type="button" onClick={onClose} variant="secondary" style={{ padding: 'var(--spacing-05) var(--spacing-1)' }}>Cancel</Button>
+          <Button type="button" onClick={handleSave} variant="primary" style={{ padding: 'var(--spacing-05) var(--spacing-125)' }}>Apply Image</Button>
         </div>
       </div>
-    </div>,
-    document.body
+    </Modal>
   );
 };

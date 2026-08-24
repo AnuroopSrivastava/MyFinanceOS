@@ -15,7 +15,11 @@ vi.mock('@financeos/database', () => ({
   dbService: {
     getAccounts: () => [
       { id: 'l1', profileId: 'p1', name: 'Home Loan', balance: -2500000, interestRate: 8.5, accountType: 'Loan' }
-    ]
+    ],
+    getProfiles: () => [{ id: 'p1', name: 'Test User' }],
+    subscribe: () => () => {},
+    onUnsavedChangeStatus: () => () => {},
+    onSaveErrorStatus: () => () => {}
   }
 }));
 

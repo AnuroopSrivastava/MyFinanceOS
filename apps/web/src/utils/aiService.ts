@@ -1,5 +1,4 @@
-import { BankAccount, Transaction, StockHolding, MutualFundHolding, FixedDeposit, GoldHolding, NPSHolding, ProvidentFundHolding } from '@financeos/shared';
-import { dbService } from '@financeos/database';
+import { BankAccount, Transaction, StockHolding, MutualFundHolding, FixedDeposit, GoldHolding, NPSHolding, ProvidentFundHolding, TDSSummary, TaxViewInputs, formatRupee, calculateFdAccruedValue, calculateNetWorth, calculateTaxOldRegime, calculateTaxNewRegime, calculateFIRECorpus } from '@financeos/shared';
 
 export type AIMode = 'local' | 'cloud';
 
@@ -12,15 +11,9 @@ export interface AIContext {
   gold: GoldHolding[];
   nps: NPSHolding[];
   pf: ProvidentFundHolding[];
+  tdsRecords: TDSSummary[];   // BUG-003 FIX: added so AI can use real TDS data
+  taxInputs: TaxViewInputs | null; // BUG-004 FIX: added so AI can use real income for tax comparison
 }
-
-const formatRupee = (value: number) => {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: 2, maximumFractionDigits: 2
-  }).format(value);
-};
 
 export class AIService {
   private mode: AIMode = 'local';
@@ -62,47 +55,72 @@ export class AIService {
     }
 
     // 2. Net Worth Query
+    // BUG-028 FIX: Use accrued FD value (not principal) and only count negative credit card balances as liabilities
     if (/net\s*worth/.test(qLower) || /total\s*wealth/.test(qLower) || /how much.*worth/.test(qLower)) {
-      const bankBalances = accounts.reduce((sum, a) => sum + (a.accountType === 'Loan' || a.accountType === 'CreditCard' ? -a.balance : a.balance), 0);
       const stockVal = stocks.reduce((sum, s) => sum + (s.quantity * s.currentPrice), 0);
       const mfVal = mfs.reduce((sum, m) => sum + (m.units * m.currentNav), 0);
       const goldVal = gold.reduce((sum, g) => sum + (g.quantityGrams * g.currentPrice), 0);
       const npsVal = nps.reduce((sum, n) => sum + n.balance, 0);
       const pfVal = pf.reduce((sum, p) => sum + p.balance, 0);
-      const fdVal = fds.filter(f => !f.isMatured).reduce((sum, f) => sum + f.principalAmount, 0);
+      // Use accrued interest-adjusted FD value (matches Dashboard behaviour)
+      const fdVal = fds.filter(f => !f.isMatured).reduce((sum, f) => sum + calculateFdAccruedValue(f), 0);
 
-      const totalAssets = stockVal + mfVal + goldVal + npsVal + pfVal + fdVal + accounts.filter(a => a.accountType !== 'Loan' && a.accountType !== 'CreditCard').reduce((sum, a) => sum + a.balance, 0);
-      const totalLiabilities = accounts.filter(a => a.accountType === 'Loan' || a.accountType === 'CreditCard').reduce((sum, a) => sum + a.balance, 0);
+      const bankAssets = accounts.filter(a => a.accountType !== 'Loan' && a.accountType !== 'CreditCard').reduce((sum, a) => sum + a.balance, 0);
+      const totalAssets = stockVal + mfVal + goldVal + npsVal + pfVal + fdVal + bankAssets;
+      // Only count loans and negative credit card balances as liabilities
+      const loanDebt = accounts.filter(a => a.accountType === 'Loan').reduce((sum, a) => sum + Math.abs(a.balance), 0);
+      const cardDebt = accounts.filter(a => a.accountType === 'CreditCard' && a.balance < 0).reduce((sum, a) => sum + Math.abs(a.balance), 0);
+      const totalLiabilities = loanDebt + cardDebt;
 
-      const netWorth = totalAssets - totalLiabilities;
+      const netWorth = calculateNetWorth(totalAssets, totalLiabilities);
       return `Your estimated **Net Worth is ${formatRupee(netWorth)}**.\n\n- **Total Assets**: ${formatRupee(totalAssets)}\n- **Total Liabilities (Loans/Credit Cards)**: ${formatRupee(totalLiabilities)}`;
     }
 
     // 3. TDS Summary Query
     if (/tds/.test(qLower) || /form 26as/.test(qLower) || /tax deducted/.test(qLower)) {
-      const tds = [
-        { TAN: 'MUMT03829A', name: 'Tech Corp India Pvt Ltd', grossPaid: 1650000, tds: 165000 },
-        { TAN: 'DELH09281B', name: 'HDFC Bank Ltd (FD Interest)', grossPaid: 14650, tds: 1465 }
-      ];
-      const totalTds = tds.reduce((sum, r) => sum + r.tds, 0);
-      const totalGross = tds.reduce((sum, r) => sum + r.grossPaid, 0);
-      const breakdown = tds.map(r => `- **${r.name}** (TAN: ${r.TAN}): Deducted **${formatRupee(r.tds)}** on gross payments of **${formatRupee(r.grossPaid)}**`).join('\n');
-      return `Here is your verified **TDS Summary** extracted from Form 26AS/AIS records:\n\n${breakdown}\n\n**Total Tax Deducted at Source:** **${formatRupee(totalTds)}** across gross payouts totaling **${formatRupee(totalGross)}**.`;
+      // BUG-003 FIX: Use actual user TDS records from context instead of hardcoded static data
+      const tds = context.tdsRecords || [];
+      if (tds.length === 0) {
+        return `I could not find any TDS records in your database.\n\nTo use this feature, please add your TDS entries in the **Tax** section under Form 26AS / TDS Records. Once added, I can show you a full breakdown of tax deducted by each deductor.`;
+      }
+      const totalTds = tds.reduce((sum, r) => sum + (r.taxDeducted || 0), 0);
+      const totalGross = tds.reduce((sum, r) => sum + (r.amountPaid || 0), 0);
+      const breakdown = tds
+        .map(r => `- **${r.deductorName}** (TAN: ${r.tanOfDeductor}): Deducted **${formatRupee(r.taxDeducted || 0)}** on gross payments of **${formatRupee(r.amountPaid || 0)}**`)
+        .join('\n');
+      return `Here is your verified **TDS Summary** extracted from your Form 26AS/AIS records:\n\n${breakdown}\n\n**Total Tax Deducted at Source:** **${formatRupee(totalTds)}** across gross payouts totaling **${formatRupee(totalGross)}**.`;
     }
 
     // 4. Tax Slabs / Regime Comparator
     if (/tax.*regime/.test(qLower) || /compare.*tax/.test(qLower) || /tax slabs/.test(qLower)) {
-      const gross = 1800000;
+      // BUG-004 FIX: Use actual user income from taxInputs context instead of hardcoded ₹18L
+      const gross = context.taxInputs?.grossSalary;
+      if (!gross || gross <= 0) {
+        return `To compare tax regimes, please enter your gross salary in the **Tax Calculator** view. Once saved, I can compute the exact tax under Old vs New regime for your actual income.`;
+      }
       const stdDeductionNew = 75000;
-      const stdDeductionOld = 50000;
-      const deductionsOld = 150000 + 25000 + 50000 + 50000; // 80C, 80D, NPS, std
-      const taxableOld = gross - deductionsOld;
-      const taxableNew = gross - stdDeductionNew;
+      // Old regime standard deduction is ₹50,000 (FY 2023-24), capped at ₹50,000
+      const ded80C = Math.min(context.taxInputs?.ded80C || 0, 150000);
+      const ded80D = Math.min(context.taxInputs?.ded80D || 0, 25000);
+      const dedNps = Math.min(context.taxInputs?.dedNps || 0, 50000);
+      const hraExempt = context.taxInputs?.hraExempt || 0;
+      const homeLoan = Math.min(context.taxInputs?.dedHomeLoan || 0, 200000);
+      const totalOldDeductions = 50000 + ded80C + ded80D + dedNps + hraExempt + homeLoan;
+      const taxableOld = Math.max(0, gross - totalOldDeductions);
+      const taxableNew = Math.max(0, gross - stdDeductionNew);
 
-      return `Comparing Tax Regimes for Income of **${formatRupee(gross)}**:\n\n` +
-             `- **New Tax Regime**: Standard Deduction of ₹75,000. Taxable Income: **${formatRupee(taxableNew)}**. Estimated Tax: **${formatRupee(220000)}**.\n` +
-             `- **Old Tax Regime**: Deductions (80C, 80D, NPS, HRA): **${formatRupee(deductionsOld)}**. Taxable Income: **${formatRupee(taxableOld)}**. Estimated Tax: **${formatRupee(218400)}**.\n\n` +
-             `💡 **Recommendation**: Old Tax Regime saves you approx **${formatRupee(1600)}** based on your full deductions.`;
+      // Estimate taxes using the canonical shared slab engine (matches TaxView)
+      const taxOld = calculateTaxOldRegime(taxableOld).totalTax;
+      const taxNew = calculateTaxNewRegime(taxableNew).totalTax;
+      const saving = taxOld - taxNew;
+      const recommendation = saving > 0
+        ? `💡 **Recommendation**: Old Tax Regime saves you approx **${formatRupee(saving)}** based on your current deductions of **${formatRupee(totalOldDeductions)}**.`
+        : `💡 **Recommendation**: New Tax Regime saves you approx **${formatRupee(Math.abs(saving))}**. Consider switching if your deductions are limited.`;
+
+      return `Comparing Tax Regimes for your Income of **${formatRupee(gross)}**:\n\n` +
+             `- **New Tax Regime**: Standard Deduction of ₹75,000. Taxable Income: **${formatRupee(taxableNew)}**. Estimated Tax (incl. 4% cess): **${formatRupee(taxNew)}**.\n` +
+             `- **Old Tax Regime**: Total Deductions: **${formatRupee(totalOldDeductions)}**. Taxable Income: **${formatRupee(taxableOld)}**. Estimated Tax (incl. 4% cess): **${formatRupee(taxOld)}**.\n\n` +
+             recommendation;
     }
 
     // 5. Where did my money go / Spending Analysis
@@ -155,16 +173,28 @@ export class AIService {
       return `I have audited your portfolios and found **${missing.length}** accounts with missing nominee details:\n\n${missing.map(m => `- ${m}`).join('\n')}\n\n*Action Suggested: Go to the respective bank portals or Demat accounts to update nominee declarations.*`;
     }
 
-    // 6. FIRE Goal Query
+    // 9. FIRE Goal Query
+    // BUG-029 FIX: Monthly expense now uses a dynamic 3-month rolling average instead of a hardcoded '2026-07' month
     if (/fire/.test(qLower) || /retire/.test(qLower) || /financial independence/.test(qLower)) {
       const bankBalances = accounts.filter(a => a.accountType !== 'Loan' && a.accountType !== 'CreditCard').reduce((sum, a) => sum + a.balance, 0);
       const stockVal = stocks.reduce((sum, s) => sum + (s.quantity * s.currentPrice), 0);
       const mfVal = mfs.reduce((sum, m) => sum + (m.units * m.currentNav), 0);
-      const fdVal = fds.filter(f => !f.isMatured).reduce((sum, f) => sum + f.principalAmount, 0);
+      // Use accrued FD value to match net worth calculation
+      const fdVal = fds.filter(f => !f.isMatured).reduce((sum, f) => sum + calculateFdAccruedValue(f), 0);
       const liquidNetWorth = bankBalances + stockVal + mfVal + fdVal;
 
-      const monthlyExpenses = context.transactions.filter((t: Transaction) => t.type === 'Expense' && t.date.startsWith('2026-07')).reduce((sum: number, t: Transaction) => sum + t.amount, 0) || 75000;
-      const targetCorpus = (monthlyExpenses * 12) / 0.035; // 3.5% SWR
+      // Compute rolling 3-month average monthly expense from actual transaction data
+      const now = new Date();
+      const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+      const recentExpenses = context.transactions.filter((t: Transaction) => {
+        if (t.type !== 'Expense') return false;
+        const txDate = new Date(t.date);
+        return txDate >= threeMonthsAgo;
+      });
+      const totalRecentExpense = recentExpenses.reduce((sum: number, t: Transaction) => sum + Math.abs(t.amount), 0);
+      // Fall back to ₹50,000/month default only if no transaction data at all
+      const monthlyExpenses = recentExpenses.length > 0 ? Math.round(totalRecentExpense / 3) : 50000;
+      const targetCorpus = calculateFIRECorpus(monthlyExpenses, 3.5); // 3.5% SWR
       const pct = Math.min(100, Math.round((liquidNetWorth / targetCorpus) * 100));
 
       return `Your liquid portfolio is **${formatRupee(liquidNetWorth)}** against a target **Standard FIRE Corpus of ${formatRupee(targetCorpus)}** (based on ${formatRupee(monthlyExpenses)}/mo living expenses at 3.5% SWR).\n\n- **FIRE Progress:** **${pct}% achieved** 🎉\n- **Lean FIRE Target:** ${formatRupee(targetCorpus * 0.75)}\n- **Fat FIRE Target:** ${formatRupee(targetCorpus * 1.5)}`;
@@ -226,9 +256,12 @@ User Query: ${q}
 
 Respond concisely, accurately, and professionally to the user's query based on the context data. Use Markdown for formatting.`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-goog-api-key': this.apiKey
+        },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }]
         })
@@ -243,8 +276,8 @@ Respond concisely, accurately, and professionally to the user's query based on t
         return data.candidates[0].content.parts[0].text;
       }
       return "Received an unexpected response from the Cloud AI API.";
-    } catch (error: any) {
-      return `⚠️ **Cloud AI Error**: ${error.message}\n\nFalling back to local rules...\n\n` + this.processLocalQuery(q, context);
+    } catch (error: unknown) {
+      return `⚠️ **Cloud AI Error**: ${(error as Error).message}\n\nFalling back to local rules...\n\n` + this.processLocalQuery(q, context);
     }
   }
 }

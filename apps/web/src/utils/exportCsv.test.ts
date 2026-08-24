@@ -16,7 +16,7 @@ describe('exportToCSV utility', () => {
     
     const origCreateElement = document.createElement.bind(document);
     vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
-      if (tagName === 'a') return mockLink as any;
+      if (tagName === 'a') return mockLink as unknown as HTMLElement;
       return origCreateElement(tagName);
     });
 

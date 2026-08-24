@@ -14,19 +14,21 @@ import { DashboardView } from './DashboardView';
 // Mock dependencies
 vi.mock('@financeos/database', () => ({
   dbService: {
-    getAccounts: () => [{ id: '1', name: 'HDFC', balance: 50000, accountType: 'Savings' }],
+    getAccounts: () => [{ id: '1', name: 'HDFC', balance: 50000, accountType: 'Savings', profileId: 'p1' }],
     getTransactions: () => [],
     getBudgets: () => [],
-    getFds: () => [],
+    getFDs: () => [],
     getInvestmentPlans: () => [],
     getProfiles: () => [{ id: 'p1', name: 'Test User' }],
     getStocks: () => [],
     getMutualFunds: () => [],
-    getFDs: () => [],
     getGold: () => [],
     getPF: () => [],
     getNPS: () => [],
-    getGoals: () => []
+    getGoals: () => [],
+    subscribe: () => () => {},
+    onUnsavedChangeStatus: () => () => {},
+    onSaveErrorStatus: () => () => {}
   }
 }));
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatRupee, parseRupeeToNumber } from './currency';
+import { formatRupee, parseRupeeToNumber } from '@financeos/shared';
 
 describe('Currency Utilities', () => {
   describe('formatRupee', () => {
@@ -18,7 +18,7 @@ describe('Currency Utilities', () => {
     });
 
     it('should handle null/undefined/NaN by returning 0', () => {
-      expect(formatRupee(null as any)).toContain('0.00');
+      expect(formatRupee(null as unknown as number)).toContain('0.00');
       expect(formatRupee(undefined)).toContain('0.00');
       expect(formatRupee(NaN)).toContain('0.00');
     });

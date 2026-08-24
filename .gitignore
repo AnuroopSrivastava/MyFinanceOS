@@ -1,48 +1,505 @@
-# Dependencies & Package Managers
-node_modules/
-.pnpm-store/
-.pnpm-debug.log*
+# ==============================================================================
+# MASTER GITIGNORE — MyFinanceOS (Comprehensive Enterprise Standard)
+# ==============================================================================
 
-# Build outputs
+# ------------------------------------------------------------------------------
+# 1. Package Managers, Lock Artifacts & Dependency Trees
+# ------------------------------------------------------------------------------
+node_modules/
+jspm_packages/
+web_modules/
+bower_components/
+.pnpm-store/
+.npm/
+.pnp/
+.pnp.js
+.pnp.cjs
+.pnp.loader.mjs
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.yarn/sdks/
+.bun/
+.deno/
+package-lock.json.bak
+yarn.lock.bak
+pnpm-lock.yaml.bak
+
+# ------------------------------------------------------------------------------
+# 2. Build, Bundler & Distribution Artifacts
+# ------------------------------------------------------------------------------
 dist/
+dist-ssr/
 build/
 release/
-web-dist/
-*.tsbuildinfo
+out/
+.output/
+.open-next/
+.next/
 .turbo/
+.wireit/
+.nx/
+.parcel-cache/
+.rollup.cache/
+.terser-cache/
+.swc/
+.vite/
+.cache/
+storybook-static/
+.storybook-cache/
+*.tsbuildinfo
+tsconfig.tsbuildinfo
 
-# Environment & Secrets
+# Desktop, Mobile & Native Platform Builds
+app-builds/
+electron-builder-output/
+dist-electron/
+dist-desktop/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/WixTools/
+platforms/
+www/
+android/app/build/
+android/.gradle/
+ios/build/
+ios/DerivedData/
+DerivedData/
+.gradle/
+.capacitor/
+Pods/
+*.exe
+*.dmg
+*.pkg
+*.AppImage
+*.deb
+*.rpm
+*.apk
+*.aab
+*.ipa
+*.app
+*.appx
+*.msi
+*.cab
+*.msp
+*.msm
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Source Maps & Bundler Reports
+*.map.tmp
+*.bundle.meta.json
+bundle-analysis.html
+bundle-report.html
+stats.html
+report.html
+
+# ------------------------------------------------------------------------------
+# 3. Environment Variables, Secrets & API Credentials (CRITICAL SECURITY)
+# ------------------------------------------------------------------------------
 .env
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging.local
 .env.*.local
+.env*.local
+*.env
+!*.env.example
+!*.env.sample
+!*.env.template
+!*.env.defaults
+
+# Whitelist safe template files
+!.env.example
+!.env.*.example
+!.env.test.example
+!.env.sample
+!.env.template
+
+# Cryptographic Keys, Certificates, Salts & Vault Backups
 *.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*.jks
+*.keystore
+*.der
+*.csr
+*.cer
+*.crl
+*.salt
+*.iv
+*.vaultkey
+*.hmac
+*.sig
+*.signature
+*.kdf
+master.key
+backup-key.txt
+passkey-credentials.json
+fido2-keys.json
+keyring.json
+secure-enclave-backup.bin
+tpm-key.bin
+id_rsa*
+id_ecdsa*
+id_ed25519*
+secring.gpg
+pubring.gpg
 
-# Local Data & Configuration
-financeos_data.json
-financeos_config.json
+# Cloud, OAuth & Service Account Credentials
+service-account*.json
+google-credentials*.json
+client_secret*.json
+credentials.json
+auth.json
+session.json
+auth-tokens.json
+credentials.csv
+*.secret.json
+*.private.json
+*.credentials.json
+*.postman_environment.json
+*.insomnia.json
 
-# Testing & Reports
+# ------------------------------------------------------------------------------
+# 4. Testing, Code Coverage, E2E & Browser Automation Artifacts
+# ------------------------------------------------------------------------------
 coverage/
+.nyc_output/
 playwright-report/
 test-results/
+blob-report/
+playwright/.cache/
+playwright/.auth/
+playwright-har/
+user-data-dir/
+.pytest_cache/
+.vitest/
+.vitest-cache/
+*.lcov
+lcov-report/
+jest-coverage/
+test-coverage/
+test-artifacts/
+cypress/videos/
+cypress/screenshots/
+__screenshots__/
+*.har
+*.trace.zip
+playwright-trace/
+lighthouse-report.html
+lighthouse-report.json
+.lighthouseci/
 
-# Logs
+# ------------------------------------------------------------------------------
+# 5. Logs, Diagnostics & Memory Profiles
+# ------------------------------------------------------------------------------
+logs/
 *.log
+*.log.*
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+vite-debug.log*
+firebase-debug.log*
+isolate-*.log
+v8.log
+*.cpuprofile
+*.heapprofile
+*.heapsnapshot
+*.timeline.json
+flamegraph*.html
+profile*.json
+crash.dump
+core
+core.*
+vgcore.*
+*.stackdump
 
-# Operating System & IDEs
+# ------------------------------------------------------------------------------
+# 6. Operating System & Filesystem Artifacts
+# ------------------------------------------------------------------------------
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
 Thumbs.db
-.vscode/
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ------------------------------------------------------------------------------
+# 7. IDEs, Text Editors & Local Workspace Configuration
+# ------------------------------------------------------------------------------
+# Visual Studio Code (Whitelist team settings, ignore local state)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+.devcontainer/local-overrides.json
+
+# JetBrains Suite (WebStorm, IntelliJ IDEA, PyCharm)
 .idea/
+*.iws
+*.iml
+*.ipr
+
+# Visual Studio & Windows Toolchains
 *.suo
-*.sln
+*.ntvs*
+*.njsproj
+*.sln.docstates
+*.user
+*.userosv
+*.vcxproj.user
+Debug/
+Release/
+x64/
+x86/
+
+# Vim / Neovim / Emacs / Sublime
+*.sw?
+*~
+*.swo
+*.swn
+*.sublime-workspace
+*.sublime-project.local
+.#*
+*#
+.netrwhist
+
+# Temporary Files, Diffs & Patches
+tmp/
+temp/
+*.tmp
+*.temp
+*.patch
+*.diff
+*.orig
+*.rej
+*.bak
+
+# ------------------------------------------------------------------------------
+# 8. AI Assistants, Autonomous Agents & Scratchpads
+# ------------------------------------------------------------------------------
 .claude/
 .gemini/
+.codex
+.kilocode/
+.kilo/
+.impeccable/
+.opencode/
+.cursor/
+.windsurf/
+.aider/
+.aider.*.history*
+.copilot/
+.agents/tmp/
+.agents/.cache/
+.agents/scratch/
+.agents/benchmarks/
+.agents/recordings/
+eval-runs/
+benchmark-results/
+agent-trajectories/
 
-# TypeScript / Compiled outputs
-*.js
-!apps/**/*.js
-!packages/**/*.js
+# Vector Embeddings & Local LLM Model Caches
+chroma_db/
+faiss_index/
+lancedb/
+*.lance/
+*.parquet.tmp
+*.gguf
+*.safetensors
+*.onnx
+models/
+weights/
+tiktoken_cache/
+hf_cache/
+
+# ------------------------------------------------------------------------------
+# 9. Python (Virtual Environments, Bytecode, Analyzers)
+# ------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.env/
+.venv/
+.eggs/
+*.egg-info/
+*.egg
+.mypy_cache/
+.ruff_cache/
+/*.py
+
+# ------------------------------------------------------------------------------
+# 10. Cloud Infrastructure, Serverless, Docker & Terraform
+# ------------------------------------------------------------------------------
+.vercel/
+.netlify/
+.serverless/
+.supabase/local/
+.supabase/functions/.env
+supabase/.temp/
+supabase/.branches/
+.docker/
+docker-compose.override.yml
+docker-compose.*.override.yml
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl.bak
+
+# ------------------------------------------------------------------------------
+# 11. Databases, IndexedDB & Local Storage Persistence
+# ------------------------------------------------------------------------------
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
+*.rdb
+dump.rdb
+*.dump.sql
+indexeddb-dump/
+dexie-backup*.json
+idb-backup/
+localstorage-backup*.json
+sessionstorage-backup*.json
+*.ldb
+MANIFEST-*
+
+# ------------------------------------------------------------------------------
+# 12. Linters, Formatters & Typecheckers
+# ------------------------------------------------------------------------------
+.eslintcache
+.stylelintcache
+.prettiercache
+lint-report.txt
+typecheck-*.txt
+
+# ------------------------------------------------------------------------------
+# 13. PWA, Service Workers & Cache Storage
+# ------------------------------------------------------------------------------
+.workbox/
+sw.js.map
+workbox-*.js
+workbox-*.js.map
+
+# ------------------------------------------------------------------------------
+# 14. FinanceOS Local Data, Document Vault & State Persistence
+# ------------------------------------------------------------------------------
+financeos_data*.json
+financeos_config*.json
+financeos-backup-*.json
+financeos-export-*.csv
+india_tax_summary*.csv
+Documents/
+test-vault/
+vault-storage/
+document-vault-local/
+exports/
+*.dump
+
+# ------------------------------------------------------------------------------
+# 15. FinTech, Banking, Statements & Tax Returns (ISOLATION OF SENSITIVE USER DATA)
+# ------------------------------------------------------------------------------
+# Bank & Demat Statements
+mock-statements/
+sample-statements/
+statement-staging/
+statement-temp/
+ocr-cache/
+pdf-cache/
+*.camt053
+*.qif
+*.ofx
+*.cas.pdf
+*.cas.json
+*CAS*.pdf
+*CAS*.xlsx
+statement*.pdf
+statement*.csv
+statement*.xlsx
+passbook*.pdf
+HDFC_*.csv
+ICICI_*.csv
+SBI_*.csv
+Axis_*.csv
+Kotak_*.csv
+
+# Tax Forms & Government Downloads (Form 16, 26AS, AIS, TIS, ITR, GST)
+*.tax.json
+ais-mock-*.json
+form26as-*.json
+AIS_*.json
+TIS_*.json
+AIS_*.pdf
+Form16*.pdf
+Form26AS*.pdf
+26AS_*.json
+Form16*.json
+ITR*.json
+ITR*.xml
+Computation*.pdf
+ITR_V_*.pdf
+GSTR1_*.json
+GSTR3B_*.json
+GSTR2A_*.json
+GSTR2B_*.json
+gstin_*.json
+upi-logs/
+payment-receipts/
+
+# ------------------------------------------------------------------------------
+# 16. Knowledge Graph & Code Intelligence Cache
+# ------------------------------------------------------------------------------
+graphify-out/
+graphify-cache/
+graphify-backups/
+*.graph.json

@@ -4,9 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "npm run build:libs --prefix ../../ && tsc && vite build",
-    "preview": "vite preview"
+    "dev": "next dev -p 3000 --webpack",
+    "build": "npm run build:libs --prefix ../../ && next build --webpack",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
     "@financeos/auth": "*",
@@ -14,18 +15,21 @@
     "@financeos/shared": "*",
     "@financeos/ui": "*",
     "@react-oauth/google": "^0.13.5",
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.42.0",
     "framer-motion": "^12.42.2",
     "lucide-react": "^0.344.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "next": "^16.3.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "react-easy-crop": "^6.2.3",
     "recharts": "^3.10.1"
   },
   "devDependencies": {
-    "@types/react": "^18.2.56",
-    "@types/react-dom": "^18.2.19",
-    "@vitejs/plugin-react": "^4.2.1",
-    "typescript": "^5.3.3",
-    "vite": "^5.1.4"
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint-config-next": "^16.3.0",
+    "typescript": "^5.3.3"
   }
 }

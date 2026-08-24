@@ -6,7 +6,7 @@ import { faker } from '@faker-js/faker';
 beforeAll(() => {
   // Polyfill Web Crypto for Node.js environment during Vitest run
   if (typeof globalThis.crypto === 'undefined') {
-    globalThis.crypto = crypto.webcrypto as any;
+    globalThis.crypto = crypto.webcrypto as unknown as Crypto;
   }
 });
 

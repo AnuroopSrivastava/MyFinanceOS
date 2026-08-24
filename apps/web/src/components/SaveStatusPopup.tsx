@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { Button, IconButton, InfoCallout, Modal } from '@financeos/ui';
 import { dbService } from '@financeos/database';
+import { downloadBlob, todayStamp, STORAGE_KEYS } from '@financeos/shared';
 import { AlertTriangle, RefreshCw, Download, X, CheckCircle2 } from 'lucide-react';
 
 interface SaveStatusPopupProps {
@@ -17,6 +19,7 @@ export const SaveStatusPopup: React.FC<SaveStatusPopupProps> = ({
 }) => {
   const [isRetrying, setIsRetrying] = useState(false);
   const [retrySuccess, setRetrySuccess] = useState(false);
+  const [backupStatus, setBackupStatus] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -39,193 +42,135 @@ export const SaveStatusPopup: React.FC<SaveStatusPopupProps> = ({
 
   const handleExportBackup = () => {
     try {
-      const dataStr = localStorage.getItem('financeos_db_cache');
+      setBackupStatus(null);
+      const dataStr = localStorage.getItem(STORAGE_KEYS.dbCache);
       if (dataStr) {
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `financeos_backup_emergency_${new Date().toISOString().substring(0, 10)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
+        downloadBlob(
+          `financeos_backup_emergency_${todayStamp()}.json`,
+          new Blob([dataStr], { type: 'application/json' })
+        );
       } else {
-        alert('No local database snapshot available to export.');
+        setBackupStatus('No backup file is available to export yet. Make a change first and try again.');
       }
     } catch (e) {
       console.error('Failed emergency backup export:', e);
+      setBackupStatus('Failed to generate local backup file.');
     }
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
-        backdropFilter: 'blur(8px)',
-        zIndex: 99999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem',
-        animation: 'fadeIn 0.2s ease-out'
-      }}
-    >
+    <Modal isOpen={isOpen} onClose={onClose} size="md" showClose={false}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-125)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-075)' }}>
+          <div
+            style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: 'var(--radius-tooltip)',
+              background: 'var(--error-bg)',
+              border: '1px solid var(--status-overdue-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--error)',
+              flexShrink: 0,
+            }}
+          >
+            <AlertTriangle size={24} />
+          </div>
+          <div>
+            <h3 id="save-popup-title" style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--font-xl)', fontWeight: 'var(--fw-heavy)', letterSpacing: 'var(--ls-tight)', margin: 0, color: 'var(--text-primary)' }}>
+              Cloud Sync Pending — Local Vault Intact
+            </h3>
+            <span style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--font-sm)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-normal)' }}>
+              {saveError ? 'Cloud synchronization failed — your data is safely saved in your local vault' : 'Your latest changes are safely stored in your local vault and pending cloud synchronization.'}
+            </span>
+          </div>
+        </div>
+        <IconButton icon={<X size={20} />} label="Close dialog" variant="ghost" size="md" onClick={onClose} />
+      </div>
+
+      {backupStatus && (
+        <InfoCallout variant="warning" style={{ marginBottom: 'var(--spacing-1)' }}>
+          {backupStatus}
+        </InfoCallout>
+      )}
+
       <div
-        className="glass-card"
         style={{
-          maxWidth: '520px',
-          width: '100%',
-          padding: '1.75rem',
-          borderRadius: '16px',
-          border: '1px solid rgba(239, 68, 68, 0.3)',
-          background: 'linear-gradient(135deg, rgba(20, 20, 25, 0.95), rgba(30, 15, 20, 0.95))',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(239, 68, 68, 0.15)',
-          color: 'var(--text-primary)'
+          background: 'var(--surface-tint)',
+          borderRadius: 'var(--radius-sm)',
+          border: 'var(--neo-milled-border)',
+          padding: 'var(--spacing-1)',
+          marginBottom: 'var(--spacing-15)',
+          fontSize: 'var(--font-base)',
+          lineHeight: 'var(--lh-normal)',
+          fontFamily: 'var(--font-body)',
         }}
       >
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '12px',
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ef4444'
-              }}
-            >
-              <AlertTriangle size={24} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, color: '#fff' }}>
-                Auto-Save Not Completed
-              </h3>
-              <span style={{ fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
-                {saveError ? 'Save or cloud synchronization encountered an issue' : 'Unsaved changes pending save completion'}
-              </span>
-            </div>
-          </div>
-          <button
-            onPointerDown={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              padding: '0.25rem'
-            }}
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Diagnostic info box */}
-        <div
-          style={{
-            background: 'rgba(255, 255, 255, 0.03)',
-            borderRadius: '10px',
-            border: '1px solid rgba(255, 255, 255, 0.07)',
-            padding: '1rem',
-            marginBottom: '1.5rem',
-            fontSize: '0.9rem',
-            lineHeight: '1.5'
-          }}
-        >
-          {saveError ? (
-            <div style={{ color: '#f87171', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <div style={{ fontWeight: 600 }}>Diagnostic Log:</div>
-              <code style={{ fontSize: '0.825rem', background: 'rgba(0,0,0,0.4)', padding: '0.5rem', borderRadius: '6px' }}>
-                {saveError}
-              </code>
-            </div>
-          ) : (
-            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-              Your latest edits are stored in temporary memory, but haven't been confirmed on disk or cloud sync. Retrying will complete auto-saving.
+        {saveError ? (
+          <div style={{ color: 'var(--error)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-04)' }}>
+            <div style={{ fontWeight: 'var(--fw-semibold)' }}>What went wrong:</div>
+            <code className="type-mono" style={{ fontSize: 'var(--font-sm)', background: 'var(--bg-primary)', padding: 'var(--spacing-05)', borderRadius: 'var(--radius-xs)' }}>
+              {saveError}
+            </code>
+            <p style={{ margin: 0, fontSize: 'var(--font-sm)', color: 'var(--text-secondary)' }}>
+              Your financial data is intact in your local encrypted vault. You can retry cloud sync or download a manual backup file.
             </p>
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <button
-            onPointerDown={handleRetry}
-            disabled={isRetrying}
-            className="btn btn-primary"
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              fontWeight: 600,
-              fontSize: '0.95rem'
-            }}
-          >
-            {retrySuccess ? (
-              <>
-                <CheckCircle2 size={18} color="#10b981" />
-                <span>Save Completed Successfully!</span>
-              </>
-            ) : isRetrying ? (
-              <>
-                <RefreshCw size={18} className="spin" />
-                <span>Attempting Auto-Save...</span>
-              </>
-            ) : (
-              <>
-                <RefreshCw size={18} />
-                <span>Retry Save Now</span>
-              </>
-            )}
-          </button>
-
-          <button
-            onPointerDown={handleExportBackup}
-            className="btn btn-secondary"
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              fontWeight: 600,
-              fontSize: '0.9rem',
-              background: 'rgba(255, 255, 255, 0.06)',
-              border: '1px solid rgba(255, 255, 255, 0.12)'
-            }}
-          >
-            <Download size={18} />
-            <span>Export Emergency JSON Backup</span>
-          </button>
-
-          <button
-            onPointerDown={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              padding: '0.5rem',
-              fontSize: '0.85rem',
-              textAlign: 'center',
-              textDecoration: 'underline'
-            }}
-          >
-            Dismiss and continue working
-          </button>
-        </div>
+          </div>
+        ) : (
+          <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+            Your latest entries are safely stored in your local encrypted browser database. Click &quot;Retry Sync Now&quot; to push changes to your cloud backup.
+          </p>
+        )}
       </div>
-    </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-075)' }}>
+        <Button
+          type="button"
+          variant="primary"
+          onClick={handleRetry}
+          disabled={isRetrying}
+          style={{ width: '100%', padding: 'var(--spacing-06) var(--spacing-125)', justifyContent: 'center' }}
+        >
+          {retrySuccess ? (
+            <>
+              <CheckCircle2 size={18} />
+              <span>Synced to cloud</span>
+            </>
+          ) : isRetrying ? (
+            <>
+              <RefreshCw size={18} className="spin" />
+              <span>Syncing to cloud...</span>
+            </>
+          ) : (
+            <>
+              <RefreshCw size={18} />
+              <span>Retry Sync Now</span>
+            </>
+          )}
+        </Button>
+
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={handleExportBackup}
+          style={{ width: '100%', padding: 'var(--spacing-06) var(--spacing-125)', justifyContent: 'center' }}
+        >
+          <Download size={18} />
+          <span>Download Local Backup</span>
+        </Button>
+
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onClose}
+          style={{ width: '100%', padding: 'var(--spacing-06) var(--spacing-125)', justifyContent: 'center', opacity: 0.8 }}
+        >
+          <X size={18} />
+          <span>Dismiss</span>
+        </Button>
+      </div>
+    </Modal>
   );
 };

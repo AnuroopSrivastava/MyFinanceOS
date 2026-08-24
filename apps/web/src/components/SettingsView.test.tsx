@@ -14,6 +14,10 @@ beforeAll(() => {
 // Mock database service
 vi.mock('@financeos/database', () => ({
   dbService: {
+    getAuditLogs: () => [],
+    subscribe: () => () => {},
+    onUnsavedChangeStatus: () => () => {},
+    onSaveErrorStatus: () => () => {},
     getSettings: () => ({
       theme: 'dark',
       currency: 'INR',
@@ -40,7 +44,7 @@ describe('SettingsView Diagnostics', () => {
     const mockOnChange = vi.fn();
     render(<SettingsView activeProfileId="p1" onActiveProfileChange={mockOnChange} />);
 
-    expect(screen.getByText(/System Configuration & Security/i)).toBeTruthy();
+    expect(screen.getByText(/System Settings/i)).toBeTruthy();
     expect(screen.getByText(/Appearance & Theme Engine/i)).toBeTruthy();
     expect(screen.getByText(/Business & GSTIN Profile/i)).toBeTruthy();
     expect(screen.getByText(/Offline Data Backup & Vault/i)).toBeTruthy();

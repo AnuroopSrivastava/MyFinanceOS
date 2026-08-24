@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { dbService } from '@financeos/database';
 import { useDbSyncCallback } from '../hooks/useDbSync.js';
-import { setTheme, AppTheme } from '@financeos/ui';
-import { UserProfile, AuditLog, SystemSettings } from '@financeos/shared';
+import { setTheme, AppTheme, Button, Modal, SectionHeader, Badge, StatusBadge, FormField, IconInput, FileDropzone, FormRow, FormActions } from '@financeos/ui';
+import { UserProfile, AuditLog, SystemSettings, createPinHash, downloadBlob, todayStamp } from '@financeos/shared';
 import { ImageCropperModal } from './ImageCropperModal.js';
+import { ConfirmModal, useConfirmModal } from './ConfirmModal.js';
 import {
   Settings, Users, Shield, Download, Upload,
   Trash2, Plus, Sliders, CheckCircle2, AlertTriangle,
@@ -28,6 +29,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
   const [isSavedBusiness, setIsSavedBusiness] = useState(false);
 
   // Add profile States
+  const { modal: confirmModal, openConfirm, closeConfirm } = useConfirmModal();
   const [showAddProfile, setShowAddProfile] = useState(false);
   const [newProfName, setNewProfName] = useState('');
   const [newProfRole, setNewProfRole] = useState<'Admin' | 'Member' | 'Viewer'>('Member');
@@ -35,6 +37,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
   const [newProfNominee, setNewProfNominee] = useState(false);
   const [newProfPin, setNewProfPin] = useState('');
   const [newProfAvatar, setNewProfAvatar] = useState('');
+  const [addProfError, setAddProfError] = useState<string | null>(null);
 
   // Edit profile States
   const [editingProfile, setEditingProfile] = useState<UserProfile | null>(null);
@@ -43,7 +46,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
   const [editProfRel, setEditProfRel] = useState('Spouse');
   const [editProfNominee, setEditProfNominee] = useState(false);
   const [editProfPin, setEditProfPin] = useState('');
+  const [removeExistingPin, setRemoveExistingPin] = useState(false);
   const [editProfAvatar, setEditProfAvatar] = useState('');
+  const [editProfError, setEditProfError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   // Image Cropper State
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
@@ -54,11 +61,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
   const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [showRestoreBox, setShowRestoreBox] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showAdminDeleteWarning, setShowAdminDeleteWarning] = useState(false);
 
-  const refreshData = () => {
+  const refreshData = React.useCallback(() => {
     setProfiles(dbService.getProfiles());
     setSettings(dbService.getSettings());
-  };
+  }, []);
 
   useDbSyncCallback(refreshData);
 
@@ -74,8 +82,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setImageError(null);
     if (file.size > 5 * 1024 * 1024) {
-      alert("Image size must be less than 5MB");
+      setImageError("Image size must be less than 5MB");
       return;
     }
 
@@ -111,20 +120,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
     setTimeout(() => setIsSavedBusiness(false), 3500);
   };
 
-  const handleAddProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddProfile = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setAddProfError(null);
     if (!newProfName.trim()) {
-      alert("Please enter a profile name.");
+      setAddProfError("Please enter a profile name.");
       return;
     }
 
     try {
+      const pinHash = newProfPin ? await createPinHash(newProfPin) : undefined;
       await dbService.addProfile({
         name: newProfName.trim(),
         role: newProfRole,
         relationship: newProfRel,
         isNomineeProvided: newProfNominee,
-        pin: newProfPin || undefined,
+        pinHash,
         avatar: newProfAvatar || undefined
       });
 
@@ -135,34 +146,86 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
       refreshData();
     } catch (err: any) {
       console.error('Failed to add profile:', err);
-      alert('Error adding profile: ' + (err?.message || 'Unknown error'));
+      setAddProfError('Error adding profile: ' + (err?.message || 'Unknown error'));
     }
   };
 
+  const handleOpenEditProfile = (p: UserProfile) => {
+    setEditingProfile(p);
+    setEditProfName(p.name);
+    setEditProfRole(p.role);
+    setEditProfRel(p.relationship || 'Self');
+    setEditProfNominee(Boolean(p.isNomineeProvided));
+    setEditProfPin('');
+    setRemoveExistingPin(false);
+    setEditProfAvatar(p.avatar || '');
+    setEditProfError(null);
+  };
 
+  const handleSaveEditProfile = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setEditProfError(null);
+    if (!editingProfile) {
+      setEditProfError("No profile is currently selected for editing.");
+      return;
+    }
+    if (!editProfName.trim()) {
+      setEditProfError("Profile name cannot be empty.");
+      return;
+    }
+    try {
+      let pinHash = editingProfile.pinHash;
+      if (removeExistingPin) {
+        pinHash = undefined;
+      } else if (editProfPin.trim()) {
+        pinHash = await createPinHash(editProfPin.trim());
+      }
+      await dbService.updateProfile(editingProfile.id, {
+        name: editProfName.trim(),
+        role: editProfRole,
+        relationship: editProfRel,
+        isNomineeProvided: editProfNominee,
+        pinHash,
+        avatar: editProfAvatar || undefined
+      });
+      setEditingProfile(null);
+      refreshData();
+      onActiveProfileChange(activeProfileId);
+    } catch (err: any) {
+      console.error('Failed to save profile changes:', err);
+      setEditProfError('Error saving changes: ' + (err?.message || JSON.stringify(err)));
+    }
+  };
 
   const handleDeleteProfile = async (profileId: string) => {
-    const profile = profiles.find(p => p.id === profileId);
+    const currentProfiles = dbService.getProfiles();
+    const profile = profiles.find(p => p.id === profileId) || currentProfiles.find(p => p.id === profileId);
     if (!profile) return;
 
-    if (profile.role === 'Admin' && profiles.filter(p => p.role === 'Admin').length <= 1) {
-      alert('Cannot delete the only Admin profile. At least one Admin profile must exist.');
+    const adminCount = currentProfiles.filter(p => p.role === 'Admin').length;
+    if (profile.role === 'Admin' && adminCount <= 1) {
+      setShowAdminDeleteWarning(true);
       return;
     }
 
-    if (confirm(`Are you sure you want to delete profile "${profile.name}"? This will irreversibly delete ALL their personal finance data (accounts, transactions, investments, budgets).`)) {
-      await dbService.deleteProfile(profileId);
-
-      if (activeProfileId === profileId) {
+    openConfirm({
+      title: 'Delete Profile',
+      message: `Permanently delete profile "${profile.name}"? This will irreversibly delete all personal finance records linked to this profile.`,
+      confirmLabel: 'Delete Profile',
+      isDanger: true,
+      onConfirm: async () => {
+        await dbService.deleteProfile(profileId);
         const remaining = dbService.getProfiles();
-        if (remaining.length > 0) {
-          onActiveProfileChange(remaining[0].id);
-        } else {
-          onActiveProfileChange('');
+        if (activeProfileId === profileId) {
+          if (remaining.length > 0) {
+            onActiveProfileChange(remaining[0].id);
+          } else {
+            onActiveProfileChange('');
+          }
         }
+        refreshData();
       }
-      refreshData();
-    }
+    });
   };
 
   const handleResetDatabase = async () => {
@@ -173,17 +236,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
   // Backups: Download database JSON
   const handleExportBackup = () => {
     try {
+      setExportError(null);
       const dataStr = dbService.getRawDb();
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `financeos_vault_backup_${new Date().toISOString().split('T')[0]}.json`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      downloadBlob(
+        `financeos_vault_backup_${todayStamp()}.json`,
+        new Blob([dataStr], { type: 'application/json' })
+      );
     } catch (e) {
-      alert('Failed to export backup.');
+      setExportError('Failed to export backup file.');
     }
   };
 
@@ -213,128 +273,83 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
   ];
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', paddingBottom: '4rem' }}>
+    <div className="gap-stack-25 animate-fade-in" style={{ paddingBottom: 'var(--spacing-30)' }}>
 
       {/* Page Header Banner */}
-      <div className="glass-panel" style={{
-        padding: '2.5rem 3rem',
-        borderRadius: '1.5rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '2rem',
-        background: 'var(--header-banner-grad)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
-            background: 'var(--accent-grad)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 14px hsla(220, 80%, 50%, 0.25)',
-            flexShrink: 0
-          }}>
-            <Settings size={22} color="#ffffff" />
+      <SectionHeader
+        variant="banner"
+        icon={<Settings />}
+        title="System Settings & Configuration"
+        description="Manage visual themes, organizational details, profile privileges, backups, and security activity."
+        action={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-075)', flexWrap: 'wrap' }}>
+            <Badge variant="success" size="md">
+              <ShieldCheck size={14} />
+              <span>AES-256 Offline Vault</span>
+            </Badge>
+            <Badge variant="cyan" size="md">
+              <Users size={14} />
+              <span>{profiles.length} Profiles Active</span>
+            </Badge>
           </div>
-          <div>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
-              System Configuration & Security
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '0.25rem', margin: 0, lineHeight: 1.5 }}>
-              Manage visual themes, organizational details, profile privileges, backups, and security activity.
-            </p>
-          </div>
-        </div>
-
-        {/* Quick System Stats Badges */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.5rem 1rem',
-            borderRadius: '2rem',
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            fontSize: '0.85rem',
-            fontWeight: 500,
-            color: 'var(--text-secondary)',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-          }}>
-            <ShieldCheck size={16} color="var(--success)" />
-            <span>AES-256 Offline Vault</span>
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.5rem 1rem',
-            borderRadius: '2rem',
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            fontSize: '0.85rem',
-            fontWeight: 500,
-            color: 'var(--text-secondary)',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-          }}>
-            <Users size={14} color="var(--accent-1)" />
-            <span>{profiles.length} Profiles Active</span>
-          </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Main Responsive Grid Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2.5rem' }} className="responsive-stack">
+      <div className="card-grid-lg responsive-stack" style={{ gridTemplateColumns: '1.2fr 1fr' }}>
 
         {/* LEFT COLUMN: Appearance, Business Info & Disaster Recovery */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+        <div className="gap-stack-25">
 
           {/* Theme Customizer Card */}
-          <div className="glass-panel" style={{ padding: '2rem', borderRadius: 'var(--radius-lg)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.75rem', fontFamily: 'var(--font-display)', margin: 0 }}>
+          <div className="glass-panel" style={{ padding: 'var(--spacing-2)', borderRadius: 'var(--radius-lg)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-1)' }}>
+              <h3 style={{ fontSize: 'var(--font-xl)', fontWeight: 'var(--fw-heavy)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-075)', fontFamily: 'var(--font-display)', margin: 0 }}>
                 <Sliders size={20} color="var(--accent-1)" /> Appearance & Theme Engine
               </h3>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, background: 'rgba(255,255,255,0.05)', padding: '0.3rem 0.75rem', borderRadius: '1rem' }}>
+              <span style={{ fontSize: 'var(--font-sm)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 'var(--fw-heavy)', background: 'var(--border-subtle)', padding: 'var(--spacing-04) var(--spacing-075)', borderRadius: 'var(--radius-md)' }}>
                 5 Presets Available
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
+            <div role="radiogroup" aria-label="Visual Themes" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--spacing-1)' }}>
               {themeOptions.map(t => {
                 const isActive = settings.theme === t.id;
                 return (
                   <button
                     key={t.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={isActive}
+                    aria-label={`Select ${t.label} theme`}
                     className="btn"
-                    onPointerDown={() => handleThemeChange(t.id)}
+                    onClick={() => handleThemeChange(t.id)}
                     style={{
-                      padding: '1rem',
+                      padding: 'var(--spacing-1)',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'flex-start',
                       justifyContent: 'space-between',
                       borderRadius: 'var(--radius-md)',
-                      border: isActive ? `1.5px solid ${t.color}` : '1px solid var(--border-color)',
-                      background: isActive ? `${t.color}15` : 'rgba(255,255,255,0.02)',
+                      borderLeft: isActive ? `1.5px solid ${t.color}` : '1px solid var(--border-color)',
+                      borderRight: isActive ? `1.5px solid ${t.color}` : '1px solid var(--border-color)',
+                      borderBottom: isActive ? `1.5px solid ${t.color}` : '1px solid var(--border-color)',
+                      borderTop: isActive ? `1.5px solid ${t.color}` : 'var(--neo-bevel-top)',
+                      background: 'var(--bg-panel)',
+                      backgroundImage: 'var(--neo-convex-grad)',
                       color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      boxShadow: isActive ? `0 0 14px ${t.color}25` : 'none',
+                      boxShadow: isActive ? `var(--neo-raised-sm), 0 0 14px ${t.color}35` : 'var(--neo-raised-sm)',
                       transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                       textAlign: 'left',
                       position: 'relative',
-                      minHeight: '80px'
+                      minHeight: '100px',
+                      cursor: 'pointer'
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                       <div style={{
-                        width: '14px',
-                        height: '14px',
+                        width: 'var(--spacing-075)',
+                        height: 'var(--spacing-075)',
                         borderRadius: '50%',
                         background: t.color,
                         boxShadow: `0 0 8px ${t.color}`,
@@ -343,11 +358,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                       {isActive && <CheckCircle2 size={15} color={t.color} />}
                     </div>
 
-                    <div style={{ marginTop: '0.5rem' }}>
-                      <div style={{ fontSize: '0.82rem', fontWeight: isActive ? 700 : 500, color: 'var(--text-primary)' }}>
+                    <div style={{ marginTop: 'var(--spacing-05)' }}>
+                      <div style={{ fontSize: 'var(--font-sm)', fontWeight: isActive ? 700 : 500, color: 'var(--text-primary)' }}>
                         {t.label}
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }}>
                         {t.tag}
                       </div>
                     </div>
@@ -358,69 +373,54 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
           </div>
 
           {/* Business & Invoicing Details Card */}
-          <div className="glass-panel" style={{ padding: '2rem', borderRadius: 'var(--radius-lg)' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontFamily: 'var(--font-display)', margin: 0 }}>
+          <div className="glass-panel" style={{ padding: 'var(--spacing-2)', borderRadius: 'var(--radius-lg)' }}>
+            <h3 style={{ fontSize: 'var(--font-xl)', fontWeight: 'var(--fw-heavy)', marginBottom: 'var(--spacing-05)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-075)', fontFamily: 'var(--font-display)', margin: 0 }}>
               <Building2 size={20} color="var(--accent-1)" /> Business & GSTIN Profile
             </h3>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', marginTop: '0.5rem', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 'var(--font-base)', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-15)', marginTop: 'var(--spacing-05)', lineHeight: 1.5 }}>
               Organizational info used to generate client invoices and tax reports.
             </p>
 
-            <form onSubmit={handleSaveBusinessSettings} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)' }}>
-                  Registered Entity / Business Name
-                </label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <Building2 size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem' }} />
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={businessName}
-                    onChange={(e) => setBusinessName(e.target.value)}
-                    placeholder="e.g. Acme Financial Technologies Pvt Ltd"
-                    required
-                    style={{ paddingLeft: '2.5rem', fontSize: '0.88rem' }}
-                  />
-                </div>
-              </div>
+            <form onSubmit={handleSaveBusinessSettings} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)' }}>
+              <IconInput
+                id="business-entity-name"
+                icon={<Building2 />}
+                label="Registered Entity / Business Name"
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                placeholder="e.g. Acme Financial Technologies Pvt Ltd"
+                required
+              />
 
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)' }}>
-                  GSTIN Registration Number
-                </label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <FileText size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem' }} />
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={businessGSTIN}
-                    onChange={(e) => setBusinessGSTIN(e.target.value.toUpperCase())}
-                    placeholder="e.g. 27AAAAA0000A1Z5"
-                    required
-                    style={{ paddingLeft: '2.5rem', fontSize: '0.88rem', letterSpacing: '0.03em', fontFamily: 'monospace' }}
-                  />
-                </div>
-              </div>
+              <IconInput
+                id="business-gstin-number"
+                icon={<FileText />}
+                label="GSTIN Registration Number"
+                value={businessGSTIN}
+                onChange={(e) => setBusinessGSTIN(e.target.value.toUpperCase())}
+                placeholder="e.g. 27AAAAA0000A1Z5"
+                required
+                style={{ letterSpacing: '0.03em', fontFamily: 'monospace' }}
+              />
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginTop: '0.2rem' }}>
-                <button
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-08)', marginTop: 'var(--spacing-02)' }}>
+                <Button
                   type="submit"
-                  className="btn btn-primary"
+                  variant="primary"
                   style={{
-                    padding: '0.6rem 1.25rem',
-                    fontSize: '0.85rem',
+                    padding: 'var(--spacing-06) var(--spacing-125)',
+                    fontSize: 'var(--font-sm)',
                     borderRadius: 'var(--radius-sm)',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.5rem'
+                    gap: 'var(--spacing-05)'
                   }}
                 >
                   <Save size={15} /> Save Business Profile
-                </button>
+                </Button>
 
                 {isSavedBusiness && (
-                  <span style={{ fontSize: '0.78rem', color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600 }}>
+                  <span style={{ fontSize: 'var(--font-xs)', color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-04)', fontWeight: 'var(--fw-semibold)' }}>
                     <CheckCircle2 size={15} /> Updated successfully
                   </span>
                 )}
@@ -429,37 +429,37 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
           </div>
 
           {/* Backup, Restore & Danger Zone Card */}
-          <div className="glass-panel" style={{ padding: '2rem', borderRadius: 'var(--radius-lg)' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontFamily: 'var(--font-display)', margin: 0 }}>
+          <div className="glass-panel" style={{ padding: 'var(--spacing-2)', borderRadius: 'var(--radius-lg)' }}>
+            <h3 style={{ fontSize: 'var(--font-xl)', fontWeight: 'var(--fw-heavy)', marginBottom: 'var(--spacing-05)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-075)', fontFamily: 'var(--font-display)', margin: 0 }}>
               <Database size={20} color="var(--accent-2)" /> Offline Data Backup & Vault
             </h3>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '1.1rem', marginTop: '0.2rem' }}>
+            <p style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-1)', marginTop: 'var(--spacing-02)' }}>
               Create encrypted offline backups or import external snapshot data.
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-085)' }}>
 
               {/* Export Button */}
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '0.85rem 1rem',
-                background: 'rgba(255,255,255,0.02)',
+                padding: 'var(--spacing-085) var(--spacing-1)',
+                background: 'var(--surface-faint)',
                 border: '1px solid var(--border-color)',
                 borderRadius: 'var(--radius-sm)'
               }}>
                 <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>Export Database (.JSON)</div>
-                  <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>Snapshot of all ledgers, accounts, portfolios & logs</div>
+                  <div style={{ fontSize: 'var(--font-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-primary)' }}>Export Database (.JSON)</div>
+                  <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }}>Snapshot of all ledgers, accounts, portfolios & logs</div>
                 </div>
-                <button
-                  className="btn btn-secondary"
-                  onPointerDown={handleExportBackup}
-                  style={{ padding: '0.5rem 0.9rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}
+                <Button
+                  variant="secondary"
+                  onClick={handleExportBackup}
+                  style={{ padding: 'var(--spacing-05) var(--spacing-09)', fontSize: 'var(--font-sm)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)', whiteSpace: 'nowrap' }}
                 >
                   <Download size={14} /> Download Backup
-                </button>
+                </Button>
               </div>
 
               {/* Restore Toggle Button */}
@@ -467,68 +467,82 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '0.85rem 1rem',
-                background: 'rgba(255,255,255,0.02)',
+                padding: 'var(--spacing-085) var(--spacing-1)',
+                background: 'var(--surface-faint)',
                 border: '1px solid var(--border-color)',
                 borderRadius: 'var(--radius-sm)'
               }}>
                 <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>Restore Database Vault</div>
-                  <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>Paste JSON payload to restore system state</div>
+                  <div style={{ fontSize: 'var(--font-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-primary)' }}>Restore Database Vault</div>
+                  <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }}>Paste JSON payload to restore system state</div>
                 </div>
-                <button
-                  className="btn btn-secondary"
-                  onPointerDown={() => setShowRestoreBox(prev => !prev)}
-                  style={{ padding: '0.5rem 0.9rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowRestoreBox(prev => !prev)}
+                  style={{ padding: 'var(--spacing-05) var(--spacing-09)', fontSize: 'var(--font-sm)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)', whiteSpace: 'nowrap' }}
                 >
                   <Upload size={14} /> {showRestoreBox ? 'Hide Panel' : 'Restore Data'}
-                </button>
+                </Button>
               </div>
 
               {/* Restore Form Box */}
               {showRestoreBox && (
                 <form onSubmit={handleImportBackup} className="animate-fade-in" style={{
-                  padding: '1rem',
-                  background: 'rgba(15, 23, 42, 0.6)',
+                  padding: 'var(--spacing-1)',
+                  background: 'var(--overlay-scrim)',
                   border: '1px solid var(--border-color)',
                   borderRadius: 'var(--radius-sm)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '0.75rem'
+                  gap: 'var(--spacing-075)'
                 }}>
-                  <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0 }}>
-                    Paste Raw Backup JSON Content
+                  <FileDropzone
+                    accept=".json"
+                    label="Upload Backup JSON File"
+                    sublabel="Drag & drop exported backup .json file or click to browse"
+                    variant="compact"
+                    onFileSelect={(file) => {
+                      const reader = new FileReader();
+                      reader.onload = (e) => {
+                        const content = e.target?.result as string;
+                        if (content) setBackupJson(content);
+                      };
+                      reader.readAsText(file);
+                    }}
+                  />
+                  <label className="form-label" style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', margin: 0 }}>
+                    — OR Paste Raw Backup JSON Content —
                   </label>
                   <textarea
                     className="form-input"
-                    style={{ height: '90px', fontSize: '0.76rem', fontFamily: 'monospace', resize: 'vertical' }}
+                    style={{ height: '90px', fontSize: 'var(--font-xs)', fontFamily: 'monospace', resize: 'vertical' }}
                     placeholder='{"settings":{...},"profiles":[...]}'
                     value={backupJson}
                     onChange={(e) => setBackupJson(e.target.value)}
                     required
                   />
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                    <button
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-05)' }}>
+                    <Button
                       type="submit"
-                      className="btn btn-primary"
-                      style={{ padding: '0.45rem 1rem', fontSize: '0.8rem' }}
+                      variant="primary"
+                      style={{ padding: 'var(--spacing-04) var(--spacing-1)', fontSize: 'var(--font-sm)' }}
                     >
-                      <Upload size={13} /> Confirm & Overwrite DB
-                    </button>
+                      <Upload size={13} /> Confirm &amp; Restore Backup
+                    </Button>
                   </div>
                 </form>
               )}
 
               {importStatus && (
                 <div style={{
-                  padding: '0.65rem 0.85rem',
+                  padding: 'var(--spacing-06) var(--spacing-085)',
                   borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.78rem',
+                  fontSize: 'var(--font-xs)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
+                  gap: 'var(--spacing-05)',
                   background: importStatus.type === 'success' ? 'var(--success-bg)' : 'var(--error-bg)',
-                  border: importStatus.type === 'success' ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(239,68,68,0.3)',
+                  border: importStatus.type === 'success' ? '1px solid var(--status-paid-border)' : '1px solid var(--status-overdue-border)',
                   color: importStatus.type === 'success' ? 'var(--success)' : 'var(--error)'
                 }}>
                   {importStatus.type === 'success' ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
@@ -538,41 +552,38 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
 
               {/* Danger Zone */}
               <div style={{
-                marginTop: '0.5rem',
-                padding: '1rem',
-                background: 'rgba(239, 68, 68, 0.04)',
-                border: '1px solid rgba(239, 68, 68, 0.2)',
+                marginTop: 'var(--spacing-05)',
+                padding: 'var(--spacing-1)',
+                background: 'var(--status-overdue-bg)',
+                border: '1px solid var(--status-overdue-border)',
                 borderRadius: 'var(--radius-sm)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '1rem',
+                gap: 'var(--spacing-1)',
                 flexWrap: 'wrap'
               }}>
                 <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--error)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <AlertTriangle size={15} /> Danger Zone: Factory System Reset
+                  <div style={{ fontSize: 'var(--font-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--error)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)' }}>
+                    <AlertTriangle size={15} /> Factory System Reset
                   </div>
-                  <div style={{ fontSize: '0.73rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                    Wipes all local profiles, encryption keys, accounts, and journal entries.
+                  <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', marginTop: 'var(--spacing-02)' }}>
+                    Permanently erases all local profiles, encryption keys, accounts, and financial records from this browser.
                   </div>
                 </div>
 
-                <button
-                  className="btn"
-                  onPointerDown={() => setShowResetConfirm(true)}
+                <Button
+                  variant="danger"
+                  onClick={() => setShowResetConfirm(true)}
                   style={{
-                    background: 'rgba(239, 68, 68, 0.12)',
-                    color: 'var(--error)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    padding: '0.45rem 0.9rem',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
+                    padding: 'var(--spacing-04) var(--spacing-09)',
+                    fontSize: 'var(--font-sm)',
+                    fontWeight: 'var(--fw-semibold)',
                     whiteSpace: 'nowrap'
                   }}
                 >
-                  <Trash2 size={14} /> Wipe All Data
-                </button>
+                  <Trash2 size={14} /> Reset All Data
+                </Button>
               </div>
 
             </div>
@@ -581,192 +592,151 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
         </div>
 
         {/* RIGHT COLUMN: Profiles Registry & Audit Security Logs */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+        <div className="gap-stack-25">
 
           {/* Family Profiles & Nominees Registry Card */}
-          <div className="glass-panel" style={{ padding: '2rem', borderRadius: 'var(--radius-lg)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-2)', borderRadius: 'var(--radius-lg)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-2)', flexWrap: 'wrap', gap: 'var(--spacing-1)' }}>
               <div>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.75rem', fontFamily: 'var(--font-display)', margin: 0 }}>
+                <h3 style={{ fontSize: 'var(--font-xl)', fontWeight: 'var(--fw-heavy)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-075)', fontFamily: 'var(--font-display)', margin: 0 }}>
                   <Users size={22} color="var(--accent-1)" /> Profiles & Access Registry
                 </h3>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: '0.5rem 0 0 2.25rem', lineHeight: 1.5 }}>
+                <p style={{ fontSize: 'var(--font-base)', color: 'var(--text-secondary)', margin: 'var(--spacing-05) 0 0 var(--spacing-125)', lineHeight: 1.5 }}>
                   Manage family members, nominee mappings, and passcode protection.
                 </p>
               </div>
 
-              <button
-                className="btn btn-primary"
-                onPointerDown={() => setShowAddProfile(true)}
-                style={{ padding: '0.75rem 1.25rem', fontSize: '0.95rem', borderRadius: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)' }}
+              <Button
+                variant="primary"
+                onClick={() => setShowAddProfile(true)}
+                style={{ padding: 'var(--spacing-075) var(--spacing-125)', fontSize: 'var(--font-base)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)', fontWeight: 'var(--fw-semibold)' }}
               >
                 <Plus size={16} /> Add Profile
-              </button>
+              </Button>
             </div>
 
             {/* Profiles List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}>
               {profiles.map(p => {
                 const isAdmin = p.role === 'Admin';
                 const isCurrentSession = p.id === activeProfileId;
 
                 return (
-                  <div key={p.id} style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '1.25rem 1.5rem',
-                    background: isCurrentSession ? 'rgba(59, 130, 246, 0.08)' : 'rgba(255,255,255,0.02)',
-                    border: isCurrentSession ? '1px solid var(--accent-1)' : '1px solid rgba(255,255,255,0.05)',
-                    borderRadius: 'var(--radius-lg)',
-                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                    gap: '1.25rem',
-                    flexWrap: 'wrap',
-                    boxShadow: isCurrentSession ? '0 0 20px rgba(59, 130, 246, 0.1)' : 'none'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: '1 1 220px', minWidth: 0 }}>
-                      <div style={{
-                        width: '42px',
-                        height: '42px',
-                        borderRadius: '50%',
-                        background: 'var(--accent-grad)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#ffffff',
-                        fontWeight: 700,
-                        fontSize: '1rem',
-                        flexShrink: 0,
-                        boxShadow: '0 4px 12px rgba(6, 182, 212, 0.3)',
-                        overflow: 'hidden'
-                      }}>
+                  <div
+                    key={p.id}
+                    data-interactive-card="off"
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: 'var(--spacing-1) var(--spacing-125)',
+                      background: isCurrentSession ? 'var(--accent-soft)' : 'var(--surface-faint)',
+                      border: isCurrentSession ? '1px solid var(--accent-1)' : '1px solid var(--border-color)',
+                      borderRadius: 'var(--radius-lg)',
+                      gap: 'var(--spacing-1)',
+                      boxShadow: isCurrentSession ? '0 0 16px var(--border-color-glow)' : 'none',
+                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-1)', minWidth: 0, flex: '1 1 auto' }}>
+                      {/* Avatar with theme-adaptive border & glow */}
+                      <div
+                        style={{
+                          width: '48px',
+                          height: '48px',
+                          minWidth: '48px',
+                          minHeight: '48px',
+                          borderRadius: '50%',
+                          background: 'var(--accent-grad)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--text-on-action)',
+                          fontWeight: 'var(--fw-heavy)',
+                          fontSize: 'var(--font-md)',
+                          flexShrink: 0,
+                          boxShadow: isCurrentSession
+                            ? '0 0 0 2px var(--accent-1), 0 0 14px var(--accent-1)'
+                            : '0 0 0 2px var(--border-color)',
+                          overflow: 'hidden',
+                        }}
+                      >
                         {p.avatar ? (
-                          <img src={p.avatar} alt={p.name || 'User'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img
+                            src={p.avatar}
+                            alt={p.name || 'User'}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
                         ) : (
                           (p.name || 'User').charAt(0).toUpperCase()
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                      {/* Name & Metadata */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-035)', minWidth: 0 }}>
+                        {/* Name & Relation */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 'var(--fw-heavy)', fontSize: 'var(--font-base)', color: 'var(--text-primary)', letterSpacing: 'var(--ls-tight)' }}>
                             {p.name || 'Unnamed Profile'}
                           </span>
-                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                          <span style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)', fontWeight: 'var(--fw-medium)' }}>
                             ({p.relationship || 'Self'})
                           </span>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                        {/* Badges Row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)', flexWrap: 'wrap' }}>
                           {isCurrentSession && (
-                            <span style={{ fontSize: '0.7rem', background: 'var(--accent-1)', color: '#fff', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontWeight: 650 }}>
-                              Active
-                            </span>
+                            <StatusBadge status="active" label="Active" />
                           )}
-                          <span style={{
-                            fontSize: '0.7rem',
-                            fontWeight: 600,
-                            padding: '0.15rem 0.5rem',
-                            borderRadius: '0.4rem',
-                            background: isAdmin ? 'rgba(168, 85, 247, 0.15)' : 'rgba(255,255,255,0.06)',
-                            color: isAdmin ? '#c084fc' : 'var(--text-secondary)'
-                          }}>
+                          <Badge variant={isAdmin ? 'indigo' : 'default'} size="sm">
                             {p.role}
-                          </span>
+                          </Badge>
                           {p.isNomineeProvided ? (
-                            <span style={{
-                              fontSize: '0.7rem',
-                              color: 'var(--success)',
-                              fontWeight: 600,
-                              background: 'var(--success-bg)',
-                              padding: '0.15rem 0.5rem',
-                              borderRadius: '0.4rem',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.25rem'
-                            }}>
-                              <ShieldCheck size={11} /> Nominee
-                            </span>
+                            <StatusBadge status="nominee" />
                           ) : (
-                            <span style={{
-                              fontSize: '0.7rem',
-                              color: 'var(--warning)',
-                              fontWeight: 600,
-                              background: 'var(--warning-bg)',
-                              padding: '0.15rem 0.5rem',
-                              borderRadius: '0.4rem',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.25rem'
-                            }}>
-                              <AlertTriangle size={11} /> No Nominee
-                            </span>
+                            <StatusBadge status="warning" label="No Nominee" />
                           )}
-                          {p.pin ? (
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                          {p.pinHash ? (
+                            <Badge variant="default" size="sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-02)' }}>
                               <Lock size={11} /> PIN Protected
-                            </span>
+                            </Badge>
                           ) : null}
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                      <button
+                    {/* Right: Theme-Aware Buttons */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)', flexShrink: 0 }}>
+                      <Button
                         type="button"
-                        className="btn"
-                        onPointerDown={() => {
-                          setEditingProfile(p);
-                          setEditProfName(p.name);
-                          setEditProfRole(p.role);
-                          setEditProfRel(p.relationship || 'Self');
-                          setEditProfNominee(p.isNomineeProvided);
-                          setEditProfPin(p.pin || '');
-                          setEditProfAvatar(p.avatar || '');
-                        }}
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleOpenEditProfile(p)}
                         style={{
-                          background: 'rgba(255,255,255,0.05)',
-                          border: '1px solid var(--border-color)',
-                          color: 'var(--text-primary)',
-                          padding: '0.35rem 0.75rem',
-                          fontSize: '0.75rem',
-                          borderRadius: '1.5rem',
-                          display: 'flex',
+                          display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '0.35rem',
-                          transition: 'all 0.2s ease',
-                          cursor: 'pointer'
+                          gap: 'var(--spacing-035)',
                         }}
-                        onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.transform = 'scale(1)'; }}
                         title="Edit Profile"
                       >
                         <Settings size={14} /> Edit
-                      </button>
+                      </Button>
 
-                      <button
+                      <Button
                         type="button"
-                        className="btn"
-                        onPointerDown={() => handleDeleteProfile(p.id)}
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDeleteProfile(p.id)}
                         style={{
-                          background: 'rgba(239, 68, 68, 0.1)',
-                          border: '1px solid rgba(239, 68, 68, 0.2)',
-                          color: 'var(--error)',
-                          padding: '0.35rem 0.75rem',
-                          fontSize: '0.75rem',
-                          borderRadius: '1.5rem',
-                          display: 'flex',
+                          display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '0.35rem',
-                          transition: 'all 0.2s ease',
-                          cursor: 'pointer'
+                          gap: 'var(--spacing-035)',
                         }}
-                        onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; e.currentTarget.style.transform = 'scale(1)'; }}
                         title="Delete Profile"
                       >
                         <Trash2 size={14} /> Remove
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 );
@@ -781,249 +751,218 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
       </div>
 
       {/* DIALOG MODAL: Add Profile */}
-      {showAddProfile && createPortal(
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)',
-          backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem'
-        }}>
-          <div className="glass-panel animate-fade-in" style={{
-            width: '100%', maxWidth: '420px', padding: '1.5rem', borderRadius: '1.25rem',
-            border: '1px solid var(--border-color)', background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.98) 100%)',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-display)' }}>
-                Add Family Profile
-              </h3>
-              <button
-                onPointerDown={() => setShowAddProfile(false)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-              >
-                <X size={18} />
-              </button>
+      {showAddProfile && (
+        <Modal
+          isOpen={showAddProfile}
+          onClose={() => setShowAddProfile(false)}
+          title="Add Family Profile"
+          size="md"
+        >
+        <form onSubmit={handleAddProfile} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-075)' }}>
+          {addProfError && (
+            <div style={{ padding: 'var(--spacing-04) var(--spacing-06)', background: 'var(--error-bg)', color: 'var(--error)', border: '1px solid var(--error)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-xs)' }}>
+              {addProfError}
             </div>
+          )}
+          <FormField label="Full Name" style={{ margin: 0 }}>
+            <input
+              type="text"
+              className="form-input"
+              value={newProfName}
+              onChange={(e) => setNewProfName(e.target.value)}
+              placeholder="e.g. Rahul Sharma"
+              required
+              style={{ width: '100%', fontSize: 'var(--font-sm)' }}
+            />
+          </FormField>
 
-            <form onSubmit={handleAddProfile} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Full Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={newProfName}
-                  onChange={(e) => setNewProfName(e.target.value)}
-                  placeholder="e.g. Rahul Sharma"
-                  required
-                  style={{ width: '100%', fontSize: '0.85rem' }}
-                />
-              </div>
-
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Profile Picture (Optional)</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{
-                    width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-                    border: '1px solid var(--border-color)'
-                  }}>
-                    {newProfAvatar ? (
-                      <img src={newProfAvatar} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <Users size={20} color="var(--text-muted)" />
-                    )}
-                  </div>
-                  <div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      id="addProfAvatarInput"
-                      style={{ display: 'none' }}
-                      onChange={(e) => handleImageUpload(e, setNewProfAvatar)}
-                    />
-                    <label
-                      htmlFor="addProfAvatarInput"
-                      className="btn btn-secondary"
-                      style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-                    >
-                      <Upload size={14} /> Upload Image
-                    </label>
-                  </div>
-                  {newProfAvatar && (
-                    <button
-                      type="button"
-                      onPointerDown={() => setNewProfAvatar('')}
-                      style={{ background: 'transparent', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center' }}
-                      title="Remove Image"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Relationship</label>
-                  <select
-                    className="form-input"
-                    value={newProfRel}
-                    onChange={(e) => setNewProfRel(e.target.value)}
-                    style={{ width: '100%', fontSize: '0.85rem' }}
-                  >
-                    <option value="Self">Self</option>
-                    <option value="Spouse">Spouse</option>
-                    <option value="Child">Child</option>
-                    <option value="Parent">Parent</option>
-                    <option value="Sibling">Sibling</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Access Role</label>
-                  <select
-                    className="form-input"
-                    value={newProfRole}
-                    onChange={(e) => setNewProfRole(e.target.value as any)}
-                    style={{ width: '100%', fontSize: '0.85rem' }}
-                  >
-                    <option value="Member">Member (Read & Write)</option>
-                    <option value="Viewer">Viewer (Read-only)</option>
-                    <option value="Admin">Admin (Full access)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Passcode PIN (Optional 4 digits)</label>
-                <input
-                  type="password"
-                  className="form-input"
-                  value={newProfPin}
-                  onChange={(e) => {
-                    if (/^\d*$/.test(e.target.value) && e.target.value.length <= 4) {
-                      setNewProfPin(e.target.value);
-                    }
-                  }}
-                  placeholder="â€¢â€¢â€¢â€¢"
-                  style={{ width: '100%', fontSize: '0.85rem' }}
-                />
-              </div>
-
+          <FormField label="Profile Picture (Optional)" style={{ margin: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-075)' }}>
               <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.6rem',
-                padding: '0.65rem 0.85rem',
-                background: 'rgba(255,255,255,0.03)',
+                width: '48px',
+                height: '48px',
+                minWidth: '48px',
+                minHeight: '48px',
+                borderRadius: '50%', background: 'var(--border-subtle)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
                 border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-sm)',
-                cursor: 'pointer'
-              }} onClick={() => setNewProfNominee(!newProfNominee)}>
+                flexShrink: 0
+              }}>
+                {newProfAvatar ? (
+                  <img src={newProfAvatar} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <Users size={20} color="var(--text-muted)" />
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)' }}>
                 <input
-                  type="checkbox"
-                  checked={newProfNominee}
-                  onChange={(e) => setNewProfNominee(e.target.checked)}
-                  id="nomineeCheck"
-                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  type="file"
+                  accept="image/*"
+                  id="addProfAvatarInput"
+                  style={{ display: 'none' }}
+                  onChange={(e) => handleImageUpload(e, setNewProfAvatar)}
                 />
-                <label htmlFor="nomineeCheck" style={{ fontSize: '0.8rem', cursor: 'pointer', color: 'var(--text-primary)', margin: 0 }}>
-                  Designate as nominee on primary accounts
-                </label>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
+                <label
+                  htmlFor="addProfAvatarInput"
                   className="btn btn-secondary"
-                  style={{ padding: '0.55rem 1.1rem', fontSize: '0.82rem' }}
-                  onPointerDown={() => setShowAddProfile(false)}
+                  style={{ padding: 'var(--spacing-04) var(--spacing-08)', fontSize: 'var(--font-xs)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-04)' }}
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  style={{ padding: '0.55rem 1.25rem', fontSize: '0.82rem' }}
-                >
-                  Add Profile
-                </button>
+                  <Upload size={14} /> Upload Image
+                </label>
+                {newProfAvatar && (
+                  <button
+                    type="button"
+                    onClick={() => setNewProfAvatar('')}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: 'var(--spacing-04)', display: 'flex', alignItems: 'center' }}
+                    title="Remove Image"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
               </div>
-            </form>
+            </div>
+          </FormField>
+
+          <FormRow gap="var(--spacing-075)">
+            <FormField label="Relationship" style={{ margin: 0 }}>
+              <select
+                className="form-input"
+                value={newProfRel}
+                onChange={(e) => setNewProfRel(e.target.value)}
+                style={{ width: '100%', fontSize: 'var(--font-sm)' }}
+              >
+                <option value="Self">Self</option>
+                <option value="Spouse">Spouse</option>
+                <option value="Child">Child</option>
+                <option value="Parent">Parent</option>
+                <option value="Sibling">Sibling</option>
+                <option value="Other">Other</option>
+              </select>
+            </FormField>
+
+            <FormField label="Access Role" style={{ margin: 0 }}>
+              <select
+                className="form-input"
+                value={newProfRole}
+                onChange={(e) => setNewProfRole(e.target.value as any)}
+                style={{ width: '100%', fontSize: 'var(--font-sm)' }}
+              >
+                <option value="Member">Member (Read & Write)</option>
+                <option value="Viewer">Viewer (Read-only)</option>
+                <option value="Admin">Admin (Full access)</option>
+              </select>
+            </FormField>
+          </FormRow>
+
+          <FormField label="Passcode PIN (Optional 4 digits)" style={{ margin: 0 }}>
+            <input
+              type="password"
+              className="form-input"
+              value={newProfPin}
+              onChange={(e) => {
+                if (/^\d*$/.test(e.target.value) && e.target.value.length <= 4) {
+                  setNewProfPin(e.target.value);
+                }
+              }}
+              placeholder="••••"
+              style={{ width: '100%', fontSize: 'var(--font-sm)' }}
+            />
+          </FormField>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--spacing-06)',
+            padding: 'var(--spacing-05) var(--spacing-075)',
+            background: 'var(--surface-tint)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-sm)',
+            cursor: 'pointer'
+          }} onClick={() => setNewProfNominee(!newProfNominee)}>
+            <input
+              type="checkbox"
+              checked={newProfNominee}
+              onChange={(e) => setNewProfNominee(e.target.checked)}
+              id="nomineeCheck"
+              style={{ width: 'var(--spacing-05)', height: 'var(--spacing-05)', cursor: 'pointer' }}
+            />
+            <label htmlFor="nomineeCheck" style={{ fontSize: 'var(--font-xs)', cursor: 'pointer', color: 'var(--text-primary)', margin: 0 }}>
+              Designate as nominee on primary accounts
+            </label>
           </div>
-        </div>,
-        document.body
+
+          <FormActions
+            onCancel={() => setShowAddProfile(false)}
+            onSubmit={() => { handleAddProfile(); }}
+            submitLabel="Add Profile"
+          />
+        </form>
+      </Modal>
       )}
 
       {/* DIALOG MODAL: Edit Profile */}
-      {editingProfile && createPortal(
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)',
-          backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem'
-        }}>
-          <div className="glass-panel animate-fade-in" style={{
-            width: '100%', maxWidth: '420px', padding: '1.5rem', borderRadius: '1.25rem',
-            border: '1px solid var(--border-color)', background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.98) 100%)',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-display)' }}>
-                Edit Profile Details
-              </h3>
-              <button
-                onPointerDown={() => setEditingProfile(null)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Full Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={editProfName}
-                  onChange={(e) => setEditProfName(e.target.value)}
-                  style={{ width: '100%', fontSize: '0.85rem' }}
-                />
+      {editingProfile && (
+        <Modal
+          isOpen={!!editingProfile}
+          onClose={() => { setEditingProfile(null); setEditProfError(null); }}
+          title="Edit Profile Details"
+          size="md"
+        >
+          <form onSubmit={handleSaveEditProfile} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-075)' }}>
+            {editProfError && (
+              <div style={{ padding: 'var(--spacing-04) var(--spacing-06)', background: 'var(--error-bg)', color: 'var(--error)', border: '1px solid var(--error)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-xs)' }}>
+                {editProfError}
               </div>
+            )}
+            <FormField label="Full Name" style={{ margin: 0 }}>
+              <input
+                type="text"
+                className="form-input"
+                value={editProfName}
+                onChange={(e) => setEditProfName(e.target.value)}
+                style={{ width: '100%', fontSize: 'var(--font-sm)' }}
+                required
+              />
+            </FormField>
 
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Profile Picture (Optional)</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{
-                    width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-                    border: '1px solid var(--border-color)'
-                  }}>
-                    {editProfAvatar ? (
-                      <img src={editProfAvatar} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <Users size={20} color="var(--text-muted)" />
-                    )}
-                  </div>
-                  <div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      id="editProfAvatarInput"
-                      style={{ display: 'none' }}
-                      onChange={(e) => handleImageUpload(e, setEditProfAvatar)}
-                    />
-                    <label
-                      htmlFor="editProfAvatarInput"
-                      className="btn btn-secondary"
-                      style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-                    >
-                      <Upload size={14} /> Upload Image
-                    </label>
-                  </div>
+            <FormField label="Profile Picture (Optional)" style={{ margin: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-075)' }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  minWidth: '48px',
+                  minHeight: '48px',
+                  borderRadius: '50%', background: 'var(--border-subtle)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                  border: '1px solid var(--border-color)',
+                  flexShrink: 0
+                }}>
+                  {editProfAvatar ? (
+                    <img src={editProfAvatar} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <Users size={20} color="var(--text-muted)" />
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)' }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="editProfAvatarInput"
+                    style={{ display: 'none' }}
+                    onChange={(e) => handleImageUpload(e, setEditProfAvatar)}
+                  />
+                  <label
+                    htmlFor="editProfAvatarInput"
+                    className="btn btn-secondary"
+                    style={{ padding: 'var(--spacing-04) var(--spacing-08)', fontSize: 'var(--font-xs)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-04)' }}
+                  >
+                    <Upload size={14} /> Upload Image
+                  </label>
                   {editProfAvatar && (
                     <button
                       type="button"
-                      onPointerDown={() => setEditProfAvatar('')}
-                      style={{ background: 'transparent', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center' }}
+                      onClick={() => setEditProfAvatar('')}
+                      style={{ background: 'transparent', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: 'var(--spacing-04)', display: 'flex', alignItems: 'center' }}
                       title="Remove Image"
                     >
                       <X size={14} />
@@ -1031,42 +970,48 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                   )}
                 </div>
               </div>
+            </FormField>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Relationship</label>
-                  <select
-                    className="form-input"
-                    value={editProfRel}
-                    onChange={(e) => setEditProfRel(e.target.value)}
-                    style={{ width: '100%', fontSize: '0.85rem' }}
-                  >
-                    <option value="Self">Self</option>
-                    <option value="Spouse">Spouse</option>
-                    <option value="Child">Child</option>
-                    <option value="Parent">Parent</option>
-                    <option value="Sibling">Sibling</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
+            <FormRow gap="var(--spacing-075)">
+              <FormField label="Relationship" style={{ margin: 0 }}>
+                <select
+                  className="form-input"
+                  value={editProfRel}
+                  onChange={(e) => setEditProfRel(e.target.value)}
+                  style={{ width: '100%', fontSize: 'var(--font-sm)' }}
+                >
+                  <option value="Self">Self</option>
+                  <option value="Spouse">Spouse</option>
+                  <option value="Child">Child</option>
+                  <option value="Parent">Parent</option>
+                  <option value="Sibling">Sibling</option>
+                  <option value="Other">Other</option>
+                </select>
+              </FormField>
 
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Access Role</label>
-                  <select
-                    className="form-input"
-                    value={editProfRole}
-                    onChange={(e) => setEditProfRole(e.target.value as any)}
-                    style={{ width: '100%', fontSize: '0.85rem' }}
-                  >
-                    <option value="Member">Member (Read & Write)</option>
-                    <option value="Viewer">Viewer (Read-only)</option>
-                    <option value="Admin">Admin (Full access)</option>
-                  </select>
-                </div>
-              </div>
+              <FormField label="Access Role" style={{ margin: 0 }}>
+                <select
+                  className="form-input"
+                  value={editProfRole}
+                  onChange={(e) => setEditProfRole(e.target.value as any)}
+                  style={{ width: '100%', fontSize: 'var(--font-sm)' }}
+                >
+                  <option value="Member">Member (Read & Write)</option>
+                  <option value="Viewer">Viewer (Read-only)</option>
+                  <option value="Admin">Admin (Full access)</option>
+                </select>
+              </FormField>
+            </FormRow>
 
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Passcode PIN (Optional 4 digits)</label>
+            <FormField
+              label={
+                editingProfile.pinHash && !removeExistingPin
+                  ? "Passcode PIN (PIN currently active — leave blank to keep unchanged)"
+                  : "Passcode PIN (Optional 4 digits)"
+              }
+              style={{ margin: 0 }}
+            >
+              <div style={{ display: 'flex', gap: 'var(--spacing-05)', alignItems: 'center' }}>
                 <input
                   type="password"
                   className="form-input"
@@ -1074,82 +1019,85 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
                   onChange={(e) => {
                     if (/^\d*$/.test(e.target.value) && e.target.value.length <= 4) {
                       setEditProfPin(e.target.value);
+                      if (removeExistingPin) setRemoveExistingPin(false);
                     }
                   }}
-                  placeholder="â€¢â€¢â€¢â€¢"
-                  style={{ width: '100%', fontSize: '0.85rem' }}
+                  placeholder={
+                    editingProfile.pinHash && !removeExistingPin
+                      ? "•••• (Unchanged)"
+                      : "4-digit PIN"
+                  }
+                  style={{ width: '100%', fontSize: 'var(--font-sm)' }}
                 />
+                {editingProfile.pinHash && (
+                  <Button
+                    type="button"
+                    variant={removeExistingPin ? 'secondary' : 'danger'}
+                    onClick={() => {
+                      setRemoveExistingPin(!removeExistingPin);
+                      setEditProfPin('');
+                    }}
+                    style={{ fontSize: 'var(--font-xs)', padding: 'var(--spacing-04) var(--spacing-075)', whiteSpace: 'nowrap' }}
+                  >
+                    {removeExistingPin ? 'Keep Existing PIN' : 'Remove PIN'}
+                  </Button>
+                )}
               </div>
+            </FormField>
 
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.6rem',
-                padding: '0.65rem 0.85rem',
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-sm)',
-                cursor: 'pointer'
-              }} onClick={() => setEditProfNominee(!editProfNominee)}>
-                <input
-                  type="checkbox"
-                  checked={editProfNominee}
-                  onChange={(e) => setEditProfNominee(e.target.checked)}
-                  id="editNomineeCheck"
-                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                />
-                <label htmlFor="editNomineeCheck" style={{ fontSize: '0.8rem', cursor: 'pointer', color: 'var(--text-primary)', margin: 0 }}>
-                  Designate as nominee on primary accounts
-                </label>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  style={{ padding: '0.55rem 1.1rem', fontSize: '0.82rem' }}
-                  onPointerDown={() => setEditingProfile(null)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  style={{ padding: '0.55rem 1.25rem', fontSize: '0.82rem' }}
-                  onPointerDown={async (e) => {
-                    e.preventDefault();
-                    if (!editingProfile) {
-                      alert("No profile is currently selected for editing.");
-                      return;
-                    }
-                    if (!editProfName.trim()) {
-                      alert("Profile name cannot be empty.");
-                      return;
-                    }
-                    try {
-                      await dbService.updateProfile(editingProfile.id, {
-                        name: editProfName.trim(),
-                        role: editProfRole,
-                        relationship: editProfRel,
-                        isNomineeProvided: editProfNominee,
-                        pin: editProfPin && editProfPin !== '••••' ? editProfPin : editingProfile.pin,
-                        avatar: editProfAvatar || undefined
-                      });
-                      onActiveProfileChange(activeProfileId);
-                      setEditingProfile(null);
-                      refreshData();
-                    } catch (err: any) {
-                      alert('Error saving changes: ' + (err?.message || JSON.stringify(err)));
-                    }
-                  }}
-                >
-                  Save Changes
-                </button>
-              </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--spacing-06)',
+              padding: 'var(--spacing-05) var(--spacing-075)',
+              background: 'var(--surface-tint)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-sm)',
+              cursor: 'pointer'
+            }} onClick={() => setEditProfNominee(!editProfNominee)}>
+              <input
+                type="checkbox"
+                checked={editProfNominee}
+                onChange={(e) => setEditProfNominee(e.target.checked)}
+                id="editNomineeCheck"
+                style={{ width: 'var(--spacing-05)', height: 'var(--spacing-05)', cursor: 'pointer' }}
+              />
+              <label htmlFor="editNomineeCheck" style={{ fontSize: 'var(--font-xs)', cursor: 'pointer', color: 'var(--text-primary)', margin: 0 }}>
+                Designate as nominee on primary accounts
+              </label>
             </div>
+
+            <FormActions
+              onCancel={() => { setEditingProfile(null); setEditProfError(null); }}
+              onSubmit={() => { handleSaveEditProfile(); }}
+              submitLabel="Save Profile Changes"
+            />
+          </form>
+        </Modal>
+      )}
+
+      {/* DIALOG MODAL: Protected Admin Delete Warning */}
+      {showAdminDeleteWarning && (
+        <Modal
+          isOpen={showAdminDeleteWarning}
+          onClose={() => setShowAdminDeleteWarning(false)}
+          title="Cannot Delete Admin Profile"
+          size="sm"
+        >
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', alignItems: 'center' }}>
+            <p className="type-body-sm" style={{ color: 'var(--text-secondary)', margin: 0 }}>
+              At least one Admin profile must exist to maintain system access and security settings.
+            </p>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => setShowAdminDeleteWarning(false)}
+              style={{ padding: 'var(--spacing-05) var(--spacing-125)', fontSize: 'var(--font-sm)' }}
+            >
+              Understand
+            </Button>
           </div>
-        </div>,
-        document.body
+        </Modal>
       )}
 
       {cropImageSrc && (
@@ -1165,67 +1113,61 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
       )}
 
       {/* DIALOG MODAL: Confirm Reset */}
-      {showResetConfirm && createPortal(
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)',
-          backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '1rem'
-        }}>
-          <div className="glass-panel animate-fade-in" style={{
-            width: '100%', maxWidth: '400px', padding: '1.5rem', borderRadius: '1.25rem',
-            border: '1px solid rgba(239, 68, 68, 0.3)', background: 'linear-gradient(180deg, rgba(30, 20, 20, 0.96) 0%, rgba(15, 10, 10, 0.98) 100%)',
-            boxShadow: '0 25px 50px -12px rgba(239, 68, 68, 0.3)'
-          }}>
-            <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                background: 'rgba(239, 68, 68, 0.15)',
-                color: 'var(--error)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 0.75rem auto'
-              }}>
-                <AlertTriangle size={24} />
-              </div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                Confirm Factory Reset
-              </h3>
-              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.5rem', lineHeight: '1.4' }}>
-                Are you sure you want to reset the system? All local data, profiles, and configuration settings will be <strong>permanently deleted</strong>. This action cannot be undone.
-              </p>
+      {showResetConfirm && (
+        <Modal
+          isOpen={showResetConfirm}
+          onClose={() => setShowResetConfirm(false)}
+          title="Confirm Factory Reset"
+          size="sm"
+        >
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', alignItems: 'center' }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              minWidth: '48px',
+              minHeight: '48px',
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.15)',
+              color: 'var(--error)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto',
+              flexShrink: 0
+            }}>
+              <AlertTriangle size={24} />
             </div>
-
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-              <button
+            <p style={{ fontSize: 'var(--font-sm)', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>
+              Are you sure you want to reset the system? All local data, profiles, and configuration settings will be <strong>permanently deleted</strong>. This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 'var(--spacing-075)', justifyContent: 'center', width: '100%' }}>
+              <Button
                 type="button"
-                className="btn btn-secondary"
-                style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem' }}
-                onPointerDown={() => setShowResetConfirm(false)}
+                variant="secondary"
+                style={{ padding: 'var(--spacing-06) var(--spacing-125)', fontSize: 'var(--font-sm)' }}
+                onClick={() => setShowResetConfirm(false)}
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="btn"
                 style={{
                   background: 'var(--error)',
                   color: '#ffffff',
-                  padding: '0.55rem 1.25rem',
-                  fontSize: '0.85rem',
-                  fontWeight: 600
+                  padding: 'var(--spacing-06) var(--spacing-125)',
+                  fontSize: 'var(--font-sm)',
+                  fontWeight: 'var(--fw-semibold)'
                 }}
-                onPointerDown={handleResetDatabase}
+                onClick={handleResetDatabase}
               >
                 Yes, Reset System
-              </button>
+              </Button>
             </div>
           </div>
-        </div>,
-        document.body
+        </Modal>
       )}
 
+      <ConfirmModal state={confirmModal} onClose={closeConfirm} />
     </div>
   );
 };

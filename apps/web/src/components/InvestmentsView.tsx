@@ -1,90 +1,35 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { Button, CurrencyInput, Modal, Tabs, IconButton, StatRow, EmptyState, PanelHeader, FormField, FormActions, SummaryMetricGrid, FormRow, InfoCallout, Slider, chartTooltipStyle, chartTooltipItemStyle } from '@financeos/ui';
 import { dbService } from '@financeos/database';
 import { useDbSyncCallback } from '../hooks/useDbSync.js';
-import { 
-  TrendingUp, BarChart2, DollarSign, Award, Percent, 
-  HelpCircle, RefreshCw, Layers, Sliders, Play, Trash2, Plus, Edit2
+import {
+  TrendingUp, BarChart2,
+  HelpCircle, Layers, Sliders, Play, Trash2, Plus, Edit2
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, AreaChart, Area 
+import {
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, AreaChart, Area
 } from 'recharts';
-import { 
-  FixedDeposit, StockHolding, MutualFundHolding, GoldHolding, 
-  NPSHolding, ProvidentFundHolding, BankAccount 
+import {
+  FixedDeposit, StockHolding, MutualFundHolding, GoldHolding,
+  NPSHolding, ProvidentFundHolding, BankAccount
 } from '@financeos/shared';
-import { formatRupee } from '../utils/currency.js';
-import { CurrencyInput } from './ui/CurrencyInput.js';
-
-// --- Cryptographically robust XIRR Bisection Solver ---
-interface CashFlow {
-  date: Date;
-  amount: number;
-}
-
-const parseDate = (dStr: string) => new Date(dStr);
-
-const calculateNPV = (rate: number, cashFlows: CashFlow[]): number => {
-  const t0 = cashFlows[0].date.getTime();
-  let npv = 0;
-  for (const cf of cashFlows) {
-    const years = (cf.date.getTime() - t0) / (1000 * 60 * 60 * 24 * 365.25);
-    npv += cf.amount / Math.pow(1 + rate, years);
-  }
-  return npv;
-};
-
-const solveXIRR = (cashFlows: CashFlow[]): number => {
-  if (cashFlows.length < 2) return 0;
-  
-  const sorted = [...cashFlows].sort((a, b) => a.date.getTime() - b.date.getTime());
-  
-  let low = -0.99;
-  let high = 2.0;
-  let mid = 0;
-  
-  for (let i = 0; i < 100; i++) {
-    mid = (low + high) / 2;
-    const npv = calculateNPV(mid, sorted);
-    if (Math.abs(npv) < 1e-4) return mid;
-    
-    if (npv > 0) {
-      if (sorted[0].amount < 0) low = mid;
-      else high = mid;
-    } else {
-      if (sorted[0].amount < 0) high = mid;
-      else low = mid;
-    }
-  }
-  return mid;
-};
-
-const calculateFdAccruedValue = (fd: FixedDeposit): number => {
-  const now = new Date(); // Dynamic active date context
-  const start = new Date(fd.startDate);
-  const maturity = new Date(fd.maturityDate);
-
-  if (now <= start) return fd.principalAmount;
-  if (now >= maturity) return fd.maturityAmount;
-
-  // Quarterly compounding (n = 4)
-  const rate = fd.interestRate / 100;
-  const daysTotal = (maturity.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
-  const daysElapsed = (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
-  
-  if (daysTotal <= 0 || daysElapsed <= 0) return fd.principalAmount;
-
-  // Compounded quarterly: A = P * (1 + r/4) ^ (4 * years)
-  const years = daysElapsed / 365.25;
-  const accrued = fd.principalAmount * Math.pow(1 + rate / 4, 4 * years);
-  
-  return Math.min(fd.maturityAmount, Math.round(accrued));
-};
+import { formatRupee } from '@financeos/shared';
+import { ConfirmModal, useConfirmModal } from './ConfirmModal.js';
+import { calculateFdAccruedValue, solveXIRR, CashFlow } from '../utils/financialCalculations.js';
 
 interface InvestmentsViewProps {
   activeProfileId: string;
 }
 
+interface MonteCarloPoint {
+  year: string;
+  WorstCase: number;
+  Expected: number;
+  BestCase: number;
+}
+
 export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileId }) => {
+  const { modal: confirmModal, openConfirm, closeConfirm } = useConfirmModal();
   const [activeTab, setActiveTab] = useState<'holdings' | 'rebalance' | 'sim'>('holdings');
 
   // Dynamic DB States as React State
@@ -126,7 +71,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   const [mfAvgNav, setMfAvgNav] = useState('');
   const [mfCurrentNav, setMfCurrentNav] = useState('');
   const [mfNominee, setMfNominee] = useState('');
-  
+
   // SIP Setup
   const [mfAutoSIP, setMfAutoSIP] = useState(false);
   const [mfSIPAmount, setMfSIPAmount] = useState('');
@@ -139,7 +84,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   const [fdPrincipal, setFdPrincipal] = useState('');
   const [fdInterestRate, setFdInterestRate] = useState('');
   const [fdStartDate, setFdStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [fdMaturityDate, setFdMaturityDate] = useState(new Date(Date.now() + 365*24*60*60*1000).toISOString().split('T')[0]);
+  const [fdMaturityDate, setFdMaturityDate] = useState(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
   const [fdMaturityAmount, setFdMaturityAmount] = useState('');
   const [fdNominee, setFdNominee] = useState('');
 
@@ -172,7 +117,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   const [expectedReturn, setExpectedReturn] = useState(12);
   const [inflationRate, setInflationRate] = useState(6);
   const [volatility, setVolatility] = useState(15);
-  const [simResults, setSimResults] = useState<any[]>([]);
+  const [simResults, setSimResults] = useState<MonteCarloPoint[]>([]);
 
   // Target allocations for rebalancing
   const [targetEquity, setTargetEquity] = useState(50);
@@ -196,18 +141,18 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   }, [activeProfileId]);
 
   // Computations
-  const stockVal = useMemo(() => stocks.reduce((sum: number, s: any) => sum + (s.quantity * s.currentPrice), 0), [stocks]);
-  const stockCost = useMemo(() => stocks.reduce((sum: number, s: any) => sum + (s.quantity * s.averagePrice), 0), [stocks]);
+  const stockVal = useMemo(() => stocks.reduce((sum: number, s) => sum + (s.quantity * s.currentPrice), 0), [stocks]);
+  const stockCost = useMemo(() => stocks.reduce((sum: number, s) => sum + (s.quantity * s.averagePrice), 0), [stocks]);
 
-  const mfVal = useMemo(() => mfs.reduce((sum: number, m: any) => sum + (m.units * m.currentNav), 0), [mfs]);
-  const mfCost = useMemo(() => mfs.reduce((sum: number, m: any) => sum + (m.units * m.averageNav), 0), [mfs]);
+  const mfVal = useMemo(() => mfs.reduce((sum: number, m) => sum + (m.units * m.currentNav), 0), [mfs]);
+  const mfCost = useMemo(() => mfs.reduce((sum: number, m) => sum + (m.units * m.averageNav), 0), [mfs]);
 
-  const goldVal = useMemo(() => gold.reduce((sum: number, g: any) => sum + (g.quantityGrams * g.currentPrice), 0), [gold]);
-  const goldCost = useMemo(() => gold.reduce((sum: number, g: any) => sum + (g.quantityGrams * g.purchasePrice), 0), [gold]);
+  const goldVal = useMemo(() => gold.reduce((sum: number, g) => sum + (g.quantityGrams * g.currentPrice), 0), [gold]);
+  const goldCost = useMemo(() => gold.reduce((sum: number, g) => sum + (g.quantityGrams * g.purchasePrice), 0), [gold]);
 
-  const npsVal = useMemo(() => nps.reduce((sum: number, n: any) => sum + n.balance, 0), [nps]);
-  const pfVal = useMemo(() => pf.reduce((sum: number, p: any) => sum + p.balance, 0), [pf]);
-  const fdVal = useMemo(() => fds.filter((f: any) => !f.isMatured).reduce((sum: number, f: any) => sum + calculateFdAccruedValue(f), 0), [fds]);
+  const npsVal = useMemo(() => nps.reduce((sum: number, n) => sum + n.balance, 0), [nps]);
+  const pfVal = useMemo(() => pf.reduce((sum: number, p) => sum + p.balance, 0), [pf]);
+  const fdVal = useMemo(() => fds.filter((f) => !f.isMatured).reduce((sum: number, f) => sum + calculateFdAccruedValue(f), 0), [fds]);
 
   const totalPortfolioVal = stockVal + mfVal + goldVal + npsVal + pfVal + fdVal;
   const investedCost = stockCost + mfCost + goldCost + npsVal + pfVal + fdVal;
@@ -215,13 +160,84 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   const returnPct = investedCost > 0 ? (netReturns / investedCost) * 100 : 0;
 
   const calculatedXIRR = useMemo(() => {
-    if (investedCost === 0) return 0;
-    const flows: CashFlow[] = [
-      { date: parseDate('2024-07-15'), amount: -investedCost },
-      { date: new Date(), amount: totalPortfolioVal }
-    ];
+    if (investedCost === 0 || totalPortfolioVal === 0) return 0;
+
+    // Aggregate authentic cash outflows by holding start/creation dates
+    const flows: CashFlow[] = [];
+    const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+
+    // Add individual FDs with their start dates
+    fds.forEach(f => {
+      flows.push({ date: new Date(f.startDate || oneYearAgo), amount: -f.principalAmount });
+    });
+
+    // Add direct stocks
+    stocks.forEach(s => {
+      const cost = s.quantity * s.averagePrice;
+      if (cost > 0) {
+        flows.push({ date: new Date((s as any).createdAt || oneYearAgo), amount: -cost });
+      }
+    });
+
+    // Add mutual funds
+    mfs.forEach(m => {
+      const cost = m.units * m.averageNav;
+      if (cost > 0) {
+        flows.push({ date: new Date((m as any).createdAt || oneYearAgo), amount: -cost });
+      }
+    });
+
+    // Add gold holdings
+    gold.forEach(g => {
+      const cost = g.quantityGrams * g.purchasePrice;
+      if (cost > 0) {
+        flows.push({ date: new Date((g as any).createdAt || oneYearAgo), amount: -cost });
+      }
+    });
+
+    // Add NPS balance
+    nps.forEach(n => {
+      if (n.balance > 0) {
+        flows.push({ date: new Date((n as any).createdAt || oneYearAgo), amount: -n.balance });
+      }
+    });
+
+    // Add PF balance
+    pf.forEach(p => {
+      if (p.balance > 0) {
+        flows.push({ date: new Date((p as any).createdAt || oneYearAgo), amount: -p.balance });
+      }
+    });
+
+    // Fallback if no individual flows populated
+    if (flows.length === 0) {
+      flows.push({ date: oneYearAgo, amount: -investedCost });
+    }
+
+    // Terminal value today
+    flows.push({ date: new Date(), amount: totalPortfolioVal });
+
     return solveXIRR(flows) * 100;
-  }, [investedCost, totalPortfolioVal]);
+  }, [fds, stocks, mfs, gold, nps, pf, investedCost, totalPortfolioVal]);
+
+  const closeAllModals = () => {
+    setShowAddStock(false); setEditStockId(null);
+    setShowAddMF(false); setEditMFId(null);
+    setShowAddFD(false); setEditFDId(null);
+    setShowAddGold(false); setEditGoldId(null);
+    setShowAddNPS(false); setEditNPSId(null);
+    setShowAddPF(false); setEditPFId(null);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeAllModals();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const rebalanceData = useMemo(() => {
     const currentEquityVal = stockVal + mfVal;
@@ -256,22 +272,20 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
       currentPrice: parseFloat(stkCurrentPrice) || parseFloat(stkAvgPrice),
       nomineeName: stkNominee || undefined
     };
-    
+
     if (editStockId) {
       await dbService.updateStock(editStockId, stockData);
     } else {
       await dbService.addStock(stockData);
     }
-    
+
     setStkSymbol(''); setStkName(''); setStkQty(''); setStkAvgPrice(''); setStkCurrentPrice(''); setStkNominee('');
     setEditStockId(null);
     setShowAddStock(false); refreshData();
   };
 
   const handleDeleteStock = async (id: string) => {
-    if (confirm('Delete this stock holding?')) {
-      await dbService.deleteStock(id); refreshData();
-    }
+    openConfirm({ title: 'Delete Stock Holding', message: 'Permanently remove this stock holding from your portfolio? Portfolio valuation and returns will be recalculated.', confirmLabel: 'Delete Holding', isDanger: true, onConfirm: async () => { await dbService.deleteStock(id); refreshData(); } });
   };
 
   const handleEditStock = (s: StockHolding) => {
@@ -288,7 +302,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   const handleAddMF = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mfSchemeName || !mfUnits || !mfAvgNav) return;
-    
+
     const mfData = {
       profileId: activeProfileId,
       schemeCode: 'custom',
@@ -334,9 +348,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   };
 
   const handleDeleteMF = async (id: string) => {
-    if (confirm('Delete this Mutual Fund holding?')) {
-      await dbService.deleteMutualFund(id); refreshData();
-    }
+    openConfirm({ title: 'Delete Mutual Fund Holding', message: 'Permanently remove this mutual fund holding from your portfolio? Portfolio returns and XIRR will be updated.', confirmLabel: 'Delete Fund', isDanger: true, onConfirm: async () => { await dbService.deleteMutualFund(id); refreshData(); } });
   };
 
   const handleEditMF = (m: MutualFundHolding) => {
@@ -354,8 +366,8 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
     if (!fdBankName || !fdPrincipal || !fdInterestRate) return;
     const principal = parseFloat(fdPrincipal);
     const rate = parseFloat(fdInterestRate);
-    const maturity = parseFloat(fdMaturityAmount) || principal * Math.pow(1 + (rate/100), 1);
-    
+    const maturity = parseFloat(fdMaturityAmount) || principal * Math.pow(1 + (rate / 100), 1);
+
     const fdData = {
       profileId: activeProfileId,
       bankName: fdBankName,
@@ -373,16 +385,14 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
     } else {
       await dbService.addFD(fdData);
     }
-    
+
     setFdBankName(''); setFdPrincipal(''); setFdInterestRate(''); setFdMaturityAmount(''); setFdNominee('');
     setEditFDId(null);
     setShowAddFD(false); refreshData();
   };
 
   const handleDeleteFD = async (id: string) => {
-    if (confirm('Delete this FD?')) {
-      await dbService.deleteFD(id); refreshData();
-    }
+    openConfirm({ title: 'Delete Fixed Deposit', message: 'Permanently remove this fixed deposit from your records? Interest accruals and maturity reminders will be removed.', confirmLabel: 'Delete Deposit', isDanger: true, onConfirm: async () => { await dbService.deleteFD(id); refreshData(); } });
   };
 
   const handleEditFD = (f: FixedDeposit) => {
@@ -400,7 +410,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   const handleAddGold = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!gldQty || !gldBuyPrice) return;
-    
+
     const goldData = {
       profileId: activeProfileId,
       type: gldType,
@@ -422,9 +432,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   };
 
   const handleDeleteGold = async (id: string) => {
-    if (confirm('Delete this gold asset?')) {
-      await dbService.deleteGold(id); refreshData();
-    }
+    openConfirm({ title: 'Delete Gold Asset', message: 'Permanently remove this gold holding from your portfolio valuation?', confirmLabel: 'Delete Asset', isDanger: true, onConfirm: async () => { await dbService.deleteGold(id); refreshData(); } });
   };
 
   const handleEditGold = (g: GoldHolding) => {
@@ -439,7 +447,11 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
 
   const handleAddNPS = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!npsBalance) { alert('Please fill in all required fields.'); return; }
+    if (!npsBalance) return;
+    const allocSum = (parseInt(npsE) || 0) + (parseInt(npsC) || 0) + (parseInt(npsG) || 0) + (parseInt(npsA) || 0);
+    if (allocSum !== 100) {
+      return;
+    }
     const npsData = {
       profileId: activeProfileId,
       pranNumber: npsPran || 'N/A',
@@ -465,9 +477,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   };
 
   const handleDeleteNPS = async (id: string) => {
-    if (confirm('Delete this NPS record?')) {
-      await dbService.deleteNPS(id); refreshData();
-    }
+    openConfirm({ title: 'Delete NPS Account', message: 'Permanently remove this National Pension System (NPS) record from your portfolio?', confirmLabel: 'Delete Account', isDanger: true, onConfirm: async () => { await dbService.deleteNPS(id); refreshData(); } });
   };
 
   const handleEditNPS = (n: NPSHolding) => {
@@ -484,7 +494,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
 
   const handleAddPF = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pfBalance) { alert('Please fill in all required fields.'); return; }
+    if (!pfBalance) return;
     const pfData = {
       profileId: activeProfileId,
       type: pfType,
@@ -506,9 +516,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   };
 
   const handleDeletePF = async (id: string) => {
-    if (confirm('Delete this PF account?')) {
-      await dbService.deletePF(id); refreshData();
-    }
+    openConfirm({ title: 'Delete Provident Fund Account', message: 'Permanently remove this Provident Fund (EPF/PPF) record from your retirement portfolio?', confirmLabel: 'Delete Account', isDanger: true, onConfirm: async () => { await dbService.deletePF(id); refreshData(); } });
   };
 
   const handleEditPF = (p: ProvidentFundHolding) => {
@@ -536,7 +544,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
     for (let r = 0; r < runsCount; r++) {
       let balance = initialVal;
       results[r].push(balance);
-      
+
       for (let m = 1; m <= months; m++) {
         const u1 = Math.random();
         const u2 = Math.random();
@@ -544,7 +552,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
 
         const returnFactor = Math.exp((monthlyReturn - 0.5 * Math.pow(monthlyVol, 2)) + monthlyVol * randStdNormal);
         balance = balance * returnFactor;
-        
+
         const inflatedContrib = monthlyContribution * Math.pow(1 + monthlyInflation, m);
         balance += inflatedContrib;
         balance = balance / (1 + monthlyInflation);
@@ -555,7 +563,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
       }
     }
 
-    const formattedData = [];
+    const formattedData: MonteCarloPoint[] = [];
     for (let y = 0; y <= horizonYears; y++) {
       const yearValues = results.map(run => run[y]).sort((a, b) => a - b);
       formattedData.push({
@@ -569,818 +577,777 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
     setSimResults(formattedData);
   };
 
+  useEffect(() => {
+    if (activeTab === 'sim' && simResults.length === 0) {
+      runMonteCarloSimulation();
+    }
+  }, [activeTab, simResults.length]);
+
 
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      
-      {/* Portfolio Value Summary Header */}
-      <div className="glass-panel" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, hsla(224, 25%, 10%, 0.6) 0%, hsla(224, 30%, 6%, 0.4) 100%)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-          <div>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>PORTFOLIO VALUATION</span>
-            <h2 style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--accent-1)' }}>{formatRupee(totalPortfolioVal)}</h2>
-          </div>
-          <div>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>INVESTED COST</span>
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 600 }}>{formatRupee(investedCost)}</h3>
-          </div>
-          <div>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>RETURNS (GAIN)</span>
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 600, color: netReturns >= 0 ? 'var(--success)' : 'var(--error)' }}>
-              {formatRupee(netReturns)} ({returnPct.toFixed(1)}%)
-            </h3>
-          </div>
-          <div>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-              XIRR (ANNUALIZED) <span title="Internal Rate of Return computed via Bisection method."><HelpCircle size={12} color="var(--text-muted)" /></span>
-            </span>
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--accent-2)' }}>{calculatedXIRR.toFixed(2)}%</h3>
-          </div>
-        </div>
-      </div>
+    <>
+      <ConfirmModal state={confirmModal} onClose={closeConfirm} />
+      <div className="gap-stack-lg animate-fade-in">
 
-      {/* Tabs Menu */}
-      <div className="mobile-tabs-scroll" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-        <button className={`btn ${activeTab === 'holdings' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onPointerDown={() => setActiveTab('holdings')}>
-          Asset Holdings
-        </button>
-        <button className={`btn ${activeTab === 'rebalance' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onPointerDown={() => setActiveTab('rebalance')}>
-          Portfolio Rebalancing
-        </button>
-        <button className={`btn ${activeTab === 'sim' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', flexShrink: 0 }} onPointerDown={() => setActiveTab('sim')}>
-          Retirement Simulator (Monte Carlo)
-        </button>
-      </div>
-
-      {/* Tab: Holdings View */}
-      {activeTab === 'holdings' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          
-          {/* Stocks */}
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <h4 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Layers size={16} color="var(--accent-1)" /> Direct Equity Stocks
-              </h4>
-              <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onPointerDown={() => setShowAddStock(true)}>
-                <Plus size={14} /> Add Stock
-              </button>
-            </div>
-            
-            <div style={{ overflowX: 'auto' }}>
-              <table className="custom-table">
-                <thead>
-                  <tr>
-                    <th>Symbol</th>
-                    <th>Company Name</th>
-                    <th>Qty</th>
-                    <th>Avg Cost</th>
-                    <th>Current NAV</th>
-                    <th>Current Value</th>
-                    <th>Nominee</th>
-                    <th>Returns</th>
-                    <th style={{ textAlign: 'center' }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stocks.length > 0 ? (
-                    stocks.map((s: any) => {
-                      const cost = s.quantity * s.averagePrice;
-                      const val = s.quantity * s.currentPrice;
-                      const ret = val - cost;
-                      const pct = cost > 0 ? (ret / cost) * 100 : 0;
-                      return (
-                        <tr key={s.id}>
-                          <td style={{ fontWeight: 650 }}>{s.symbol}</td>
-                          <td style={{ color: 'var(--text-secondary)' }}>{s.name}</td>
-                          <td>{s.quantity}</td>
-                          <td>{formatRupee(s.averagePrice)}</td>
-                          <td>{formatRupee(s.currentPrice)}</td>
-                          <td style={{ fontWeight: 600 }}>{formatRupee(val)}</td>
-                          <td>
-                            {s.nomineeName ? (
-                              <span style={{ color: 'var(--success)' }}>{s.nomineeName}</span>
-                            ) : (
-                              <span style={{ color: 'var(--error)', fontSize: '0.78rem', fontWeight: 600 }}>Missing Nominee</span>
-                            )}
-                          </td>
-                          <td style={{ fontWeight: 600, color: ret >= 0 ? 'var(--success)' : 'var(--error)' }}>
-                            {formatRupee(ret)} ({pct.toFixed(1)}%)
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                              <button className="btn btn-secondary" style={{ padding: '0.3rem', borderRadius: '4px' }} onPointerDown={() => handleEditStock(s)}>
-                                <Edit2 size={13} />
-                              </button>
-                              <button className="btn btn-danger" style={{ padding: '0.3rem', borderRadius: '4px' }} onPointerDown={() => handleDeleteStock(s.id)}>
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={9} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-                        No direct stock holdings linked. Click "Add Stock" to input logs.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Mutual Funds */}
-          <div className="glass-panel" style={{ padding: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <h4 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <TrendingUp size={16} color="var(--accent-2)" /> Mutual Funds (Direct Growth)
-              </h4>
-              <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onPointerDown={() => setShowAddMF(true)}>
-                <Plus size={14} /> Add Mutual Fund
-              </button>
-            </div>
-            
-            <div style={{ overflowX: 'auto' }}>
-              <table className="custom-table">
-                <thead>
-                  <tr>
-                    <th>Scheme Name</th>
-                    <th>Units</th>
-                    <th>Purchase NAV</th>
-                    <th>Current NAV</th>
-                    <th>Current Value</th>
-                    <th>Nominee</th>
-                    <th>Returns</th>
-                    <th style={{ textAlign: 'center' }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mfs.length > 0 ? (
-                    mfs.map((m: any) => {
-                      const cost = m.units * m.averageNav;
-                      const val = m.units * m.currentNav;
-                      const ret = val - cost;
-                      const pct = cost > 0 ? (ret / cost) * 100 : 0;
-                      return (
-                        <tr key={m.id}>
-                          <td style={{ fontWeight: 600 }}>{m.schemeName}</td>
-                          <td>{m.units.toFixed(2)}</td>
-                          <td>₹{m.averageNav.toFixed(2)}</td>
-                          <td>₹{m.currentNav.toFixed(2)}</td>
-                          <td style={{ fontWeight: 600 }}>{formatRupee(val)}</td>
-                          <td>
-                            {m.nomineeName ? (
-                              <span style={{ color: 'var(--success)' }}>{m.nomineeName}</span>
-                            ) : (
-                              <span style={{ color: 'var(--error)', fontSize: '0.78rem', fontWeight: 600 }}>Missing Nominee</span>
-                            )}
-                          </td>
-                          <td style={{ fontWeight: 600, color: ret >= 0 ? 'var(--success)' : 'var(--error)' }}>
-                            {formatRupee(ret)} ({pct.toFixed(1)}%)
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                              <button className="btn btn-secondary" style={{ padding: '0.3rem', borderRadius: '4px' }} onPointerDown={() => handleEditMF(m)}>
-                                <Edit2 size={13} />
-                              </button>
-                              <button className="btn btn-danger" style={{ padding: '0.3rem', borderRadius: '4px' }} onPointerDown={() => handleDeleteMF(m.id)}>
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-                        No mutual fund SIPs configured. Click "Add Mutual Fund" to track schemes.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Other holdings grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="responsive-stack">
-            
-            {/* Fixed Deposits & SGB Gold */}
-            <div className="glass-panel" style={{ padding: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <h4 style={{ fontSize: '1rem' }}>Fixed Deposits & Gold Assets</h4>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onPointerDown={() => setShowAddFD(true)}>
-                    + FD
-                  </button>
-                  <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onPointerDown={() => setShowAddGold(true)}>
-                    + Gold
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto' }}>
-                {fds.map((f: any) => (
-                  <div key={f.id} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem',
-                    background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem',
-                    border: '1px solid var(--border-color)'
-                  }}>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{f.bankName} FD ({f.interestRate}% Int)</div>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Matures: {f.maturityDate}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontWeight: 600 }} title="Accrued value based on compounding interest">{formatRupee(calculateFdAccruedValue(f))}</div>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Principal: {formatRupee(f.principalAmount)}</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-secondary" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleEditFD(f)}>
-                          <Edit2 size={12} />
-                        </button>
-                        <button className="btn btn-danger" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleDeleteFD(f.id)}>
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {gold.map((g: any) => (
-                  <div key={g.id} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem',
-                    background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem',
-                    border: '1px solid var(--border-color)'
-                  }}>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>Gold - {g.type}</div>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Qty: {g.quantityGrams}g (Nominee: {g.nomineeName || 'None'})</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontWeight: 600 }}>{formatRupee(g.quantityGrams * g.currentPrice)}</div>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--success)' }}>Gain: {(((g.currentPrice - g.purchasePrice) / g.purchasePrice) * 100).toFixed(0)}%</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-secondary" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleEditGold(g)}>
-                          <Edit2 size={12} />
-                        </button>
-                        <button className="btn btn-danger" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleDeleteGold(g.id)}>
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {fds.length === 0 && gold.length === 0 && (
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '2rem' }}>
-                    No FD or Gold logs listed.
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Retirement Accounts */}
-            <div className="glass-panel" style={{ padding: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <h4 style={{ fontSize: '1rem' }}>Government Pension & PPF/EPF</h4>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onPointerDown={() => setShowAddNPS(true)}>
-                    + NPS
-                  </button>
-                  <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onPointerDown={() => setShowAddPF(true)}>
-                    + PF
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto' }}>
-                {nps.map((n: any) => (
-                  <div key={n.id} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem',
-                    background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem',
-                    border: '1px solid var(--border-color)'
-                  }}>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>National Pension System (NPS)</div>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>PRAN: {n.pranNumber} (Nominee: {n.nomineeName || 'None'})</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div style={{ fontWeight: 600 }}>{formatRupee(n.balance)}</div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-secondary" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleEditNPS(n)}>
-                          <Edit2 size={12} />
-                        </button>
-                        <button className="btn btn-danger" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleDeleteNPS(n.id)}>
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {pf.map((p: any) => (
-                  <div key={p.id} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem',
-                    background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem',
-                    border: '1px solid var(--border-color)'
-                  }}>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>Provident Fund ({p.type})</div>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>A/c: {p.accountNumber}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div style={{ fontWeight: 600 }}>{formatRupee(p.balance)}</div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-secondary" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleEditPF(p)}>
-                          <Edit2 size={12} />
-                        </button>
-                        <button className="btn btn-danger" style={{ padding: '0.25rem', borderRadius: '4px' }} onPointerDown={() => handleDeletePF(p.id)}>
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {nps.length === 0 && pf.length === 0 && (
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '2rem' }}>
-                    No retirement pension logs listed.
-                  </div>
-                )}
-              </div>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* Tab: Rebalancing Suggestion */}
-      {activeTab === 'rebalance' && (
-        <div className="glass-panel animate-fade-in" style={{ padding: '1.5rem' }}>
-          <h4 style={{ fontSize: '1.1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Sliders size={16} color="var(--accent-1)" /> Target Asset Allocation Rebalancer
-          </h4>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-            Adjust your target percentages below. We will calculate the target rupees and suggest purchase/sale triggers to return to your targets.
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2.5rem' }} className="responsive-stack">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div className="form-group">
-                <label className="form-label">Equity Target (%)</label>
-                <input type="number" className="form-input" value={targetEquity} onChange={(e) => setTargetEquity(parseInt(e.target.value) || 0)} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Debt Target (%)</label>
-                <input type="number" className="form-input" value={targetDebt} onChange={(e) => setTargetDebt(parseInt(e.target.value) || 0)} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Gold Target (%)</label>
-                <input type="number" className="form-input" value={targetGold} onChange={(e) => setTargetGold(parseInt(e.target.value) || 0)} />
-              </div>
-              {targetEquity + targetDebt + targetGold !== 100 && (
-                <div style={{ fontSize: '0.78rem', color: 'var(--error)', fontWeight: 600 }}>
-                  ⚠️ Sum of targets must equal 100% (Current: {targetEquity + targetDebt + targetGold}%)
-                </div>
-              )}
-            </div>
-
+        {/* Portfolio Value Summary Header */}
+        <div className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-15)' }}>
+          <SummaryMetricGrid columns="auto" minItemWidth="180px" gap="var(--spacing-125)">
             <div>
-              <table className="custom-table" style={{ marginBottom: '1.5rem' }}>
-                <thead>
-                  <tr>
-                    <th>Asset Class</th>
-                    <th>Current Allocation</th>
-                    <th>Target Allocation</th>
-                    <th>Action Required</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rebalanceData.map((row, idx) => (
-                    <tr key={idx}>
-                      <td style={{ fontWeight: 600 }}>{row.name}</td>
-                      <td>{row.actualPct.toFixed(1)}%</td>
-                      <td>{row.targetPct}%</td>
-                      <td style={{
-                        fontWeight: 650, 
-                        color: row.deviation >= 0 ? 'var(--success)' : 'var(--error)'
-                      }}>
-                        {row.deviation >= 0 
-                          ? `Buy: ${formatRupee(row.deviation)}` 
-                          : `Sell: ${formatRupee(Math.abs(row.deviation))}`}
-                      </td>
+              <span className="uppercase-label" style={{ color: 'var(--accent-1)', fontWeight: 'var(--fw-heavy)' }}>Portfolio Valuation</span>
+              <h2 className="type-metric tabular-nums" style={{ fontSize: 'var(--font-4xl)', color: 'var(--accent-1)', marginTop: 'var(--spacing-025)', fontWeight: 'var(--fw-black)' }}>
+                {formatRupee(totalPortfolioVal)}
+              </h2>
+            </div>
+            <div>
+              <span className="uppercase-label" style={{ color: 'var(--text-secondary)', fontWeight: 'var(--fw-bold)' }}>Invested Cost</span>
+              <h3 className="type-metric-sm tabular-nums" style={{ marginTop: 'var(--spacing-025)', fontWeight: 'var(--fw-black)', color: 'var(--text-primary)' }}>
+                {formatRupee(investedCost)}
+              </h3>
+            </div>
+            <div>
+              <span className="uppercase-label" style={{ color: 'var(--text-secondary)', fontWeight: 'var(--fw-bold)' }}>Returns (Gain)</span>
+              <h3 className="type-metric-sm tabular-nums" style={{ color: netReturns >= 0 ? 'var(--success)' : 'var(--error)', marginTop: 'var(--spacing-025)', fontWeight: 'var(--fw-black)' }}>
+                {formatRupee(netReturns)} <span className="type-badge" style={{ fontSize: 'var(--font-sm)', marginLeft: 'var(--spacing-025)', fontWeight: 'var(--fw-heavy)' }}>({returnPct.toFixed(1)}%)</span>
+              </h3>
+            </div>
+            <div>
+              <span className="uppercase-label" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-025)', color: 'var(--text-secondary)', fontWeight: 'var(--fw-bold)' }}>
+                XIRR (Annualized) <span title="Internal Rate of Return computed via Bisection method."><HelpCircle size={12} color="var(--text-muted)" /></span>
+              </span>
+              <h3 className="type-metric-sm tabular-nums" style={{ color: 'var(--accent-2)', marginTop: 'var(--spacing-025)', fontWeight: 'var(--fw-black)' }}>
+                {calculatedXIRR.toFixed(2)}%
+              </h3>
+            </div>
+          </SummaryMetricGrid>
+        </div>
+
+        {/* Tabs Menu */}
+        <Tabs
+          tabs={[
+            { id: 'holdings', label: 'Asset Holdings' },
+            { id: 'rebalance', label: 'Portfolio Rebalancing' },
+            { id: 'sim', label: 'Retirement Simulator (Monte Carlo)' },
+          ]}
+          activeTab={activeTab}
+          onChange={(tabId) => setActiveTab(tabId as 'holdings' | 'rebalance' | 'sim')}
+          variant="segmented"
+        />
+
+        {/* Tab: Holdings View */}
+        {activeTab === 'holdings' && (
+          <div id="holdings-panel" role="tabpanel" aria-labelledby="holdings-tab" className="gap-stack-lg">
+
+            {/* Stocks */}
+            <div className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-125)' }}>
+              <PanelHeader
+                icon={<Layers size={16} />}
+                title="Direct Equity Stocks"
+                action={
+                  <Button variant="secondary" style={{ padding: 'var(--spacing-04) var(--spacing-075)', fontSize: 'var(--font-sm)' }} onClick={() => setShowAddStock(true)}>
+                    <Plus size={14} /> Add Stock
+                  </Button>
+                }
+              />
+
+              <div className="table-responsive" style={{ overflowX: 'auto' }}>
+                <table className="custom-table">
+                  <caption style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0, padding: 0, margin: -1 }}>
+                    Direct equity stock holdings with quantity, average cost, current price, value, nominee and returns
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th>Symbol</th>
+                      <th>Company Name</th>
+                      <th className="numeric-cell">Qty</th>
+                      <th className="numeric-cell">Avg Cost</th>
+                      <th className="numeric-cell">Current Price</th>
+                      <th className="numeric-cell">Current Value</th>
+                      <th>Nominee</th>
+                      <th className="numeric-cell">Returns</th>
+                      <th style={{ textAlign: 'center' }}>Action</th>
                     </tr>
+                  </thead>
+                  <tbody>
+                    {stocks.length > 0 ? (
+                      stocks.map((s) => {
+                        const cost = s.quantity * s.averagePrice;
+                        const val = s.quantity * s.currentPrice;
+                        const ret = val - cost;
+                        const pct = cost > 0 ? (ret / cost) * 100 : 0;
+                        return (
+                          <tr key={s.id}>
+                            <td style={{ fontWeight: 'var(--fw-bold)', letterSpacing: '0.01em', color: 'var(--text-primary)' }}>{s.symbol}</td>
+                            <td style={{ color: 'var(--text-secondary)' }}>{s.name}</td>
+                            <td className="numeric-cell">{s.quantity}</td>
+                            <td className="numeric-cell">{formatRupee(s.averagePrice)}</td>
+                            <td className="numeric-cell">{formatRupee(s.currentPrice)}</td>
+                            <td className="numeric-cell" style={{ fontWeight: 'var(--fw-semibold)', color: 'var(--text-primary)' }}>{formatRupee(val)}</td>
+                            <td>
+                              {s.nomineeName ? (
+                                <span style={{ color: 'var(--success)', fontSize: 'var(--font-sm)' }}>{s.nomineeName}</span>
+                              ) : (
+                                <span className="type-caption" style={{ color: 'var(--warning)', fontWeight: 'var(--fw-semibold)' }}>No Nominee Assigned</span>
+                              )}
+                            </td>
+                            <td className="numeric-cell" style={{ fontWeight: 'var(--fw-semibold)', color: ret >= 0 ? 'var(--success)' : 'var(--error)' }}>
+                              {formatRupee(ret)} <span className="type-caption" style={{ color: ret >= 0 ? 'var(--success)' : 'var(--error)', marginLeft: 'var(--spacing-02)' }}>({pct.toFixed(1)}%)</span>
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <div style={{ display: 'flex', gap: 'var(--spacing-05)', justifyContent: 'center' }}>
+                                <IconButton icon={<Edit2 size={13} />} label={`Edit ${s.symbol}`} onClick={() => handleEditStock(s)} />
+                                <IconButton icon={<Trash2 size={13} />} variant="danger" label={`Delete ${s.symbol}`} onClick={() => handleDeleteStock(s.id)} />
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={9} className="type-body-secondary" style={{ textAlign: 'center', padding: 'var(--spacing-2)' }}>
+                          No direct stock holdings found. Click "Add Stock" to track equities and calculate real-time capital gains.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mutual Funds */}
+            <div className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-125)' }}>
+              <PanelHeader
+                icon={<TrendingUp size={16} />}
+                title="Mutual Funds (Direct Growth)"
+                action={
+                  <Button variant="secondary" style={{ padding: 'var(--spacing-04) var(--spacing-075)', fontSize: 'var(--font-sm)' }} onClick={() => setShowAddMF(true)}>
+                    <Plus size={14} /> Add Mutual Fund
+                  </Button>
+                }
+              />
+
+              <div className="table-responsive" style={{ overflowX: 'auto' }}>
+                <table className="custom-table">
+                  <caption style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0, padding: 0, margin: -1 }}>
+                    Mutual fund holdings with units, purchase and current NAV, value, nominee and returns
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th>Scheme Name</th>
+                      <th className="numeric-cell">Units</th>
+                      <th className="numeric-cell">Purchase NAV</th>
+                      <th className="numeric-cell">Current NAV</th>
+                      <th className="numeric-cell">Current Value</th>
+                      <th>Nominee</th>
+                      <th className="numeric-cell">Returns</th>
+                      <th style={{ textAlign: 'center' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mfs.length > 0 ? (
+                      mfs.map((m) => {
+                        const cost = m.units * m.averageNav;
+                        const val = m.units * m.currentNav;
+                        const ret = val - cost;
+                        const pct = cost > 0 ? (ret / cost) * 100 : 0;
+                        return (
+                          <tr key={m.id}>
+                            <td style={{ fontWeight: 'var(--fw-semibold)', color: 'var(--text-primary)' }}>{m.schemeName}</td>
+                            <td className="numeric-cell">{m.units.toFixed(2)}</td>
+                            <td className="numeric-cell">₹{m.averageNav.toFixed(2)}</td>
+                            <td className="numeric-cell">₹{m.currentNav.toFixed(2)}</td>
+                            <td className="numeric-cell" style={{ fontWeight: 'var(--fw-semibold)', color: 'var(--text-primary)' }}>{formatRupee(val)}</td>
+                            <td>
+                              {m.nomineeName ? (
+                                <span style={{ color: 'var(--success)', fontSize: 'var(--font-sm)' }}>{m.nomineeName}</span>
+                              ) : (
+                                <span className="type-caption" style={{ color: 'var(--warning)', fontWeight: 'var(--fw-semibold)' }}>No Nominee Assigned</span>
+                              )}
+                            </td>
+                            <td className="numeric-cell" style={{ fontWeight: 'var(--fw-semibold)', color: ret >= 0 ? 'var(--success)' : 'var(--error)' }}>
+                              {formatRupee(ret)} <span className="type-caption" style={{ color: ret >= 0 ? 'var(--success)' : 'var(--error)', marginLeft: 'var(--spacing-02)' }}>({pct.toFixed(1)}%)</span>
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <div style={{ display: 'flex', gap: 'var(--spacing-05)', justifyContent: 'center' }}>
+                                <IconButton icon={<Edit2 size={13} />} label={`Edit ${m.schemeName}`} onClick={() => handleEditMF(m)} />
+                                <IconButton icon={<Trash2 size={13} />} variant="danger" label={`Delete ${m.schemeName}`} onClick={() => handleDeleteMF(m.id)} />
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={8} className="type-body-secondary" style={{ textAlign: 'center', padding: 'var(--spacing-2)' }}>
+                          No mutual fund folios found. Click "Add Mutual Fund" to track SIPs, step-ups, and NAV performance.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Other holdings grid */}
+            <div className="card-grid responsive-stack" style={{ gridTemplateColumns: '1fr 1fr' }}>
+
+              {/* Fixed Deposits & SGB Gold */}
+              <div className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-125)' }}>
+                <PanelHeader
+                title="Fixed Deposits & Gold Assets"
+                action={
+                  <div style={{ display: 'flex', gap: 'var(--spacing-05)' }}>
+                    <Button variant="secondary" style={{ padding: 'var(--spacing-04) var(--spacing-06)', fontSize: 'var(--font-xs)' }} onClick={() => setShowAddFD(true)}>
+                      + FD
+                    </Button>
+                    <Button variant="secondary" style={{ padding: 'var(--spacing-04) var(--spacing-06)', fontSize: 'var(--font-xs)' }} onClick={() => setShowAddGold(true)}>
+                      + Gold
+                    </Button>
+                  </div>
+                }
+              />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-075)', maxHeight: 'var(--chart-height-lg)', overflowY: 'auto' }}>
+{fds.map((f) => (
+                    <StatRow
+                      key={f.id}
+                      className="tabular-nums"
+                      title={`${f.bankName} FD (${f.interestRate}% Int)`}
+                      subtitle={`Matures: ${f.maturityDate}`}
+                      value={formatRupee(calculateFdAccruedValue(f))}
+                      valueTitle="Accrued value based on compounding interest"
+                      change={`Principal: ${formatRupee(f.principalAmount)}`}
+                      actions={
+                        <>
+                          <IconButton icon={<Edit2 size={12} />} label={`Edit ${f.bankName} FD`} onClick={() => handleEditFD(f)} />
+                          <IconButton icon={<Trash2 size={12} />} variant="danger" label={`Delete ${f.bankName} FD`} onClick={() => handleDeleteFD(f.id)} />
+                        </>
+                      }
+                    />
                   ))}
-                </tbody>
-              </table>
-              
-              <div style={{
-                background: 'rgba(255,255,255,0.02)', border: '1px dashed var(--border-color)',
-                padding: '1rem', borderRadius: 'var(--radius-sm)', fontSize: '0.82rem'
-              }}>
-                <strong>Rebalancing Summary:</strong> Market shifts cause portfolios to drift. 
-                Consider buying/selling the listed quantities to ensure alignment with your custom risk tolerance.
+
+{gold.map((g) => (
+                    <StatRow
+                      key={g.id}
+                      className="tabular-nums"
+                      title={`Gold - ${g.type}`}
+                      subtitle={`Qty: ${g.quantityGrams}g (Nominee: ${g.nomineeName || 'None'})`}
+                      value={formatRupee(g.quantityGrams * g.currentPrice)}
+                      change={`Gain: ${(((g.currentPrice - g.purchasePrice) / g.purchasePrice) * 100).toFixed(0)}%`}
+                      actions={
+                        <>
+                          <IconButton icon={<Edit2 size={12} />} label={`Edit Gold - ${g.type}`} onClick={() => handleEditGold(g)} />
+                          <IconButton icon={<Trash2 size={12} />} variant="danger" label={`Delete Gold - ${g.type}`} onClick={() => handleDeleteGold(g.id)} />
+                        </>
+                      }
+                    />
+                  ))}
+
+                  {fds.length === 0 && gold.length === 0 && (
+                    <EmptyState variant="dashed" size="sm" title="No FDs or gold assets" description="Add FDs or Gold to track guaranteed returns and commodity hedges." />
+                  )}
+                </div>
               </div>
+
+              {/* Retirement Accounts */}
+              <div className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-125)' }}>
+                <PanelHeader
+                title="Government Pension & PPF/EPF"
+                action={
+                  <div style={{ display: 'flex', gap: 'var(--spacing-05)' }}>
+                    <Button variant="secondary" style={{ padding: 'var(--spacing-04) var(--spacing-06)', fontSize: 'var(--font-xs)' }} onClick={() => setShowAddNPS(true)}>
+                      + NPS
+                    </Button>
+                    <Button variant="secondary" style={{ padding: 'var(--spacing-04) var(--spacing-06)', fontSize: 'var(--font-xs)' }} onClick={() => setShowAddPF(true)}>
+                      + PF
+                    </Button>
+                  </div>
+                }
+              />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-075)', maxHeight: 'var(--chart-height-lg)', overflowY: 'auto' }}>
+{nps.map((n) => (
+                    <StatRow
+                      key={n.id}
+                      className="tabular-nums"
+                      title="National Pension System (NPS)"
+                      subtitle={`PRAN: ${n.pranNumber} (Nominee: ${n.nomineeName || 'None'})`}
+                      value={formatRupee(n.balance)}
+                      actions={
+                        <>
+                          <IconButton icon={<Edit2 size={12} />} label={`Edit NPS ${n.pranNumber}`} onClick={() => handleEditNPS(n)} />
+                          <IconButton icon={<Trash2 size={12} />} variant="danger" label={`Delete NPS ${n.pranNumber}`} onClick={() => handleDeleteNPS(n.id)} />
+                        </>
+                      }
+                    />
+                  ))}
+
+{pf.map((p) => (
+                    <StatRow
+                      key={p.id}
+                      className="tabular-nums"
+                      title={`Provident Fund (${p.type})`}
+                      subtitle={`A/c: ${p.accountNumber}`}
+                      value={formatRupee(p.balance)}
+                      actions={
+                        <>
+                          <IconButton icon={<Edit2 size={12} />} label={`Edit Provident Fund (${p.type}) ${p.accountNumber}`} onClick={() => handleEditPF(p)} />
+                          <IconButton icon={<Trash2 size={12} />} variant="danger" label={`Delete Provident Fund (${p.type}) ${p.accountNumber}`} onClick={() => handleDeletePF(p.id)} />
+                        </>
+                      }
+                    />
+                  ))}
+
+                  {nps.length === 0 && pf.length === 0 && (
+                    <EmptyState variant="dashed" size="sm" title="No retirement accounts" description="Link your NPS PRAN or EPF/PPF account to track long-term pension wealth." />
+                  )}
+                </div>
+              </div>
+
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Tab: Monte Carlo Simulator */}
-      {activeTab === 'sim' && (
-        <div className="glass-panel animate-fade-in" style={{ padding: '1.5rem' }}>
-          <h4 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <BarChart2 size={16} color="var(--accent-2)" /> Monte Carlo Retirement Projection Engine
-          </h4>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-            Simulate portfolio growth over time factoring in return volatility, inflation, and regular contributions. Displays outcome ranges in today's purchasing value.
-          </p>
+        {/* Tab: Rebalancing Suggestion */}
+        {activeTab === 'rebalance' && (
+          <div id="rebalance-panel" role="tabpanel" aria-labelledby="rebalance-tab" className="glass-panel animate-fade-in gap-stack-lg" data-interactive-card="off" style={{ padding: 'var(--spacing-15)' }}>
+            <PanelHeader icon={<Sliders size={16} />} title="Target Asset Allocation Rebalancer" />
+            <p className="type-body-secondary" style={{ marginBottom: 'var(--spacing-15)', maxWidth: '75ch' }}>
+              Adjust your target percentages below. We will calculate the target rupees and suggest purchase/sale triggers to return to your targets.
+            </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.5fr', gap: '2rem' }} className="responsive-stack">
-            <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <h5 style={{ fontSize: '0.9rem', marginBottom: '0.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>Simulation Inputs</h5>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                Current Net Worth: <strong>{formatRupee(totalPortfolioVal)}</strong>
-              </div>
-              <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>Horizon (Years)</label>
-                <input type="number" className="form-input" style={{ padding: '0.4rem' }} value={horizonYears} onChange={(e) => setHorizonYears(parseInt(e.target.value) || 0)} />
-              </div>
-              <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>Monthly Saving (₹)</label>
-                <CurrencyInput className="form-input" style={{ padding: '0.4rem' }} value={monthlyContribution} onChange={(e) => setMonthlyContribution(parseInt(e.target.value) || 0)} />
-              </div>
-              <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>Expected Return (% p.a.)</label>
-                <input type="number" className="form-input" style={{ padding: '0.4rem' }} value={expectedReturn} onChange={(e) => setExpectedReturn(parseFloat(e.target.value) || 0)} />
-              </div>
-              <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>Indian Inflation (% p.a.)</label>
-                <input type="number" className="form-input" style={{ padding: '0.4rem' }} value={inflationRate} onChange={(e) => setInflationRate(parseFloat(e.target.value) || 0)} />
-              </div>
-              <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>Portfolio Volatility (% StdDev)</label>
-                <input type="number" className="form-input" style={{ padding: '0.4rem' }} value={volatility} onChange={(e) => setVolatility(parseFloat(e.target.value) || 0)} />
-              </div>
-              <button className="btn btn-primary" style={{ padding: '0.5rem', fontSize: '0.85rem' }} onPointerDown={runMonteCarloSimulation}>
-                <Play size={14} /> Run Simulation
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', justifyItems: 'center' }}>
-              {simResults.length > 0 ? (
-                <>
-                  <h5 style={{ fontSize: '0.9rem', marginBottom: '1rem', color: 'var(--text-secondary)' }}>Projected Purchasing Power over time (adjusted for inflation)</h5>
-                  <div style={{ width: '100%', height: '280px' }}>
-                    <ResponsiveContainer>
-                      <AreaChart data={simResults}>
-                        <XAxis dataKey="year" stroke="var(--text-muted)" fontSize={10} tickLine={false} />
-                        <YAxis stroke="var(--text-muted)" fontSize={9} tickLine={false} tickFormatter={(v) => `${(v/10000000).toFixed(1)}Cr`} />
-                        <Tooltip 
-                          formatter={(v: any) => formatRupee(v)}
-                          contentStyle={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
-                        />
-                        <Legend wrapperStyle={{ fontSize: '10px' }} />
-                        <Area type="monotone" dataKey="BestCase" stroke="var(--accent-2)" fill="var(--accent-2)" fillOpacity={0.05} name="Optimistic (90th Pct)" />
-                        <Area type="monotone" dataKey="Expected" stroke="var(--accent-1)" fill="var(--accent-1)" fillOpacity={0.1} name="Median (50th Pct)" />
-                        <Area type="monotone" dataKey="WorstCase" stroke="var(--error)" fill="var(--error)" fillOpacity={0.05} name="Conservative (10th Pct)" />
-                      </AreaChart>
-                    </ResponsiveContainer>
+            <FormRow columns="1fr 2fr" gap="var(--spacing-25)">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}>
+                <div style={{ marginBottom: 'var(--spacing-025)' }}>
+                  <span className="uppercase-label" style={{ display: 'block', marginBottom: 'var(--spacing-04)' }}>
+                    Allocation Models:
+                  </span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-04)' }}>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="type-badge"
+                      style={{ padding: 'var(--spacing-02) var(--spacing-075)', borderRadius: 'var(--radius-pill)', cursor: 'pointer', fontWeight: 'var(--fw-medium)' }}
+                      onClick={() => { setTargetEquity(70); setTargetDebt(20); setTargetGold(10); }}
+                    >
+                      Aggressive (70/20/10)
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="type-badge"
+                      style={{ padding: 'var(--spacing-02) var(--spacing-075)', borderRadius: 'var(--radius-pill)', cursor: 'pointer', fontWeight: 'var(--fw-medium)' }}
+                      onClick={() => { setTargetEquity(50); setTargetDebt(30); setTargetGold(20); }}
+                    >
+                      Balanced (50/30/20)
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="type-badge"
+                      style={{ padding: 'var(--spacing-02) var(--spacing-075)', borderRadius: 'var(--radius-pill)', cursor: 'pointer', fontWeight: 'var(--fw-medium)' }}
+                      onClick={() => { setTargetEquity(30); setTargetDebt(60); setTargetGold(10); }}
+                    >
+                      Conservative (30/60/10)
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="type-badge"
+                      style={{ padding: 'var(--spacing-02) var(--spacing-075)', borderRadius: 'var(--radius-pill)', cursor: 'pointer', fontWeight: 'var(--fw-medium)' }}
+                      onClick={() => { setTargetEquity(40); setTargetDebt(40); setTargetGold(20); }}
+                    >
+                      All-Weather (40/40/20)
+                    </Button>
                   </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Equity Target (%)</label>
+                  <input type="number" className="form-input tabular-nums" value={targetEquity} onChange={(e) => setTargetEquity(parseInt(e.target.value) || 0)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Debt Target (%)</label>
+                  <input type="number" className="form-input tabular-nums" value={targetDebt} onChange={(e) => setTargetDebt(parseInt(e.target.value) || 0)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Gold Target (%)</label>
+                  <input type="number" className="form-input tabular-nums" value={targetGold} onChange={(e) => setTargetGold(parseInt(e.target.value) || 0)} />
+                </div>
+                {targetEquity + targetDebt + targetGold !== 100 && (
+                  <div className="type-caption tabular-nums" style={{ color: 'var(--error)', fontWeight: 'var(--fw-semibold)' }}>
+                    ⚠️ Sum of targets must equal 100% (Current: {targetEquity + targetDebt + targetGold}%)
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <div className="table-responsive">
+                  <table className="custom-table" style={{ marginBottom: 'var(--spacing-15)', minWidth: '520px' }}>
+                    <caption style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0, padding: 0, margin: -1 }}>
+                      Current versus target allocation per asset class with the rupee action required to rebalance
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th>Asset Class</th>
+                        <th className="numeric-cell">Current Allocation</th>
+                        <th className="numeric-cell">Target Allocation</th>
+                        <th className="numeric-cell">Action Required</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rebalanceData.map((row, idx) => (
+                        <tr key={idx}>
+                          <td style={{ fontWeight: 'var(--fw-semibold)', color: 'var(--text-primary)' }}>{row.name}</td>
+                          <td className="numeric-cell">{row.actualPct.toFixed(1)}%</td>
+                          <td className="numeric-cell">{row.targetPct}%</td>
+                          <td className="numeric-cell" style={{
+                            fontWeight: 'var(--fw-bold)',
+                            color: row.deviation >= 0 ? 'var(--success)' : 'var(--error)'
+                          }}>
+                            {row.deviation >= 0
+                              ? `Buy: ${formatRupee(row.deviation)}`
+                              : `Sell: ${formatRupee(Math.abs(row.deviation))}`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <InfoCallout variant="info" title="Rebalancing Summary:">
+                  Market shifts cause portfolios to drift.
+                  Consider buying/selling the listed quantities to ensure alignment with your custom risk tolerance.
+                </InfoCallout>
+              </div>
+            </FormRow>
+          </div>
+        )}
+
+        {/* Tab: Monte Carlo Simulator */}
+        {activeTab === 'sim' && (
+          <div id="sim-panel" role="tabpanel" aria-labelledby="sim-tab" className="glass-panel animate-fade-in gap-stack-lg" data-interactive-card="off" style={{ padding: 'var(--spacing-15)' }}>
+            <PanelHeader icon={<BarChart2 size={16} />} title="Monte Carlo Retirement Projection Engine" />
+            <p className="type-body-secondary" style={{ marginBottom: 'var(--spacing-15)', maxWidth: '75ch' }}>
+              Simulate portfolio growth over time factoring in return volatility, inflation, and regular contributions. Displays outcome ranges in today's purchasing value.
+            </p>
+
+            <div className="card-grid responsive-stack" style={{ gridTemplateColumns: '1fr 2.5fr', gap: 'var(--spacing-2)' }}>
+              <div className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-125)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-075)' }}>
+                <h5 className="type-section-title" style={{ fontSize: 'var(--font-sm)', fontWeight: 'var(--fw-bold)', marginBottom: 'var(--spacing-025)', borderBottom: '1px solid var(--border-color)', paddingBottom: 'var(--spacing-04)', letterSpacing: '-0.01em' }}>
+                  Simulation Inputs
+                </h5>
+                <div className="type-body" style={{ fontSize: 'var(--font-sm)', color: 'var(--text-secondary)' }}>
+                  Current Net Worth: <strong className="type-metric-sm" style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)' }}>{formatRupee(totalPortfolioVal)}</strong>
+                </div>
+                <div className="form-group" style={{ marginBottom: 'var(--spacing-05)' }}>
+                  <label htmlFor="mc-horizon-years" className="form-label">Horizon (Years)</label>
+                  <input id="mc-horizon-years" type="number" className="form-input tabular-nums" style={{ padding: 'var(--spacing-05)' }} value={horizonYears} onChange={(e) => setHorizonYears(parseInt(e.target.value) || 0)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 'var(--spacing-05)' }}>
+                  <label htmlFor="mc-monthly-saving" className="form-label">Monthly Saving (₹)</label>
+                  <CurrencyInput id="mc-monthly-saving" className="form-input tabular-nums" style={{ padding: 'var(--spacing-05)' }} value={monthlyContribution} onChange={(e) => setMonthlyContribution(parseInt(e.target.value) || 0)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 'var(--spacing-05)' }}>
+                  <label htmlFor="mc-expected-return" className="form-label">Expected Return (% p.a.)</label>
+                  <input id="mc-expected-return" type="number" className="form-input tabular-nums" style={{ padding: 'var(--spacing-05)' }} value={expectedReturn} onChange={(e) => setExpectedReturn(parseFloat(e.target.value) || 0)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 'var(--spacing-05)' }}>
+                  <label htmlFor="mc-inflation-rate" className="form-label">Indian Inflation (% p.a.)</label>
+                  <input id="mc-inflation-rate" type="number" className="form-input tabular-nums" style={{ padding: 'var(--spacing-05)' }} value={inflationRate} onChange={(e) => setInflationRate(parseFloat(e.target.value) || 0)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 'var(--spacing-05)' }}>
+                  <label htmlFor="mc-volatility" className="form-label">Portfolio Volatility (% StdDev)</label>
+                  <input id="mc-volatility" type="number" className="form-input tabular-nums" style={{ padding: 'var(--spacing-05)' }} value={volatility} onChange={(e) => setVolatility(parseFloat(e.target.value) || 0)} />
+                </div>
+                <Button variant="primary" style={{ padding: 'var(--spacing-05) var(--spacing-1)', fontSize: 'var(--font-sm)', fontWeight: 'var(--fw-semibold)' }} onClick={runMonteCarloSimulation}>
+                  <Play size={14} /> Run Simulation
+                </Button>
+              </div>
+
+              <div className="glass-panel" data-interactive-card="off" style={{ display: 'flex', flexDirection: 'column', justifyItems: 'center', padding: 'var(--spacing-125)', boxShadow: 'var(--neo-raised-md)' }}>
+                {simResults.length > 0 ? (
+                  <>
+                    <h5 className="type-section-title" style={{ fontSize: 'var(--font-sm)', fontWeight: 'var(--fw-semibold)', marginBottom: 'var(--spacing-1)', color: 'var(--text-secondary)' }}>
+                      Projected Purchasing Power over time (adjusted for inflation)
+                    </h5>
+                    <div style={{ width: '100%', overflowX: 'auto' }}>
+                      <div style={{ minWidth: '320px', height: 'var(--chart-height-md)' }}>
+                        <ResponsiveContainer>
+                          <AreaChart data={simResults}>
+                            <XAxis dataKey="year" stroke="var(--text-muted)" fontSize={11} fontFamily="var(--font-body)" tickLine={false} />
+                            <YAxis stroke="var(--text-muted)" fontSize={11} fontFamily="var(--font-body)" tickLine={false} tickFormatter={(v) => `${(v / 10000000).toFixed(1)}Cr`} />
+                            <Tooltip
+                              formatter={(v) => formatRupee(Number(v))}
+                              contentStyle={chartTooltipStyle}
+                              itemStyle={chartTooltipItemStyle}
+                            />
+                            <Legend wrapperStyle={{ fontSize: 'var(--font-xs)', fontFamily: 'var(--font-body)' }} />
+                            <Area type="monotone" dataKey="BestCase" stroke="var(--success)" fill="var(--success)" fillOpacity={0.08} name="Optimistic (90th Pct)" />
+                            <Area type="monotone" dataKey="Expected" stroke="var(--accent-1)" fill="var(--accent-1)" fillOpacity={0.12} name="Median (50th Pct)" />
+                            <Area type="monotone" dataKey="WorstCase" stroke="var(--warning)" fill="var(--warning)" fillOpacity={0.08} name="Conservative (10th Pct)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                    <InfoCallout variant="info" title="Simulation Report:" style={{ marginTop: 'var(--spacing-1)' }}>
+                      In 50% of trials (Median), your portfolio values grow to <strong className="tabular-nums" style={{ color: 'var(--text-primary)' }}>{formatRupee(simResults[simResults.length - 1].Expected)}</strong>.
+                      In poor market conditions (10th percentile), it reaches <strong className="tabular-nums" style={{ color: 'var(--text-primary)' }}>{formatRupee(simResults[simResults.length - 1].WorstCase)}</strong>.
+                    </InfoCallout>
+                  </>
+                ) : (
                   <div style={{
-                    marginTop: '1rem', padding: '0.8rem', background: 'rgba(255,255,255,0.02)',
-                    borderRadius: 'var(--radius-sm)', fontSize: '0.78rem', color: 'var(--text-secondary)'
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    height: '100%', border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)',
+                    padding: 'var(--spacing-2)', color: 'var(--text-muted)'
                   }}>
-                    <strong>Simulation Report:</strong> In 50% of trials (Median), your portfolio values grow to <strong>{formatRupee(simResults[simResults.length - 1].Expected)}</strong>. 
-                    In poor market conditions (10th percentile), it reaches <strong>{formatRupee(simResults[simResults.length - 1].WorstCase)}</strong>.
+                    <Play size={32} style={{ marginBottom: 'var(--spacing-05)', opacity: 0.5 }} />
+                    <span className="type-body-secondary">Configure parameters and click "Run Simulation" to generate paths</span>
                   </div>
-                </>
-              ) : (
-                <div style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  height: '100%', border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)',
-                  padding: '3rem', color: 'var(--text-muted)'
-                }}>
-                  <Play size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
-                  <span>Configure parameters and click "Run Simulation" to generate paths</span>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Dialog: Add Stock */}
-      {showAddStock && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: '1.5rem 2rem' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>{editStockId ? 'Edit Stock Position' : 'Add Stock Position'}</h3>
-            <form onSubmit={handleAddStock}>
-              <div className="form-group">
-                <label className="form-label">Ticker Symbol</label>
-                <input type="text" className="form-input" value={stkSymbol} onChange={(e) => setStkSymbol(e.target.value)} placeholder="e.g. RELIANCE" required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Company Name</label>
-                <input type="text" className="form-input" value={stkName} onChange={(e) => setStkName(e.target.value)} placeholder="e.g. Reliance Industries" />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label className="form-label">Quantity</label>
-                  <input type="number" className="form-input" value={stkQty} onChange={(e) => setStkQty(e.target.value)} placeholder="0" required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Avg Purchase Cost (₹)</label>
-                  <CurrencyInput className="form-input" value={stkAvgPrice} onChange={(e) => setStkAvgPrice(e.target.value)} placeholder="0.00" required />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Current Market Price (₹)</label>
-                <CurrencyInput className="form-input" value={stkCurrentPrice} onChange={(e) => setStkCurrentPrice(e.target.value)} placeholder="Leave blank to use purchase price" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Nominee Name</label>
-                <input type="text" className="form-input" value={stkNominee} onChange={(e) => setStkNominee(e.target.value)} placeholder="Registered nominee" />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onPointerDown={() => { setShowAddStock(false); setEditStockId(null); }}>Cancel</button>
-                <button type="submit" className="btn btn-primary">{editStockId ? 'Save Changes' : 'Add Asset'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        {/* Dialog: Add Stock */}
+        <Modal isOpen={showAddStock} onClose={() => { setShowAddStock(false); setEditStockId(null); }} title={editStockId ? 'Edit Stock Position' : 'Add Stock Position'} size="sm">
+          <form onSubmit={handleAddStock}>
+            <FormField label="Ticker Symbol">
+              <input type="text" className="form-input" value={stkSymbol} onChange={(e) => setStkSymbol(e.target.value)} placeholder="e.g. RELIANCE" required aria-required="true" />
+            </FormField>
+            <FormField label="Company Name">
+              <input type="text" className="form-input" value={stkName} onChange={(e) => setStkName(e.target.value)} placeholder="e.g. Reliance Industries" />
+            </FormField>
+            <FormRow>
+              <FormField label="Quantity">
+                <input type="number" step="1" min="1" className="form-input tabular-nums" value={stkQty} onChange={(e) => setStkQty(e.target.value)} placeholder="0" required aria-required="true" />
+              </FormField>
+              <FormField label="Avg Purchase Cost (₹)">
+                <CurrencyInput className="form-input tabular-nums" value={stkAvgPrice} onChange={(e) => setStkAvgPrice(e.target.value)} placeholder="0.00" required aria-required="true" />
+              </FormField>
+            </FormRow>
+            <FormField label="Current Market Price (₹)">
+              <CurrencyInput className="form-input tabular-nums" value={stkCurrentPrice} onChange={(e) => setStkCurrentPrice(e.target.value)} placeholder="Leave blank to use purchase price" />
+            </FormField>
+            <FormField label="Nominee Name">
+              <input type="text" className="form-input" value={stkNominee} onChange={(e) => setStkNominee(e.target.value)} placeholder="Registered nominee" />
+            </FormField>
+            <FormActions
+              divided
+              onCancel={() => { setShowAddStock(false); setEditStockId(null); }}
+              submitLabel={editStockId ? 'Save Stock Position' : 'Add Stock Position'}
+            />
+          </form>
+        </Modal>
 
-      {/* Dialog: Add Mutual Fund */}
-      {showAddMF && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: '1.5rem 2rem' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>{editMFId ? 'Edit Mutual Fund' : 'Add Mutual Fund'}</h3>
-            <form onSubmit={handleAddMF}>
-              <div className="form-group">
-                <label className="form-label">Scheme Name</label>
-                <input type="text" className="form-input" value={mfSchemeName} onChange={(e) => setMfSchemeName(e.target.value)} placeholder="e.g. Parag Parikh Flexi Cap" required />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label className="form-label">Units Purchased</label>
-                  <input type="number" step="any" className="form-input" value={mfUnits} onChange={(e) => setMfUnits(e.target.value)} placeholder="0.000" required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Avg Buy NAV (₹)</label>
-                  <CurrencyInput className="form-input" value={mfAvgNav} onChange={(e) => setMfAvgNav(e.target.value)} placeholder="0.00" required />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Current NAV (₹)</label>
-                <CurrencyInput className="form-input" value={mfCurrentNav} onChange={(e) => setMfCurrentNav(e.target.value)} placeholder="Leave blank to use buy NAV" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Nominee Name</label>
-                <input type="text" className="form-input" value={mfNominee} onChange={(e) => setMfNominee(e.target.value)} placeholder="Registered nominee" />
-              </div>
+        {/* Dialog: Add Mutual Fund */}
+        <Modal isOpen={showAddMF} onClose={() => { setShowAddMF(false); setEditMFId(null); }} title={editMFId ? 'Edit Mutual Fund' : 'Add Mutual Fund'} size="sm">
+          <form onSubmit={handleAddMF}>
+            <FormField label="Scheme Name">
+              <input type="text" className="form-input" value={mfSchemeName} onChange={(e) => setMfSchemeName(e.target.value)} placeholder="e.g. Parag Parikh Flexi Cap" required aria-required="true" />
+            </FormField>
+            <FormRow>
+              <FormField label="Units Purchased">
+                <input type="number" step="any" className="form-input tabular-nums" value={mfUnits} onChange={(e) => setMfUnits(e.target.value)} placeholder="0.000" required aria-required="true" />
+              </FormField>
+              <FormField label="Avg Buy NAV (₹)">
+                <CurrencyInput className="form-input tabular-nums" value={mfAvgNav} onChange={(e) => setMfAvgNav(e.target.value)} placeholder="0.00" required aria-required="true" />
+              </FormField>
+            </FormRow>
+            <FormField label="Current NAV (₹)">
+              <CurrencyInput className="form-input tabular-nums" value={mfCurrentNav} onChange={(e) => setMfCurrentNav(e.target.value)} placeholder="Leave blank to use buy NAV" />
+            </FormField>
+            <FormField label="Nominee Name">
+              <input type="text" className="form-input" value={mfNominee} onChange={(e) => setMfNominee(e.target.value)} placeholder="Registered nominee" />
+            </FormField>
 
-              <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '1rem 0' }}>
-                <input type="checkbox" checked={mfAutoSIP} onChange={(e) => setMfAutoSIP(e.target.checked)} id="mfSipCheck" />
-                <label htmlFor="mfSipCheck" style={{ fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600, color: 'var(--accent-1)' }}>Auto-Setup Step-Up SIP (Backfills past data)</label>
-              </div>
+            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-05)', margin: 'var(--spacing-1) 0' }}>
+              <input type="checkbox" checked={mfAutoSIP} onChange={(e) => setMfAutoSIP(e.target.checked)} id="mfSipCheck" />
+              <label htmlFor="mfSipCheck" className="type-label" style={{ cursor: 'pointer', fontWeight: 'var(--fw-semibold)', color: 'var(--accent-1)' }}>Auto-Setup Step-Up SIP (Backfills past data)</label>
+            </div>
 
-              {mfAutoSIP && (
-                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border-color)', marginBottom: '1rem' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.75rem' }}>Monthly SIP Amount (₹)</label>
-                      <CurrencyInput className="form-input" style={{ padding: '0.4rem' }} value={mfSIPAmount} onChange={(e) => setMfSIPAmount(e.target.value)} required={mfAutoSIP} />
-                    </div>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.75rem' }}>Source Bank Account</label>
-                      <select className="form-input" style={{ padding: '0.4rem' }} value={mfSIPAccount} onChange={(e) => setMfSIPAccount(e.target.value)} required={mfAutoSIP}>
-                        <option value="">-- Select --</option>
-                        {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.75rem' }}>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.75rem' }}>SIP Start Date</label>
-                      <input type="date" className="form-input" style={{ padding: '0.4rem' }} value={mfSIPStartDate} onChange={(e) => setMfSIPStartDate(e.target.value)} required={mfAutoSIP} />
-                    </div>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.75rem' }}>Annual Step-Up (%)</label>
-                      <input type="number" className="form-input" style={{ padding: '0.4rem' }} value={mfSIPStepUp} onChange={(e) => setMfSIPStepUp(e.target.value)} placeholder="e.g. 10" />
-                    </div>
-                  </div>
-                </div>
-              )}
+            {mfAutoSIP && (
+              <div style={{ background: 'var(--surface-faint)', padding: 'var(--spacing-1)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border-color)', marginBottom: 'var(--spacing-1)' }}>
+                <FormRow>
+                  <FormField label="Monthly SIP Amount (₹)" style={{ margin: 0 }}>
+                    <CurrencyInput className="form-input tabular-nums" style={{ padding: 'var(--spacing-04)' }} value={mfSIPAmount} onChange={(e) => setMfSIPAmount(e.target.value)} required={mfAutoSIP} aria-required={mfAutoSIP} />
+                  </FormField>
+                  <FormField label="Source Bank Account" style={{ margin: 0 }}>
+                    <select className="form-input" style={{ padding: 'var(--spacing-04)' }} value={mfSIPAccount} onChange={(e) => setMfSIPAccount(e.target.value)} required={mfAutoSIP} aria-required={mfAutoSIP}>
+                      <option value="">-- Select --</option>
+                      {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    </select>
+                  </FormField>
+                </FormRow>
+                <FormRow style={{ marginTop: 'var(--spacing-075)' }}>
+                  <FormField label="SIP Start Date" style={{ margin: 0 }}>
+                    <input type="date" className="form-input tabular-nums" style={{ padding: 'var(--spacing-04)' }} value={mfSIPStartDate} onChange={(e) => setMfSIPStartDate(e.target.value)} required={mfAutoSIP} aria-required={mfAutoSIP} />
+                  </FormField>
+                  <FormField hint="e.g. 10" style={{ margin: 0 }}>
+                    <Slider
+                      label="Annual Step-Up (%)"
+                      value={parseFloat(mfSIPStepUp) || 0}
+                      onChange={(v) => setMfSIPStepUp(v ? String(v) : '')}
+                      min={0}
+                      max={25}
+                      step={1}
+                      suffix="%"
+                      editable
+                      inputWidth={44}
+                    />
+                  </FormField>
+                </FormRow>
+              </div>
+            )}
 
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onPointerDown={() => { setShowAddMF(false); setEditMFId(null); }}>Cancel</button>
-                <button type="submit" className="btn btn-primary">{editMFId ? 'Save Changes' : 'Add Asset'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <FormActions
+              divided
+              onCancel={() => { setShowAddMF(false); setEditMFId(null); }}
+              submitLabel={editMFId ? 'Save Mutual Fund' : 'Add Mutual Fund'}
+            />
+          </form>
+        </Modal>
 
-      {/* Dialog: Add FD */}
-      {showAddFD && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: '1.5rem 2rem' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>{editFDId ? 'Edit Fixed Deposit' : 'Link Fixed Deposit'}</h3>
-            <form onSubmit={handleAddFD}>
-              <div className="form-group">
-                <label className="form-label">Bank Institution</label>
-                <input type="text" className="form-input" value={fdBankName} onChange={(e) => setFdBankName(e.target.value)} placeholder="e.g. SBI Bank" required />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label className="form-label">Principal Amount (₹)</label>
-                  <CurrencyInput className="form-input" value={fdPrincipal} onChange={(e) => setFdPrincipal(e.target.value)} placeholder="0.00" required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Interest Rate (% p.a.)</label>
-                  <input type="number" step="any" className="form-input" value={fdInterestRate} onChange={(e) => setFdInterestRate(e.target.value)} placeholder="6.5" required />
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label className="form-label">Start Date</label>
-                  <input type="date" className="form-input" value={fdStartDate} onChange={(e) => setFdStartDate(e.target.value)} required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Maturity Date</label>
-                  <input type="date" className="form-input" value={fdMaturityDate} onChange={(e) => setFdMaturityDate(e.target.value)} required />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Maturity Amount (₹)</label>
-                <CurrencyInput className="form-input" value={fdMaturityAmount} onChange={(e) => setFdMaturityAmount(e.target.value)} placeholder="Auto-calculated if blank" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Nominee Name</label>
-                <input type="text" className="form-input" value={fdNominee} onChange={(e) => setFdNominee(e.target.value)} placeholder="Registered nominee" />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onPointerDown={() => { setShowAddFD(false); setEditFDId(null); }}>Cancel</button>
-                <button type="submit" className="btn btn-primary">{editFDId ? 'Save Changes' : 'Link Deposit'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        {/* Dialog: Add FD */}
+        <Modal isOpen={showAddFD} onClose={() => { setShowAddFD(false); setEditFDId(null); }} title={editFDId ? 'Edit Fixed Deposit' : 'Add Fixed Deposit'} size="sm">
+          <form onSubmit={handleAddFD}>
+            <FormField label="Bank Institution">
+              <input type="text" className="form-input" value={fdBankName} onChange={(e) => setFdBankName(e.target.value)} placeholder="e.g. State Bank of India, HDFC Bank" required aria-required="true" />
+            </FormField>
+            <FormRow columns="1.2fr 1fr">
+              <FormField label="Principal Amount (₹)">
+                <CurrencyInput className="form-input tabular-nums" value={fdPrincipal} onChange={(e) => setFdPrincipal(e.target.value)} placeholder="0.00" required aria-required="true" />
+              </FormField>
+              <FormField label="Interest Rate (% p.a.)">
+                <input type="number" step="any" className="form-input tabular-nums" value={fdInterestRate} onChange={(e) => setFdInterestRate(e.target.value)} placeholder="6.5" required aria-required="true" />
+              </FormField>
+            </FormRow>
+            <FormRow>
+              <FormField label="Start Date">
+                <input type="date" className="form-input tabular-nums" value={fdStartDate} onChange={(e) => setFdStartDate(e.target.value)} required aria-required="true" />
+              </FormField>
+              <FormField label="Maturity Date">
+                <input type="date" className="form-input tabular-nums" value={fdMaturityDate} onChange={(e) => setFdMaturityDate(e.target.value)} required aria-required="true" />
+              </FormField>
+            </FormRow>
+            <FormField label="Maturity Amount (₹)">
+              <CurrencyInput className="form-input tabular-nums" value={fdMaturityAmount} onChange={(e) => setFdMaturityAmount(e.target.value)} placeholder="Auto-calculated if left blank" />
+            </FormField>
+            <FormField label="Nominee Name">
+              <input type="text" className="form-input" value={fdNominee} onChange={(e) => setFdNominee(e.target.value)} placeholder="Registered nominee" />
+            </FormField>
+            <FormActions
+              divided
+              onCancel={() => { setShowAddFD(false); setEditFDId(null); }}
+              submitLabel={editFDId ? 'Save Fixed Deposit' : 'Add Fixed Deposit'}
+            />
+          </form>
+        </Modal>
 
-      {/* Dialog: Add Gold */}
-      {showAddGold && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: '1.5rem 2rem' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>{editGoldId ? 'Edit Gold Holding' : 'Add Gold Holding'}</h3>
-            <form onSubmit={handleAddGold}>
-              <div className="form-group">
-                <label className="form-label">Gold Type</label>
-                <select value={gldType} onChange={(e) => setGldType(e.target.value as any)}>
-                  <option value="Physical">Physical (Bars / Coins)</option>
-                  <option value="SGB">Sovereign Gold Bonds (SGB)</option>
-                  <option value="Digital">Digital Gold</option>
-                </select>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label className="form-label">Quantity (Grams)</label>
-                  <input type="number" step="any" className="form-input" value={gldQty} onChange={(e) => setGldQty(e.target.value)} placeholder="0.0" required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Purchase Price (per g)</label>
-                  <CurrencyInput className="form-input" value={gldBuyPrice} onChange={(e) => setGldBuyPrice(e.target.value)} placeholder="e.g. 6200" required />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Current Market Price (per g)</label>
-                <CurrencyInput className="form-input" value={gldCurrentPrice} onChange={(e) => setGldCurrentPrice(e.target.value)} placeholder="Leave blank to use buy price" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Nominee Name</label>
-                <input type="text" className="form-input" value={gldNominee} onChange={(e) => setGldNominee(e.target.value)} placeholder="Registered nominee" />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onPointerDown={() => { setShowAddGold(false); setEditGoldId(null); }}>Cancel</button>
-                <button type="submit" className="btn btn-primary">{editGoldId ? 'Save Changes' : 'Add Asset'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        {/* Dialog: Add Gold */}
+        <Modal isOpen={showAddGold} onClose={() => { setShowAddGold(false); setEditGoldId(null); }} title={editGoldId ? 'Edit Gold Holding' : 'Add Gold Holding'} size="sm">
+          <form onSubmit={handleAddGold}>
+            <FormField label="Gold Type">
+              <select value={gldType} onChange={(e) => setGldType(e.target.value as 'Physical' | 'SGB' | 'Digital')}>
+                <option value="Physical">Physical Gold (Bars / Coins / Jewelry)</option>
+                <option value="SGB">Sovereign Gold Bonds (SGB)</option>
+                <option value="Digital">Digital Gold (MMTC / Augmont)</option>
+              </select>
+            </FormField>
+            <FormRow>
+              <FormField label="Quantity (Grams)">
+                <input type="number" step="any" className="form-input tabular-nums" value={gldQty} onChange={(e) => setGldQty(e.target.value)} placeholder="0.0" required aria-required="true" />
+              </FormField>
+              <FormField label="Purchase Price (per g)">
+                <CurrencyInput className="form-input tabular-nums" value={gldBuyPrice} onChange={(e) => setGldBuyPrice(e.target.value)} placeholder="e.g. 6200" required aria-required="true" />
+              </FormField>
+            </FormRow>
+            <FormField label="Current Market Price (per g)">
+              <CurrencyInput className="form-input tabular-nums" value={gldCurrentPrice} onChange={(e) => setGldCurrentPrice(e.target.value)} placeholder="Leave blank to use buy price" />
+            </FormField>
+            <FormField label="Nominee Name">
+              <input type="text" className="form-input" value={gldNominee} onChange={(e) => setGldNominee(e.target.value)} placeholder="Registered nominee" />
+            </FormField>
+            <FormActions
+              divided
+              onCancel={() => { setShowAddGold(false); setEditGoldId(null); }}
+              submitLabel={editGoldId ? 'Save Gold Holding' : 'Add Gold Holding'}
+            />
+          </form>
+        </Modal>
 
-      {/* Dialog: Add NPS */}
-      {showAddNPS && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: '1.5rem 2rem' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>{editNPSId ? 'Edit NPS Account' : 'Link NPS Account'}</h3>
-            <form onSubmit={handleAddNPS}>
-              <div className="form-group">
-                <label className="form-label">PRAN (Pension Account Number)</label>
-                <input type="text" className="form-input" value={npsPran} onChange={(e) => setNpsPran(e.target.value)} placeholder="12 digit number" />
+        {/* Dialog: Add NPS */}
+        <Modal isOpen={showAddNPS} onClose={() => { setShowAddNPS(false); setEditNPSId(null); }} title={editNPSId ? 'Edit NPS Account' : 'Add NPS Account'} size="sm">
+          <form onSubmit={handleAddNPS}>
+            <FormField label="PRAN (Permanent Retirement Account Number)">
+              <input type="text" className="form-input tabular-nums" value={npsPran} onChange={(e) => setNpsPran(e.target.value)} placeholder="12-digit PRAN number" />
+            </FormField>
+            <FormField label="Total Balance (₹)">
+              <CurrencyInput className="form-input tabular-nums" value={npsBalance} onChange={(e) => setNpsBalance(e.target.value)} placeholder="Current portfolio value" required aria-required="true" />
+            </FormField>
+            <FormRow columns={4} gap="var(--spacing-05)">
+              <FormField label="Equity (E %)" style={{ margin: 0 }}>
+                <input type="number" min="0" max="100" className="form-input tabular-nums" style={{ padding: 'var(--spacing-04)' }} value={npsE} onChange={(e) => setNpsE(e.target.value)} />
+              </FormField>
+              <FormField label="Corp (C %)" style={{ margin: 0 }}>
+                <input type="number" min="0" max="100" className="form-input tabular-nums" style={{ padding: 'var(--spacing-04)' }} value={npsC} onChange={(e) => setNpsC(e.target.value)} />
+              </FormField>
+              <FormField label="Govt (G %)" style={{ margin: 0 }}>
+                <input type="number" min="0" max="100" className="form-input tabular-nums" style={{ padding: 'var(--spacing-04)' }} value={npsG} onChange={(e) => setNpsG(e.target.value)} />
+              </FormField>
+              <FormField label="Alt (A %)" style={{ margin: 0 }}>
+                <input type="number" min="0" max="100" className="form-input tabular-nums" style={{ padding: 'var(--spacing-04)' }} value={npsA} onChange={(e) => setNpsA(e.target.value)} />
+              </FormField>
+            </FormRow>
+            {((parseInt(npsE) || 0) + (parseInt(npsC) || 0) + (parseInt(npsG) || 0) + (parseInt(npsA) || 0)) !== 100 && (
+              <div className="type-caption tabular-nums" style={{ color: 'var(--error)', fontWeight: 'var(--fw-semibold)', marginTop: 'calc(var(--spacing-025) * -1)', marginBottom: 'var(--spacing-05)' }}>
+                ⚠️ Tier-1 asset allocations must total exactly 100% (Current total: {(parseInt(npsE) || 0) + (parseInt(npsC) || 0) + (parseInt(npsG) || 0) + (parseInt(npsA) || 0)}%)
               </div>
-              <div className="form-group">
-                <label className="form-label">Total Balance (₹)</label>
-                <CurrencyInput className="form-input" value={npsBalance} onChange={(e) => setNpsBalance(e.target.value)} placeholder="Current value" required />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem' }}>
-                <div className="form-group">
-                  <label className="form-label" style={{ fontSize: '0.7rem' }}>Equity (E %)</label>
-                  <input type="number" className="form-input" style={{ padding: '0.40rem' }} value={npsE} onChange={(e) => setNpsE(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label" style={{ fontSize: '0.7rem' }}>Corp (C %)</label>
-                  <input type="number" className="form-input" style={{ padding: '0.40rem' }} value={npsC} onChange={(e) => setNpsC(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label" style={{ fontSize: '0.7rem' }}>Govt (G %)</label>
-                  <input type="number" className="form-input" style={{ padding: '0.40rem' }} value={npsG} onChange={(e) => setNpsG(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label" style={{ fontSize: '0.7rem' }}>Alt (A %)</label>
-                  <input type="number" className="form-input" style={{ padding: '0.40rem' }} value={npsA} onChange={(e) => setNpsA(e.target.value)} />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Nominee Name</label>
-                <input type="text" className="form-input" value={npsNominee} onChange={(e) => setNpsNominee(e.target.value)} placeholder="Registered nominee" />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onPointerDown={() => { setShowAddNPS(false); setEditNPSId(null); }}>Cancel</button>
-                <button type="submit" className="btn btn-primary">{editNPSId ? 'Save Changes' : 'Link NPS'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            )}
+            <FormField label="Nominee Name">
+              <input type="text" className="form-input" value={npsNominee} onChange={(e) => setNpsNominee(e.target.value)} placeholder="Registered nominee" />
+            </FormField>
+            <FormActions
+              divided
+              onCancel={() => { setShowAddNPS(false); setEditNPSId(null); }}
+              submitLabel={editNPSId ? 'Save NPS Account' : 'Add NPS Account'}
+            />
+          </form>
+        </Modal>
 
-      {/* Dialog: Add PF */}
-      {showAddPF && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: '1.5rem 2rem' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>{editPFId ? 'Edit Provident Fund' : 'Link Provident Fund'}</h3>
-            <form onSubmit={handleAddPF}>
-              <div className="form-group">
-                <label className="form-label">Fund Type</label>
-                <select value={pfType} onChange={(e) => setPfType(e.target.value as any)}>
-                  <option value="EPF">Employee Provident Fund (EPF)</option>
-                  <option value="PPF">Public Provident Fund (PPF)</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Account Number</label>
-                <input type="text" className="form-input" value={pfAccNum} onChange={(e) => setPfAccNum(e.target.value)} placeholder="EPF member ID or PPF Account Num" />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label className="form-label">Current Balance (₹)</label>
-                  <CurrencyInput className="form-input" value={pfBalance} onChange={(e) => setPfBalance(e.target.value)} placeholder="0.00" required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Yearly Contribution (₹)</label>
-                  <CurrencyInput className="form-input" value={pfContrib} onChange={(e) => setPfContrib(e.target.value)} placeholder="0.00" />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Nominee Name</label>
-                <input type="text" className="form-input" value={pfNominee} onChange={(e) => setPfNominee(e.target.value)} placeholder="Registered nominee" />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onPointerDown={() => { setShowAddPF(false); setEditPFId(null); }}>Cancel</button>
-                <button type="submit" className="btn btn-primary">{editPFId ? 'Save Changes' : 'Link Fund'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        {/* Dialog: Add PF */}
+        <Modal isOpen={showAddPF} onClose={() => { setShowAddPF(false); setEditPFId(null); }} title={editPFId ? 'Edit Provident Fund' : 'Add Provident Fund'} size="sm">
+          <form onSubmit={handleAddPF}>
+            <FormField label="Fund Type">
+              <select value={pfType} onChange={(e) => setPfType(e.target.value as 'EPF' | 'PPF')}>
+                <option value="EPF">Employee Provident Fund (EPF / VPF)</option>
+                <option value="PPF">Public Provident Fund (PPF)</option>
+              </select>
+            </FormField>
+            <FormField label="Account Number">
+              <input type="text" className="form-input" value={pfAccNum} onChange={(e) => setPfAccNum(e.target.value)} placeholder="EPF Member ID or PPF Account Number" />
+            </FormField>
+            <FormRow columns="1.2fr 1fr">
+              <FormField label="Current Balance (₹)">
+                <CurrencyInput className="form-input tabular-nums" value={pfBalance} onChange={(e) => setPfBalance(e.target.value)} placeholder="0.00" required aria-required="true" />
+              </FormField>
+              <FormField label="Yearly Contribution (₹)">
+                <CurrencyInput className="form-input tabular-nums" value={pfContrib} onChange={(e) => setPfContrib(e.target.value)} placeholder="0.00" />
+              </FormField>
+            </FormRow>
+            <FormField label="Nominee Name">
+              <input type="text" className="form-input" value={pfNominee} onChange={(e) => setPfNominee(e.target.value)} placeholder="Registered nominee" />
+            </FormField>
+            <FormActions
+              divided
+              onCancel={() => { setShowAddPF(false); setEditPFId(null); }}
+              submitLabel={editPFId ? 'Save PF Account' : 'Add Provident Fund'}
+            />
+          </form>
+        </Modal>
 
-    </div>
+      </div>
+    </>
   );
 };
