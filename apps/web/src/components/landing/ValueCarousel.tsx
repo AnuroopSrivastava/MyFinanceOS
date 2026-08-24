@@ -1,122 +1,200 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, Sparkles, TrendingUp, Cpu, Lock, CheckCircle2, ChevronRight, Zap, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowRight, ShieldCheck, Zap, Globe, Sparkles } from 'lucide-react';
 
-interface StepData {
-  id: string;
+interface ValuePillar {
   step: string;
   metric: string;
   metricLabel: string;
   title: string;
   description: string;
-  bullets: string[];
-  visualType: 'scale' | 'card' | 'shield';
 }
 
-const STEPS: StepData[] = [
+const PILLARS: ValuePillar[] = [
   {
-    id: 'ledger-speed',
     step: '01 / 03',
-    metric: '10x',
-    metricLabel: 'Faster Insights than Traditional Spreadsheets',
-    title: 'Zero Leakage Double-Entry Precision',
+    metric: '100x',
+    metricLabel: 'cheaper than traditional payments',
+    title: 'Zero Overhead & Decentralized Rails',
     description:
-      'Eliminate manual errors and fragmented bank statements. Automatically reconcile income, EMIs, split expenses, and investments with strict double-entry mathematical integrity.',
-    bullets: [
-      'Multi-account bank & credit card reconciliation',
-      'Automated tag & categorization rules',
-      'Split transactions with auto-balancing debits'
-    ],
-    visualType: 'scale'
+      'Eliminate intermediary merchant fees and processor markups. Our direct on-chain and local-first ledger routing slashes processing costs by orders of magnitude.'
   },
   {
-    id: 'portfolio-telemetry',
     step: '02 / 03',
-    metric: '100%',
-    metricLabel: 'Consolidated Multi-Asset Net Worth',
-    title: 'Real-Time Cross-Asset Telemetry',
+    metric: '5x',
+    metricLabel: 'faster than credit cards',
+    title: 'Sub-Second Settlement Speeds',
     description:
-      'Unify all your wealth holdings across Indian Equities, Mutual Funds, Sovereign Gold Bonds, EPF, NPS, Fixed Deposits, and US Tech stocks with live P&L and yield analytics.',
-    bullets: [
-      'XIRR, CAGR & annualized dividend yield tracking',
-      'Asset allocation rebalancing alerts',
-      'Nominee and emergency insurance audit'
-    ],
-    visualType: 'card'
+      'Avoid 3-day bank settlement holding periods. Instant transaction validation and zero-knowledge local verification guarantee real-time balance reconciliation.'
   },
   {
-    id: 'zero-latency-privacy',
     step: '03 / 03',
-    metric: '0.0 ms',
-    metricLabel: 'Cloud Latency • 100% On-Device Vault',
-    title: 'Zero-Knowledge Client-Side Encryption',
+    metric: '100%',
+    metricLabel: 'global cross-border availability',
+    title: 'Sovereign Multi-Currency Custody',
     description:
-      'Your net worth and banking history belong solely to you. Everything is encrypted on-device with AES-256-GCM. No remote server leaks, no data harvesting, no tracking pixels.',
-    bullets: [
-      '100% Local-first IndexedDB storage',
-      'Client-side PIN & Biometric decryption',
-      '1-Click offline encrypted JSON backup export'
-    ],
-    visualType: 'shield'
+      'Access frictionless cross-border payments across 35+ cryptocurrencies and 25+ fiat currencies with client-side zero-knowledge security.'
   }
 ];
 
 export const ValueCarousel: React.FC = () => {
-  const [activeIdx, setActiveIdx] = useState(0);
+  const [activeStep, setActiveStep] = useState(0);
   const [progress, setProgress] = useState(0);
+  const globeCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Auto-advance timer (6 seconds per step)
+  // Auto progression with timer
   useEffect(() => {
+    setProgress(0);
     const duration = 6000;
-    const interval = 50;
-    let elapsed = 0;
+    const intervalTime = 50;
+    const stepIncrement = (intervalTime / duration) * 100;
 
     const timer = setInterval(() => {
-      elapsed += interval;
-      const pct = Math.min(100, (elapsed / duration) * 100);
-      setProgress(pct);
-
-      if (elapsed >= duration) {
-        elapsed = 0;
-        setActiveIdx((prev) => (prev + 1) % STEPS.length);
-      }
-    }, interval);
+      setProgress((prev) => {
+        if (prev >= 100) {
+          setActiveStep((s) => (s + 1) % PILLARS.length);
+          return 0;
+        }
+        return prev + stepIncrement;
+      });
+    }, intervalTime);
 
     return () => clearInterval(timer);
-  }, [activeIdx]);
+  }, [activeStep]);
 
-  const activeStep = STEPS[activeIdx];
+  // Stage 3 Globe Canvas
+  useEffect(() => {
+    if (activeStep !== 2) return;
+    const canvas = globeCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animId: number;
+    const size = 320;
+    canvas.width = size;
+    canvas.height = size;
+    const radius = 95;
+
+    // Dotted Sphere
+    const dots: { x: number; y: number; z: number }[] = [];
+    for (let i = 0; i < 350; i++) {
+      const y = 1 - (i / 349) * 2;
+      const r = Math.sqrt(1 - y * y);
+      const theta = i * 2.39996;
+      dots.push({ x: Math.cos(theta) * r * radius, y: y * radius, z: Math.sin(theta) * r * radius });
+    }
+
+    let rotY = 0;
+    const render = () => {
+      ctx.clearRect(0, 0, size, size);
+      const cx = size / 2;
+      const cy = size / 2;
+
+      // Glow behind
+      const g = ctx.createRadialGradient(cx, cy, 10, cx, cy, radius * 1.3);
+      g.addColorStop(0, 'rgba(168, 85, 247, 0.35)');
+      g.addColorStop(1, 'transparent');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius * 1.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sphere Silhouette
+      ctx.fillStyle = '#0e0e18';
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Dual Crossing Orbital Rings
+      const t = Date.now() * 0.0015;
+
+      // Ring 1 (Tilted forward-left)
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(0.5);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, radius * 1.35, radius * 0.45, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(168, 85, 247, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Traveling photon 1
+      const p1x = Math.cos(t) * radius * 1.35;
+      const p1y = Math.sin(t) * radius * 0.45;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(p1x, p1y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Ring 2 (Tilted forward-right)
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(-0.5);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, radius * 1.35, radius * 0.45, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(99, 102, 241, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Traveling photon 2
+      const p2x = Math.cos(-t * 1.2) * radius * 1.35;
+      const p2y = Math.sin(-t * 1.2) * radius * 0.45;
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(p2x, p2y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Rotate Dots
+      rotY += 0.008;
+      const cos = Math.cos(rotY);
+      const sin = Math.sin(rotY);
+
+      for (const d of dots) {
+        const x = d.x * cos + d.z * sin;
+        const z = -d.x * sin + d.z * cos;
+        if (z > -radius * 0.8) {
+          const alpha = (z + radius) / (radius * 2);
+          ctx.fillStyle = `rgba(192, 132, 252, ${Math.max(0.1, alpha * 0.85)})`;
+          ctx.beginPath();
+          ctx.arc(cx + x, cy + d.y, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      animId = requestAnimationFrame(render);
+    };
+
+    render();
+    return () => cancelAnimationFrame(animId);
+  }, [activeStep]);
+
+  const current = PILLARS[activeStep];
 
   return (
-    <div className="l-section" style={{ paddingTop: '3rem', paddingBottom: '4rem' }}>
-      {/* Section Header */}
-      <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-        <div className="l-badge-pill">
-          <Sparkles size={14} color="#c4b5fd" />
-          <span>Core Engineering Principles</span>
-        </div>
-        <h2 className="l-section-title">Built for Speed, Mathematical Precision & Absolute Privacy</h2>
-        <p className="l-section-subtitle" style={{ margin: '0 auto' }}>
-          Explore the three core architectural pillars powering MyFinanceOS.
-        </p>
-      </div>
-
-      {/* 2-Column Interactive Stage */}
+    <div className="l-section" style={{ paddingTop: '4rem', paddingBottom: '5rem' }}>
       <div
         className="l-glass-card"
         style={{
-          padding: 'clamp(1.5rem, 4vw, 3.5rem)',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '3rem',
-          alignItems: 'center',
-          minHeight: '480px'
+          padding: 'clamp(2rem, 4vw, 3.5rem)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          background: 'linear-gradient(145deg, rgba(17, 17, 27, 0.95) 0%, rgba(8, 8, 14, 0.98) 100%)',
+          boxShadow: '0 30px 80px rgba(0, 0, 0, 0.8)'
         }}
       >
-        {/* Left Column: Narrative & Stats */}
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '3.5rem',
+            alignItems: 'center'
+          }}
+        >
+          {/* Left Column: Metric & Step Progress */}
           <div>
-            {/* Step Counter & Circular Progress Ring */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+            {/* Step Counter with Circular SVG Progress Ring */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
               <div style={{ position: 'relative', width: '38px', height: '38px' }}>
                 <svg width="38" height="38" viewBox="0 0 38 38" style={{ transform: 'rotate(-90deg)' }}>
                   <circle
@@ -125,7 +203,7 @@ export const ValueCarousel: React.FC = () => {
                     r="15"
                     fill="none"
                     stroke="rgba(255, 255, 255, 0.1)"
-                    strokeWidth="3"
+                    strokeWidth="2.5"
                   />
                   <circle
                     cx="19"
@@ -133,9 +211,9 @@ export const ValueCarousel: React.FC = () => {
                     r="15"
                     fill="none"
                     stroke="#a855f7"
-                    strokeWidth="3"
-                    strokeDasharray={2 * Math.PI * 15}
-                    strokeDashoffset={2 * Math.PI * 15 * (1 - progress / 100)}
+                    strokeWidth="2.5"
+                    strokeDasharray={94.2}
+                    strokeDashoffset={94.2 - (94.2 * progress) / 100}
                     strokeLinecap="round"
                     style={{ transition: 'stroke-dashoffset 0.05s linear' }}
                   />
@@ -147,284 +225,356 @@ export const ValueCarousel: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '0.7rem',
+                    fontSize: '0.75rem',
                     fontWeight: 800,
                     color: '#c4b5fd'
                   }}
                 >
-                  {activeIdx + 1}
+                  {activeStep + 1}
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.4rem' }}>
-                {STEPS.map((s, idx) => (
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {PILLARS.map((p, idx) => (
                   <button
-                    key={s.id}
+                    key={idx}
                     type="button"
                     onClick={() => {
-                      setActiveIdx(idx);
+                      setActiveStep(idx);
                       setProgress(0);
                     }}
                     style={{
-                      padding: '0.35rem 0.85rem',
-                      borderRadius: '9999px',
+                      background: idx === activeStep ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                      border: idx === activeStep ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      padding: '0.35rem 0.75rem',
+                      color: idx === activeStep ? '#ffffff' : 'var(--l-text-muted)',
                       fontSize: '0.78rem',
                       fontWeight: 700,
-                      background: activeIdx === idx ? 'rgba(139, 92, 246, 0.25)' : 'rgba(255, 255, 255, 0.04)',
-                      border: activeIdx === idx ? '1px solid rgba(168, 85, 247, 0.5)' : '1px solid rgba(255, 255, 255, 0.06)',
-                      color: activeIdx === idx ? '#ffffff' : 'var(--l-text-muted)',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    {s.step}
+                    {p.step}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Metric Headline */}
-            <div style={{ marginBottom: '0.5rem' }}>
-              <div
-                style={{
-                  fontSize: 'clamp(3rem, 6vw, 4.5rem)',
-                  fontWeight: 900,
-                  lineHeight: 1.0,
-                  letterSpacing: '-0.04em',
-                  color: '#ffffff',
-                  textShadow: '0 0 35px rgba(139, 92, 246, 0.3)'
-                }}
-                className="l-num"
-              >
-                {activeStep.metric}
-              </div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#c4b5fd', marginTop: '0.35rem' }}>
-                {activeStep.metricLabel}
-              </div>
+            {/* Giant Dynamic Metric */}
+            <div
+              style={{
+                fontSize: 'clamp(3.75rem, 8vw, 6.5rem)',
+                fontWeight: 900,
+                lineHeight: 0.95,
+                letterSpacing: '-0.04em',
+                color: '#ffffff',
+                marginBottom: '0.75rem'
+              }}
+              className="l-num"
+            >
+              {current.metric}
             </div>
 
-            {/* Title & Description */}
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#ffffff', margin: '1.25rem 0 0.65rem' }}>
-              {activeStep.title}
-            </h3>
-            <p style={{ fontSize: '0.98rem', lineHeight: 1.6, color: 'var(--l-text-secondary)', marginBottom: '1.5rem' }}>
-              {activeStep.description}
+            <div
+              style={{
+                fontSize: 'clamp(1.2rem, 2.2vw, 1.6rem)',
+                fontWeight: 700,
+                color: '#c4b5fd',
+                marginBottom: '1.75rem',
+                lineHeight: 1.3
+              }}
+            >
+              {current.metricLabel}
+            </div>
+
+            <p
+              style={{
+                fontSize: '1rem',
+                lineHeight: 1.65,
+                color: 'var(--l-text-secondary)',
+                maxWidth: '460px'
+              }}
+            >
+              {current.description}
             </p>
-
-            {/* Bullets */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              {activeStep.bullets.map((b, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.88rem', color: '#e2e8f0' }}>
-                  <CheckCircle2 size={16} color="#34d399" />
-                  <span>{b}</span>
-                </div>
-              ))}
-            </div>
           </div>
-        </div>
 
-        {/* Right Column: 3D Animated Interactive Visuals */}
-        <div
-          style={{
-            position: 'relative',
-            minHeight: '340px',
-            background: 'rgba(7, 7, 12, 0.75)',
-            borderRadius: '20px',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '2rem',
-            overflow: 'hidden'
-          }}
-        >
-          {/* Visual 1: 3D Balancing Scale (Seesaw) */}
-          {activeStep.visualType === 'scale' && (
-            <div style={{ width: '100%', maxWidth: '380px', textAlign: 'center', position: 'relative' }}>
+          {/* Right Column: 3D Interactive Stage Component */}
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              minHeight: '380px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(0, 0, 0, 0.4)',
+              borderRadius: '20px',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              overflow: 'hidden',
+              padding: '2rem'
+            }}
+          >
+            {/* STAGE 1: 3D Animated Seesaw Balance Scale (00:08 - 00:10) */}
+            {activeStep === 0 && (
               <div
                 style={{
                   position: 'relative',
-                  height: '180px',
+                  width: '100%',
+                  height: '320px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                {/* Glow behind fulcrum */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    width: '180px',
+                    height: '180px',
+                    background: 'radial-gradient(circle, rgba(168, 85, 247, 0.25) 0%, transparent 70%)',
+                    filter: 'blur(20px)'
+                  }}
+                />
+
+                {/* Tilting Seesaw Lever Bar */}
+                <div
+                  className="l-seesaw-bar"
+                  style={{
+                    position: 'relative',
+                    width: '280px',
+                    height: '12px',
+                    background: 'linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #8b5cf6 100%)',
+                    borderRadius: '6px',
+                    boxShadow: '0 0 25px rgba(168, 85, 247, 0.5)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-end',
+                    padding: '0 10px'
+                  }}
+                >
+                  {/* Left Side: Heavy Stack of Gold Coins */}
+                  <div
+                    style={{
+                      transform: 'translateY(-8px)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '2px'
+                    }}
+                  >
+                    {[0, 1, 2, 3].map((c) => (
+                      <div
+                        key={c}
+                        style={{
+                          width: '44px',
+                          height: '12px',
+                          background: 'linear-gradient(180deg, #fbbf24 0%, #b45309 100%)',
+                          borderRadius: '50%',
+                          border: '1px solid #fef08a',
+                          boxShadow: '0 2px 5px rgba(0,0,0,0.5)'
+                        }}
+                      />
+                    ))}
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#fef08a', marginTop: '4px' }}>
+                      Legacy 3.5%
+                    </div>
+                  </div>
+
+                  {/* Right Side: Glowing Lightweight Purple Sphere */}
+                  <div
+                    style={{
+                      transform: 'translateY(-14px)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '46px',
+                        height: '46px',
+                        borderRadius: '50%',
+                        background: 'radial-gradient(circle at 35% 30%, #c084fc 0%, #7e22ce 65%, #3b0764 100%)',
+                        boxShadow: '0 0 30px rgba(168, 85, 247, 0.9), inset 0 0 10px rgba(255, 255, 255, 0.6)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        fontWeight: 900,
+                        fontSize: '1.2rem'
+                      }}
+                    >
+                      S
+                    </div>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#c4b5fd', marginTop: '4px' }}>
+                      Sellix 0%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Triangular Fulcrum Base */}
+                <div
+                  style={{
+                    width: 0,
+                    height: 0,
+                    borderLeft: '28px solid transparent',
+                    borderRight: '28px solid transparent',
+                    borderBottom: '50px solid #2e1065',
+                    marginTop: '-2px',
+                    filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.8))',
+                    position: 'relative'
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '46px',
+                      left: '-40px',
+                      width: '80px',
+                      height: '8px',
+                      background: '#1e1b4b',
+                      borderRadius: '4px'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* STAGE 2: Glowing Dark Titanium Card & Floating Coin Badges (00:11 - 00:12) */}
+            {activeStep === 1 && (
+              <div
+                style={{
+                  position: 'relative',
+                  width: '100%',
+                  height: '320px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}
               >
-                {/* Seesaw Beam */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    width: '280px',
-                    height: '8px',
-                    background: 'linear-gradient(90deg, #334155 0%, #8b5cf6 50%, #34d399 100%)',
-                    borderRadius: '4px',
-                    transform: 'rotate(-12deg)',
-                    boxShadow: '0 0 20px rgba(139, 92, 246, 0.4)',
-                    transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)'
-                  }}
-                >
-                  {/* Left Weight (Heavy Manual Logs) */}
+                {/* Floating Coin Badges on the Left */}
+                <div style={{ position: 'absolute', left: '15px', display: 'flex', flexDirection: 'column', gap: '0.75rem', zIndex: 5 }}>
                   <div
+                    className="l-floating-badge"
                     style={{
-                      position: 'absolute',
-                      left: '-20px',
-                      top: '12px',
-                      padding: '0.6rem 0.9rem',
-                      background: 'rgba(15, 23, 42, 0.9)',
-                      border: '1px solid rgba(244, 63, 94, 0.4)',
-                      borderRadius: '12px',
+                      padding: '0.4rem 0.8rem',
+                      background: 'rgba(245, 158, 11, 0.15)',
+                      border: '1px solid #f59e0b',
+                      borderRadius: '9999px',
+                      color: '#fef08a',
                       fontSize: '0.75rem',
-                      color: '#fda4af',
-                      fontWeight: 700,
-                      boxShadow: '0 10px 20px rgba(0,0,0,0.6)'
+                      fontWeight: 700
                     }}
                   >
-                    Manual Excel ❌
+                    ₿ BTC 0.05
                   </div>
+                  <div
+                    className="l-floating-badge"
+                    style={{
+                      padding: '0.4rem 0.8rem',
+                      background: 'rgba(168, 85, 247, 0.15)',
+                      border: '1px solid #a855f7',
+                      borderRadius: '9999px',
+                      color: '#e9d5ff',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      animationDelay: '1.2s'
+                    }}
+                  >
+                    ◎ SOL 4.5
+                  </div>
+                  <div
+                    className="l-floating-badge"
+                    style={{
+                      padding: '0.4rem 0.8rem',
+                      background: 'rgba(56, 189, 248, 0.15)',
+                      border: '1px solid #38bdf8',
+                      borderRadius: '9999px',
+                      color: '#bae6fd',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      animationDelay: '2.4s'
+                    }}
+                  >
+                    Ł LTC 12.0
+                  </div>
+                </div>
 
-                  {/* Right Weight (Lightweight Automated Engine) */}
+                {/* Dark Metallic Card */}
+                <div
+                  style={{
+                    width: '260px',
+                    height: '160px',
+                    borderRadius: '16px',
+                    background: 'linear-gradient(135deg, #181824 0%, #0a0a10 100%)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    boxShadow: '0 25px 60px rgba(0,0,0,0.9), 0 0 30px rgba(168, 85, 247, 0.25)',
+                    padding: '1.25rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    transform: 'rotate(-4deg)'
+                  }}
+                >
+                  {/* Neon Purple Double-Chevron Beam Cutting Across */}
                   <div
                     style={{
                       position: 'absolute',
-                      right: '-20px',
-                      top: '-55px',
-                      padding: '0.75rem 1.1rem',
-                      background: 'rgba(139, 92, 246, 0.25)',
-                      border: '1.5px solid #a855f7',
-                      borderRadius: '14px',
-                      fontSize: '0.85rem',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      boxShadow: '0 0 25px rgba(168, 85, 247, 0.5)'
+                      right: '15px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      fontSize: '2.5rem',
+                      fontWeight: 900,
+                      color: '#c084fc',
+                      textShadow: '0 0 20px #a855f7, 0 0 40px #a855f7',
+                      letterSpacing: '-6px'
                     }}
                   >
-                    ⚡ Auto-Ledger ✓
+                    &gt;&gt;
                   </div>
-                </div>
 
-                {/* Glowing Fulcrum Pivot */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: '25px',
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: '50%',
-                    background: 'radial-gradient(circle, #a855f7 0%, #6366f1 70%, #1e1b4b 100%)',
-                    boxShadow: '0 0 25px rgba(168, 85, 247, 0.8)'
-                  }}
-                />
-              </div>
-              <div style={{ fontSize: '0.82rem', color: 'var(--l-text-secondary)', marginTop: '0.75rem' }}>
-                Mathematical double-entry balance with automated reconciliation.
-              </div>
-            </div>
-          )}
-
-          {/* Visual 2: Glowing Smart Card & Multi-Asset Tokens */}
-          {activeStep.visualType === 'card' && (
-            <div style={{ width: '100%', maxWidth: '360px', textAlign: 'center', position: 'relative' }}>
-              <div
-                style={{
-                  width: '100%',
-                  height: '190px',
-                  borderRadius: '18px',
-                  background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%)',
-                  border: '1.5px solid rgba(168, 85, 247, 0.5)',
-                  boxShadow: '0 0 35px rgba(139, 92, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-                  padding: '1.25rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-              >
-                {/* Luminous Chevron Arrow Pulse */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    right: '-20px',
-                    top: '25%',
-                    fontSize: '4.5rem',
-                    fontWeight: 900,
-                    color: 'rgba(168, 85, 247, 0.2)',
-                    lineHeight: 1
-                  }}
-                >
-                  ››
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#c4b5fd', letterSpacing: '0.1em' }}>
-                    MYFINANCEOS VAULT
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ffffff', letterSpacing: '0.05em' }}>
+                      SELLIX
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: '#a855f7', fontWeight: 700 }}>TITANIUM</span>
                   </div>
-                  <Zap size={18} color="#34d399" />
-                </div>
 
-                {/* Floating Tokens Pill */}
-                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', zIndex: 2 }}>
-                  <span style={{ padding: '0.2rem 0.5rem', background: 'rgba(16, 185, 129, 0.2)', border: '1px solid #10b981', borderRadius: '6px', fontSize: '0.7rem', color: '#6ee7b7', fontWeight: 700 }}>
-                    Equities +18%
-                  </span>
-                  <span style={{ padding: '0.2rem 0.5rem', background: 'rgba(245, 158, 11, 0.2)', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '0.7rem', color: '#fde68a', fontWeight: 700 }}>
-                    Gold SGB
-                  </span>
-                  <span style={{ padding: '0.2rem 0.5rem', background: 'rgba(99, 102, 241, 0.2)', border: '1px solid #6366f1', borderRadius: '6px', fontSize: '0.7rem', color: '#c7d2fe', fontWeight: 700 }}>
-                    Mutual Funds
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                   <div>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--l-text-muted)' }}>Consolidated Net Worth</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ffffff' }} className="l-num">
-                      ₹48,50,200
+                    <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#ffffff', letterSpacing: '0.12em', fontFamily: 'monospace' }}>
+                      590 3732 ••••
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem', fontSize: '0.65rem', color: 'var(--l-text-muted)' }}>
+                      <span>EXP 09/28</span>
+                      <span>CVV 299</span>
                     </div>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: 700 }}>+14.2% YoY</div>
                 </div>
               </div>
-              <div style={{ fontSize: '0.82rem', color: 'var(--l-text-secondary)', marginTop: '0.75rem' }}>
-                Unified asset valuation across 12 distinct financial classes.
-              </div>
-            </div>
-          )}
+            )}
 
-          {/* Visual 3: Holographic Security Shield & Local Vault */}
-          {activeStep.visualType === 'shield' && (
-            <div style={{ width: '100%', maxWidth: '340px', textAlign: 'center', position: 'relative' }}>
+            {/* STAGE 3: 3D Dotted World Globe with Dual Crossing Neon Orbital Rings (00:13 - 00:14) */}
+            {activeStep === 2 && (
               <div
                 style={{
-                  width: '130px',
-                  height: '130px',
-                  margin: '0 auto 1rem',
-                  borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, rgba(13, 13, 22, 0.9) 70%)',
-                  border: '2px solid #a855f7',
-                  boxShadow: '0 0 35px rgba(168, 85, 247, 0.4), inset 0 0 20px rgba(168, 85, 247, 0.2)',
+                  position: 'relative',
+                  width: '100%',
+                  height: '320px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#c4b5fd'
+                  justifyContent: 'center'
                 }}
               >
-                <Lock size={52} color="#a855f7" />
+                <canvas ref={globeCanvasRef} style={{ width: '320px', height: '320px' }} />
               </div>
-
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <span style={{ padding: '0.25rem 0.65rem', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.4)', borderRadius: '6px', fontSize: '0.75rem', color: '#34d399', fontWeight: 700 }}>
-                  AES-256 GCM
-                </span>
-                <span style={{ padding: '0.25rem 0.65rem', background: 'rgba(6, 182, 212, 0.15)', border: '1px solid rgba(6, 182, 212, 0.4)', borderRadius: '6px', fontSize: '0.75rem', color: '#22d3ee', fontWeight: 700 }}>
-                  Zero-Knowledge
-                </span>
-              </div>
-              <div style={{ fontSize: '0.82rem', color: 'var(--l-text-secondary)' }}>
-                Decrypted solely in browser memory via your master PIN.
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

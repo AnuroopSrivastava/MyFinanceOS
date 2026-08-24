@@ -60,7 +60,7 @@ export const TaxRegimeToggle: React.FC<TaxRegimeToggleProps> = ({
             aria-checked={isActive}
             aria-label={`${label}${isOptimal ? ' (recommended)' : ''}`}
             onClick={() => onChange(regime)}
-            onKeyDown={(e) => handleKeyDown(e, regime)}
+            onKeyDown={(e: React.KeyboardEvent) => handleKeyDown(e, regime)}
             whileHover={{ scale: isActive ? 1 : 1.01 }}
             whileTap={{ scale: 0.98 }}
             animate={{

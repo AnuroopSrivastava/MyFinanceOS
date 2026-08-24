@@ -193,13 +193,13 @@ export const OptimizationActionList = forwardRef<HTMLDivElement, OptimizationAct
                   transition: 'all 0.2s ease',
                   opacity: isCompleted ? 0.7 : 1,
                 }}
-                onMouseEnter={(e) => {
+                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                   if (!isCompleted) {
                     e.currentTarget.style.background = `color-mix(in srgb, ${colors.bg} 50%, transparent)`;
                     e.currentTarget.style.borderColor = colors.border;
                   }
                 }}
-                onMouseLeave={(e) => {
+                onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
                   if (!isCompleted) {
                     e.currentTarget.style.background = 'var(--bg-secondary)';
                     e.currentTarget.style.borderColor = colors.border;

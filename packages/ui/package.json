@@ -16,7 +16,9 @@
     "lucide-react": "^0.344.0"
   },
   "dependencies": {
-    "@financeos/shared": "*"
+    "@financeos/shared": "*",
+    "framer-motion": "^12.42.2",
+    "lucide-react": "^0.344.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",

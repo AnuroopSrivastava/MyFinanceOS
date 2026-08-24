@@ -33,6 +33,11 @@ export default tseslint.config(
       'react/react-in-jsx-scope': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
+      'no-useless-assignment': 'warn',
+      'prefer-const': 'warn',
+      'no-empty': 'warn',
+      'no-case-declarations': 'warn',
+      'no-undef': 'warn'
     },
   },
   {
@@ -47,6 +52,8 @@ export default tseslint.config(
   },
   {
     ignores: [
+      '.agents/**',
+      '.github/**',
       '**/dist/**',
       '**/node_modules/**',
       '**/.next/**',
@@ -55,7 +62,12 @@ export default tseslint.config(
       '**/playwright-report/**',
       '**/test-results/**',
       'tmp/**',
-      '*.js'
+      '*.js',
+      '**/*.js',
+      '**/*.mjs',
+      'e2e/**',
+      '**/*.test.ts',
+      '**/*.test.tsx'
     ]
   }
 );

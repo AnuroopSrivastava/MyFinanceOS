@@ -1,481 +1,494 @@
 import React, { useState } from 'react';
 import {
-  Landmark,
-  Percent,
-  Briefcase,
-  Target,
+  Wallet,
+  CreditCard,
+  Store,
+  RefreshCw,
   ArrowRight,
   TrendingUp,
   ShieldCheck,
   CheckCircle2,
-  Zap,
-  Layers,
+  Upload,
   Sparkles,
+  ChevronRight,
   Sliders,
   DollarSign
 } from 'lucide-react';
 
-export const BentoProductShowcase: React.FC = () => {
-  // Card 2 interactive tax comparator state
-  const [incomeLakhs, setIncomeLakhs] = useState<number>(24);
-  const oldRegimeTax = Math.round(incomeLakhs * 100000 * 0.175);
-  const newRegimeTax = Math.round(incomeLakhs * 100000 * 0.145);
-  const taxSavings = Math.max(0, oldRegimeTax - newRegimeTax);
+interface ShowcaseStep {
+  id: string;
+  badge: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+}
 
-  // Card 3 interactive entity toggle
-  const [activeEntity, setActiveEntity] = useState<'pvt' | 'consulting'>('pvt');
+const STEPS: ShowcaseStep[] = [
+  {
+    id: 'wallet',
+    badge: 'Wallet',
+    title: 'Secure Crypto Management',
+    description:
+      'Store, send, and receive multiple assets with ease. Enjoy top-notch security and a user-friendly interface.',
+    icon: <Wallet size={18} />
+  },
+  {
+    id: 'payments',
+    badge: 'Payments',
+    title: 'Fast, Secure, Global',
+    description:
+      'Quickly process global crypto transactions with robust security and efficiency.',
+    icon: <CreditCard size={18} />
+  },
+  {
+    id: 'commerce',
+    badge: 'Commerce',
+    title: 'Empower Your Store',
+    description:
+      'Manage your online business seamlessly, accepting various cryptocurrencies with low fees.',
+    icon: <Store size={18} />
+  },
+  {
+    id: 'subscriptions',
+    badge: 'Subscriptions',
+    title: 'Automate Revenue',
+    description:
+      'Easily set up and manage recurring billing with flexible subscription options.',
+    icon: <RefreshCw size={18} />
+  }
+];
+
+export const BentoProductShowcase: React.FC = () => {
+  const [activeStepIndex, setActiveStepIndex] = useState(0);
 
   return (
-    <div className="l-section" id="features-deepdive" style={{ paddingTop: '2rem', paddingBottom: '4rem' }}>
+    <div className="l-section" style={{ paddingTop: '3rem', paddingBottom: '6rem' }}>
       {/* Section Header */}
       <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
         <div className="l-badge-pill">
-          <Layers size={14} color="#c4b5fd" />
-          <span>End-to-End Financial Intelligence</span>
+          <Sparkles size={14} color="#c4b5fd" />
+          <span>BRIDGING WEB2 AND WEB3</span>
         </div>
-        <h2 className="l-section-title">Autonomous Financial Solutions for Personal Wealth & Business</h2>
+        <h2 className="l-section-title" style={{ maxWidth: '820px', margin: '0 auto 1rem' }}>
+          End-to-end universal payment solution for cryptocurrencies and fiat
+        </h2>
         <p className="l-section-subtitle" style={{ margin: '0 auto' }}>
-          Consolidate your entire financial universe from day-to-day cash flow to corporate multi-entity taxes and 30-year FIRE compounding.
+          Streamlining the payment process from start to finish.
         </p>
       </div>
 
-      {/* Stacked Showcase Cards */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
-        {/* CARD 1: Double-Entry Banking & Portfolio */}
-        <div
-          className="l-glass-card"
-          style={{
-            padding: 'clamp(1.5rem, 3.5vw, 3rem)',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '2.5rem',
-            alignItems: 'center'
-          }}
-        >
-          <div>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.3rem 0.75rem',
-                background: 'rgba(99, 102, 241, 0.15)',
-                border: '1px solid rgba(99, 102, 241, 0.3)',
-                borderRadius: '8px',
-                color: '#c7d2fe',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                marginBottom: '1rem'
-              }}
-            >
-              <Landmark size={14} />
-              <span>BANKING & PORTFOLIO</span>
-            </div>
-            <h3 style={{ fontSize: 'clamp(1.5rem, 2.5vw, 2rem)', fontWeight: 800, color: '#ffffff', marginBottom: '0.85rem' }}>
-              Precision Banking, Ledger & Multi-Asset Intelligence
-            </h3>
-            <p style={{ fontSize: '0.98rem', lineHeight: 1.6, color: 'var(--l-text-secondary)', marginBottom: '1.5rem' }}>
-              A robust double-entry system with zero data loss. Track savings, credit cards, demat accounts, and investments across 12 asset classes with real-time XIRR and dividend yields.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.88rem', color: '#e2e8f0' }}>
-                <CheckCircle2 size={16} color="#34d399" />
-                <span>Multi-account reconciliation (HDFC, ICICI, SBI, Axis)</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.88rem', color: '#e2e8f0' }}>
-                <CheckCircle2 size={16} color="#34d399" />
-                <span>Equities, Mutual Funds, Gold SGB, NPS & EPF valuation</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.88rem', color: '#e2e8f0' }}>
-                <CheckCircle2 size={16} color="#34d399" />
-                <span>1-Click CSV & Excel statement ingestion</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Interactive Live Mini-App 1 */}
-          <div
-            style={{
-              background: 'rgba(11, 11, 18, 0.85)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '18px',
-              padding: '1.5rem',
-              boxShadow: '0 15px 35px rgba(0,0,0,0.6)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--l-text-muted)', textTransform: 'uppercase' }}>
-                  Total Net Worth
-                </div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#ffffff' }} className="l-num">
-                  ₹48,50,200
-                </div>
-              </div>
-              <span
+      {/* 2-Column Deep Dive Container */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: '3rem',
+          alignItems: 'start'
+        }}
+      >
+        {/* Left Column: 4 Timeline Steps */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {STEPS.map((s, idx) => {
+            const isActive = idx === activeStepIndex;
+            return (
+              <div
+                key={s.id}
+                onClick={() => setActiveStepIndex(idx)}
                 style={{
-                  padding: '0.3rem 0.75rem',
-                  background: 'rgba(16, 185, 129, 0.18)',
-                  border: '1px solid rgba(16, 185, 129, 0.4)',
-                  borderRadius: '9999px',
-                  color: '#34d399',
-                  fontSize: '0.78rem',
-                  fontWeight: 700
+                  padding: '1.5rem 1.75rem',
+                  borderRadius: '18px',
+                  background: isActive ? 'rgba(139, 92, 246, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                  border: isActive ? '1px solid rgba(168, 85, 247, 0.45)' : '1px solid rgba(255, 255, 255, 0.06)',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                  boxShadow: isActive ? '0 10px 30px rgba(139, 92, 246, 0.15)' : 'none'
                 }}
               >
-                +14.2% YoY
-              </span>
-            </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.6rem' }}>
+                  <div
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '8px',
+                      background: isActive ? '#a855f7' : 'rgba(255, 255, 255, 0.08)',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    {s.icon}
+                  </div>
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      color: isActive ? '#c4b5fd' : 'var(--l-text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em'
+                    }}
+                  >
+                    {s.badge}
+                  </span>
+                </div>
 
-            {/* Sparkline Bar Graph */}
-            <div style={{ display: 'flex', alignItems: 'flex-end', height: '60px', gap: '6px', marginBottom: '1.25rem', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
-              {[35, 48, 55, 72, 60, 85, 100].map((h, i) => (
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', marginBottom: '0.5rem' }}>
+                  {s.title}
+                </h3>
+                <p style={{ fontSize: '0.92rem', lineHeight: 1.6, color: 'var(--l-text-secondary)', margin: 0 }}>
+                  {s.description}
+                </p>
+
                 <div
-                  key={i}
                   style={{
-                    flex: 1,
-                    height: `${h}%`,
-                    background: i === 6 ? '#a855f7' : i === 5 ? '#6366f1' : 'rgba(255, 255, 255, 0.15)',
-                    borderRadius: '4px'
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    color: isActive ? '#c4b5fd' : 'var(--l-text-muted)',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    marginTop: '0.85rem'
                   }}
-                />
-              ))}
-            </div>
-
-            {/* Live Feed Rows */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.55rem 0.8rem', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', fontSize: '0.82rem' }}>
-                <div>
-                  <div style={{ fontWeight: 700, color: '#ffffff' }}>TechCorp Salary</div>
-                  <div style={{ fontSize: '0.68rem', color: 'var(--l-text-muted)' }}>HDFC Bank • Income</div>
+                >
+                  Learn more <ChevronRight size={14} />
                 </div>
-                <div style={{ fontWeight: 800, color: '#34d399' }} className="l-num">+ ₹1,85,000</div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.55rem 0.8rem', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', fontSize: '0.82rem' }}>
-                <div>
-                  <div style={{ fontWeight: 700, color: '#ffffff' }}>HDFC Home Loan EMI</div>
-                  <div style={{ fontSize: '0.68rem', color: 'var(--l-text-muted)' }}>Auto-Debit • Expense</div>
-                </div>
-                <div style={{ fontWeight: 800, color: '#f43f5e' }} className="l-num">- ₹48,500</div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.55rem 0.8rem', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', fontSize: '0.82rem' }}>
-                <div>
-                  <div style={{ fontWeight: 700, color: '#ffffff' }}>Zerodha Nifty SIP</div>
-                  <div style={{ fontSize: '0.68rem', color: 'var(--l-text-muted)' }}>Investments • Index Fund</div>
-                </div>
-                <div style={{ fontWeight: 800, color: '#c4b5fd' }} className="l-num">- ₹25,000</div>
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
 
-        {/* CARD 2: Automated Tax Optimization Suite */}
+        {/* Right Column: Dynamic Interactive UI Stage */}
         <div
           className="l-glass-card"
           style={{
-            padding: 'clamp(1.5rem, 3.5vw, 3rem)',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '2.5rem',
-            alignItems: 'center'
+            minHeight: '520px',
+            padding: '2rem',
+            background: '#0c0c14',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center'
           }}
         >
-          <div>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.3rem 0.75rem',
-                background: 'rgba(6, 182, 212, 0.15)',
-                border: '1px solid rgba(6, 182, 212, 0.3)',
-                borderRadius: '8px',
-                color: '#67e8f9',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                marginBottom: '1rem'
-              }}
-            >
-              <Percent size={14} />
-              <span>TAX & GST SUITE</span>
-            </div>
-            <h3 style={{ fontSize: 'clamp(1.5rem, 2.5vw, 2rem)', fontWeight: 800, color: '#ffffff', marginBottom: '0.85rem' }}>
-              Real-Time FY26 Tax Optimization & Capital Gains
-            </h3>
-            <p style={{ fontSize: '0.98rem', lineHeight: 1.6, color: 'var(--l-text-secondary)', marginBottom: '1.5rem' }}>
-              Automatically calculates optimal tax liability by comparing Old vs New tax regimes under updated slabs. Model 80C/80D headroom, STCG/LTCG capital gains, and TDS Form 26AS.
-            </p>
-
-            {/* Interactive Slider */}
-            <div style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)', marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--l-text-secondary)', fontWeight: 600 }}>Gross Annual Income:</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#67e8f9' }} className="l-num">₹{incomeLakhs} Lakhs</span>
-              </div>
-              <input
-                type="range"
-                min="10"
-                max="50"
-                step="2"
-                value={incomeLakhs}
-                onChange={(e) => setIncomeLakhs(Number(e.target.value))}
-                style={{ width: '100%', accentColor: '#06b6d4', cursor: 'pointer' }}
-              />
-            </div>
-          </div>
-
-          {/* Interactive Live Mini-App 2: Comparison Nodes */}
-          <div
-            style={{
-              background: 'rgba(11, 11, 18, 0.85)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '18px',
-              padding: '1.5rem',
-              boxShadow: '0 15px 35px rgba(0,0,0,0.6)'
-            }}
-          >
-            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#c4b5fd', marginBottom: '1rem', letterSpacing: '0.05em' }}>
-              FY26 REGIME COMPARISON SIMULATION
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-              {/* New Regime (Optimal) */}
-              <div style={{ padding: '1rem', background: 'rgba(16, 185, 129, 0.12)', border: '1.5px solid #10b981', borderRadius: '12px' }}>
-                <div style={{ fontSize: '0.7rem', color: '#34d399', fontWeight: 700 }}>NEW REGIME (OPTIMAL)</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', margin: '0.3rem 0' }} className="l-num">
-                  ₹{newRegimeTax.toLocaleString('en-IN')}
-                </div>
-                <div style={{ fontSize: '0.68rem', color: '#a7f3d0' }}>Lower Baseline Slabs</div>
-              </div>
-
-              {/* Old Regime */}
-              <div style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--l-text-muted)', fontWeight: 700 }}>OLD REGIME</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f43f5e', margin: '0.3rem 0' }} className="l-num">
-                  ₹{oldRegimeTax.toLocaleString('en-IN')}
-                </div>
-                <div style={{ fontSize: '0.68rem', color: 'var(--l-text-muted)' }}>Includes 80C & 80D</div>
-              </div>
-            </div>
-
-            {/* Savings Banner */}
-            <div
-              style={{
-                padding: '0.75rem',
-                background: 'rgba(16, 185, 129, 0.18)',
-                border: '1px solid rgba(16, 185, 129, 0.4)',
-                borderRadius: '10px',
-                color: '#34d399',
-                fontSize: '0.85rem',
-                fontWeight: 700,
-                textAlign: 'center'
-              }}
-            >
-              ✓ New Regime Saves You ₹{taxSavings.toLocaleString('en-IN')} Annually
-            </div>
-          </div>
-        </div>
-
-        {/* CARD 3: Business Suite & Multi-Entity OS */}
-        <div
-          className="l-glass-card"
-          style={{
-            padding: 'clamp(1.5rem, 3.5vw, 3rem)',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '2.5rem',
-            alignItems: 'center'
-          }}
-        >
-          <div>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.3rem 0.75rem',
-                background: 'rgba(245, 158, 11, 0.15)',
-                border: '1px solid rgba(245, 158, 11, 0.3)',
-                borderRadius: '8px',
-                color: '#fde68a',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                marginBottom: '1rem'
-              }}
-            >
-              <Briefcase size={14} />
-              <span>COMMERCIAL SUITE</span>
-            </div>
-            <h3 style={{ fontSize: 'clamp(1.5rem, 2.5vw, 2rem)', fontWeight: 800, color: '#ffffff', marginBottom: '0.85rem' }}>
-              Multi-Entity Enterprise Ledgers & GST Invoicing
-            </h3>
-            <p style={{ fontSize: '0.98rem', lineHeight: 1.6, color: 'var(--l-text-secondary)', marginBottom: '1.5rem' }}>
-              Operate multiple businesses with independent corporate tax tier slabs, commercial GST billing, inventory registers, and real-time Profit & Loss balance sheets.
-            </p>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => setActiveEntity('pvt')}
+          {/* STEP 1: Secure Crypto Management Balance & Feed (00:15 - 00:17) */}
+          {activeStepIndex === 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {/* Balance Card */}
+              <div
                 style={{
-                  padding: '0.4rem 0.85rem',
-                  borderRadius: '8px',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  background: activeEntity === 'pvt' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255, 255, 255, 0.04)',
-                  border: activeEntity === 'pvt' ? '1px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.08)',
-                  color: activeEntity === 'pvt' ? '#ffffff' : 'var(--l-text-muted)',
-                  cursor: 'pointer'
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
                 }}
               >
-                Apex Innovations Pvt Ltd
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveEntity('consulting')}
+                <div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--l-text-muted)', fontWeight: 600 }}>
+                    Total Available Balance
+                  </div>
+                  <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }} className="l-num">
+                    $142,850.00
+                  </div>
+                </div>
+                <div
+                  style={{
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '9999px',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid #10b981',
+                    color: '#34d399',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.3rem'
+                  }}
+                >
+                  <TrendingUp size={14} /> +1.18%
+                </div>
+              </div>
+
+              {/* Transactions Feed */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--l-text-muted)', textTransform: 'uppercase' }}>
+                  Recent Transactions
+                </div>
+
+                {[
+                  { icon: '₿', name: 'BTC Received', hash: '0x3a9...8f', amount: '+$2,320.00', color: '#f59e0b' },
+                  { icon: 'Ł', name: 'LTC Swapped', hash: '0x1b4...2c', amount: '+$516.43', color: '#38bdf8' },
+                  { icon: '◎', name: 'SOL Sent', hash: '0x7e8...9a', amount: '-$185.00', color: '#a855f7' },
+                  { icon: '₮', name: 'USDT Received', hash: '0x99c...4f', amount: '+$1,000.00', color: '#10b981' }
+                ].map((tx, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.85rem 1rem',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid rgba(255, 255, 255, 0.05)',
+                      borderRadius: '12px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          background: `${tx.color}22`,
+                          color: tx.color,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 900
+                        }}
+                      >
+                        {tx.icon}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#ffffff' }}>{tx.name}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--l-text-muted)' }}>{tx.hash}</div>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ffffff' }} className="l-num">
+                      {tx.amount}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: Checkout & Connected Payment Rails (00:18 - 00:19) */}
+          {activeStepIndex === 1 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Order Receipt Card */}
+              <div
                 style={{
-                  padding: '0.4rem 0.85rem',
-                  borderRadius: '8px',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  background: activeEntity === 'consulting' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255, 255, 255, 0.04)',
-                  border: activeEntity === 'consulting' ? '1px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.08)',
-                  color: activeEntity === 'consulting' ? '#ffffff' : 'var(--l-text-muted)',
-                  cursor: 'pointer'
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '16px',
+                  padding: '1.5rem'
                 }}
               >
-                Srivastava Design Studio (Prop.)
-              </button>
-            </div>
-          </div>
-
-          {/* Interactive Live Mini-App 3: macOS Dark Window Mockup */}
-          <div
-            style={{
-              background: 'rgba(11, 11, 18, 0.95)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: '16px',
-              overflow: 'hidden',
-              boxShadow: '0 20px 45px rgba(0,0,0,0.8)'
-            }}
-          >
-            {/* macOS Window Title Bar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0.65rem 1rem', background: 'rgba(255, 255, 255, 0.04)', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
-              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }} />
-              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }} />
-              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }} />
-              <div style={{ fontSize: '0.7rem', color: 'var(--l-text-muted)', marginLeft: 'auto', fontWeight: 600 }}>
-                {activeEntity === 'pvt' ? 'Entity: Apex Innovations (GSTIN: 27AABCA1234F1Z5)' : 'Entity: Srivastava Design (GSTIN: 27XYZAB5678Q1Z2)'}
-              </div>
-            </div>
-
-            {/* Window Content */}
-            <div style={{ padding: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#ffffff' }}>Commercial Corporate Slabs</span>
-                <span style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem', background: 'rgba(6, 182, 212, 0.15)', color: '#67e8f9', borderRadius: '4px', fontWeight: 600 }}>
-                  GST Compliant
-                </span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.45rem 0.75rem', background: 'rgba(16, 185, 129, 0.12)', borderRadius: '6px', fontSize: '0.75rem' }}>
-                  <span>Tier 1 (Up to ₹5 Lakhs)</span>
-                  <strong style={{ color: '#34d399' }}>0% Exemption</strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ffffff' }}>Order #12853</span>
+                  <span style={{ fontSize: '0.75rem', color: '#a855f7', fontWeight: 700 }}>VERIFIED</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.45rem 0.75rem', background: 'rgba(99, 102, 241, 0.12)', borderRadius: '6px', fontSize: '0.75rem' }}>
-                  <span>Tier 2 (₹5L - ₹10L)</span>
-                  <strong style={{ color: '#c7d2fe' }}>10% Corporate Slab</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.45rem 0.75rem', background: 'rgba(244, 63, 94, 0.12)', borderRadius: '6px', fontSize: '0.75rem' }}>
-                  <span>Tier 3 (Above ₹10L)</span>
-                  <strong style={{ color: '#fda4af' }}>20% Tier Slab</strong>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--l-text-secondary)' }}>
+                    <span>1x Fat Coin 3000X</span>
+                    <span className="l-num">$87.00</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--l-text-secondary)' }}>
+                    <span>1x Fat Coin 1500X</span>
+                    <span className="l-num">$43.85</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--l-text-muted)', fontSize: '0.78rem' }}>
+                    <span>Tax & Network Gas</span>
+                    <span className="l-num">$16.64</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, color: '#ffffff', fontSize: '1.1rem', marginTop: '0.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '0.5rem' }}>
+                    <span>Total Due</span>
+                    <span className="l-num" style={{ color: '#c4b5fd' }}>$147.49</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
 
-        {/* CARD 4: FIRE Lab & Compounding Automation */}
-        <div
-          className="l-glass-card"
-          style={{
-            padding: 'clamp(1.5rem, 3.5vw, 3rem)',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '2.5rem',
-            alignItems: 'center'
-          }}
-        >
-          <div>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.3rem 0.75rem',
-                background: 'rgba(168, 85, 247, 0.15)',
-                border: '1px solid rgba(168, 85, 247, 0.3)',
-                borderRadius: '8px',
-                color: '#e9d5ff',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                marginBottom: '1rem'
-              }}
-            >
-              <Target size={14} />
-              <span>FIRE LAB & AUTOMATION</span>
-            </div>
-            <h3 style={{ fontSize: 'clamp(1.5rem, 2.5vw, 2rem)', fontWeight: 800, color: '#ffffff', marginBottom: '0.85rem' }}>
-              FIRE Compounding Simulations & Autonomous Triggers
-            </h3>
-            <p style={{ fontSize: '0.98rem', lineHeight: 1.6, color: 'var(--l-text-secondary)', marginBottom: '1.5rem' }}>
-              Simulate Lean, Standard, and Fat FIRE milestones with SIP step-up compounding. Combine financial goals with event-driven automation rules.
-            </p>
-          </div>
-
-          {/* Interactive Live Mini-App 4: Node Workflow */}
-          <div
-            style={{
-              background: 'rgba(11, 11, 18, 0.85)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '18px',
-              padding: '1.5rem',
-              boxShadow: '0 15px 35px rgba(0,0,0,0.6)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#c4b5fd' }}>AUTOMATION WORKFLOW NODE</span>
-              <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', borderRadius: '4px', fontWeight: 700 }}>
-                ● Active
-              </span>
-            </div>
-
-            {/* Workflow Nodes */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', position: 'relative' }}>
-              <div style={{ padding: '0.8rem', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(139, 92, 246, 0.3)', borderRadius: '10px' }}>
-                <div style={{ fontSize: '0.68rem', color: '#c4b5fd', fontWeight: 700 }}>TRIGGER EVENT</div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ffffff' }}>Salary Inflow &gt; ₹1,50,000</div>
+              {/* Connecting Tree Lines down to Payment Selector */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ width: '2px', height: '18px', background: '#a855f7', boxShadow: '0 0 10px #a855f7' }} />
               </div>
 
-              <div style={{ textAlign: 'center', color: '#a855f7', fontSize: '0.9rem', lineHeight: 1 }}>↓</div>
-
-              <div style={{ padding: '0.8rem', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '10px' }}>
-                <div style={{ fontSize: '0.68rem', color: '#34d399', fontWeight: 700 }}>AUTONOMOUS ACTION</div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ffffff' }}>Allocate 30% to Index SIP + 10% Gold SGB</div>
+              {/* Payment Methods */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div
+                  style={{
+                    padding: '0.75rem 1rem',
+                    background: 'rgba(168, 85, 247, 0.15)',
+                    border: '1px solid #a855f7',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ffffff' }}>
+                    ₿ Cryptocurrencies (BTC, ETH, SOL, LTC)
+                  </span>
+                  <CheckCircle2 size={16} color="#c084fc" />
+                </div>
+                <div
+                  style={{
+                    padding: '0.75rem 1rem',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    color: 'var(--l-text-secondary)',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  <span>💳 Card or Apple Pay (Visa, MC)</span>
+                </div>
               </div>
             </div>
+          )}
 
-            {/* FIRE Milestone Preview */}
-            <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255, 255, 255, 0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: '0.68rem', color: 'var(--l-text-muted)' }}>Target FIRE Corpus</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#34d399' }} className="l-num">₹2.50 Cr</div>
+          {/* STEP 3: Store Management & Animated Drag/Drop Upload (00:20 - 00:24) */}
+          {activeStepIndex === 2 && (
+            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Product Store Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                {[
+                  { name: 'Fat Coin 3000X', price: '$87.00', rating: '5.0 (15 reviews)' },
+                  { name: 'Fat Coin 1500X', price: '$43.85', rating: '4.9 (24 reviews)' }
+                ].map((item, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '14px',
+                      padding: '1rem'
+                    }}
+                  >
+                    <div style={{ width: '100%', height: '70px', background: 'linear-gradient(135deg, #1f1b3c 0%, #0e0d1a 100%)', borderRadius: '8px', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a855f7', fontWeight: 900 }}>
+                      BOX #{i + 1}
+                    </div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ffffff' }}>{item.name}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#c4b5fd', fontWeight: 800 }} className="l-num">{item.price}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#fef08a', marginTop: '0.2rem' }}>★ {item.rating}</div>
+                  </div>
+                ))}
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.68rem', color: 'var(--l-text-muted)' }}>Target Year</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#c4b5fd' }} className="l-num">2038</div>
+
+              {/* Interactive Drag and Drop Upload Modal */}
+              <div
+                style={{
+                  background: 'rgba(18, 16, 30, 0.95)',
+                  border: '1px solid rgba(168, 85, 247, 0.4)',
+                  borderRadius: '16px',
+                  padding: '1.25rem',
+                  boxShadow: '0 15px 40px rgba(0,0,0,0.8)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ffffff' }}>Change Logo / Media</span>
+                  <span style={{ fontSize: '0.7rem', color: '#c4b5fd', background: 'rgba(168, 85, 247, 0.2)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                    PNG, SVG, JPG
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    border: '2px dashed rgba(168, 85, 247, 0.4)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    textAlign: 'center',
+                    background: 'rgba(139, 92, 246, 0.04)',
+                    position: 'relative'
+                  }}
+                >
+                  <Upload size={24} color="#a855f7" style={{ margin: '0 auto 0.5rem' }} />
+                  <div style={{ fontSize: '0.82rem', color: '#ffffff', fontWeight: 600 }}>
+                    Drag and drop file here, or <span style={{ color: '#c4b5fd', textDecoration: 'underline' }}>browse</span>
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--l-text-muted)', marginTop: '0.25rem' }}>
+                    Maximum file size: 25MB
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* STEP 4: Subscription Node Graph & Recurring Billing (00:25 - 00:26) */}
+          {activeStepIndex === 3 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ffffff' }}>Recurring Subscriptions Engine</span>
+                <span style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: 700 }}>● 100% AUTOMATED</span>
+              </div>
+
+              {/* Node 1 */}
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '14px',
+                  padding: '1rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#ffffff' }}>Prem 18 Tier</span>
+                    <span style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', borderRadius: '4px', fontWeight: 800 }}>
+                      ACTIVE
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--l-text-muted)', marginTop: '0.2rem' }}>
+                    Next charge: 16:08 24 Jul, 2026 • Daily Cycle
+                  </div>
+                </div>
+                <div style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff' }} className="l-num">
+                  $18.00 / mo
+                </div>
+              </div>
+
+              {/* Node 2 */}
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '14px',
+                  padding: '1rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#ffffff' }}>BIGPT Premium AI</span>
+                    <span style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', borderRadius: '4px', fontWeight: 800 }}>
+                      ACTIVE
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--l-text-muted)', marginTop: '0.2rem' }}>
+                    Next charge: 22:08 30 May, 2026 • Monthly Cycle
+                  </div>
+                </div>
+                <div style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff' }} className="l-num">
+                  $29.99 / mo
+                </div>
+              </div>
+
+              {/* Summary Stats */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div style={{ padding: '0.85rem', background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '10px' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#c4b5fd', fontWeight: 600 }}>Monthly Recurring (MRR)</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ffffff' }} className="l-num">$47,990</div>
+                </div>
+                <div style={{ padding: '0.85rem', background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.3)', borderRadius: '10px' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#67e8f9', fontWeight: 600 }}>Churn Rate</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ffffff' }} className="l-num">0.12%</div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

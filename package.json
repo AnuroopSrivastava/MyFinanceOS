@@ -14,6 +14,7 @@
     "build:libs": "npm run build --workspace=packages/shared && npm run build --workspace=packages/auth && npm run build --workspace=packages/database && npm run build --workspace=packages/ui",
     "build:web": "npm run build --workspace=apps/web",
     "build:packages": "npm run build --workspaces --if-present",
+    "start": "npm run start --workspace=apps/web",
     "install:all": "npm install",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -22,6 +23,7 @@
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@faker-js/faker": "^10.5.0",
     "@playwright/test": "^1.61.1",
     "@testing-library/dom": "^10.4.1",

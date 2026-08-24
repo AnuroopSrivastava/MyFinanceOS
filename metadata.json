@@ -1,0 +1,6 @@
+{
+  "name": "MyFinanceOS",
+  "description": "Premium Local-First Personal & Business Finance Suite for India",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -258,7 +258,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             zIndex: 9999,
             padding: '1rem',
           }}
-          onClick={(e) => {
+          onClick={(e: React.MouseEvent) => {
             if (e.target === e.currentTarget) onClose();
           }}
         >

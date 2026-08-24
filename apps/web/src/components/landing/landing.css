@@ -1,17 +1,18 @@
 /* ==========================================================================
-   MYFINANCEOS - VOID VIOLET + NEOMORPHIC LANDING DESIGN SYSTEM
+   MYFINANCEOS - SELLIX-INSPIRED ULTRA-SLEEK DARK FINTECH DESIGN SYSTEM
    ========================================================================== */
 
 :root {
-  --l-bg-void: #060609;
-  --l-bg-surface: #0b0b12;
-  --l-bg-surface-elevated: #11111b;
+  --l-bg-void: #07070a;
+  --l-bg-surface: #0c0c12;
+  --l-bg-surface-elevated: #12121c;
   --l-bg-glass: rgba(255, 255, 255, 0.035);
   --l-bg-glass-hover: rgba(255, 255, 255, 0.065);
   
   --l-border-glass: rgba(255, 255, 255, 0.08);
   --l-border-glass-bright: rgba(255, 255, 255, 0.16);
   --l-border-glow-violet: rgba(139, 92, 246, 0.45);
+  --l-border-glow-purple: rgba(168, 85, 247, 0.45);
   --l-border-glow-indigo: rgba(99, 102, 241, 0.45);
 
   --l-neon-violet: #8b5cf6;
@@ -24,7 +25,7 @@
 
   --l-text-primary: #ffffff;
   --l-text-secondary: rgba(255, 255, 255, 0.72);
-  --l-text-muted: rgba(255, 255, 255, 0.45);
+  --l-text-muted: rgba(255, 255, 255, 0.42);
 
   /* Neomorphic Bevels & Dual Shadows */
   --l-neo-convex: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.4) 100%);
@@ -40,32 +41,80 @@
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
-/* Radial Top Ambient Glow */
+/* Header & Nav */
+.l-nav-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justifyContent: space-between;
+  padding: 0 clamp(1.25rem, 4vw, 3.5rem);
+  background: rgba(7, 7, 10, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.3s ease;
+}
+
+.l-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+}
+
+@media (max-width: 860px) {
+  .l-nav-links {
+    display: none;
+  }
+}
+
+.l-nav-link {
+  color: var(--l-text-secondary);
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.l-nav-link:hover {
+  color: #ffffff;
+}
+
+/* Top Ambient Corona Glow */
 .l-ambient-top-glow {
   position: absolute;
-  top: -150px;
+  top: -160px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(1200px, 100vw);
-  height: 650px;
-  background: radial-gradient(ellipse 60% 60% at 50% 30%, rgba(139, 92, 246, 0.22) 0%, rgba(99, 102, 241, 0.12) 40%, rgba(6, 182, 212, 0.04) 70%, transparent 100%);
-  filter: blur(40px);
+  width: min(1300px, 100vw);
+  height: 700px;
+  background: radial-gradient(ellipse 60% 60% at 50% 30%, rgba(168, 85, 247, 0.28) 0%, rgba(99, 102, 241, 0.15) 38%, rgba(6, 182, 212, 0.04) 70%, transparent 100%);
+  filter: blur(45px);
   pointer-events: none;
   z-index: 1;
-  animation: lCoronaPulse 8s ease-in-out infinite alternate;
+  animation: lCoronaPulse 7s ease-in-out infinite alternate;
 }
 
 @keyframes lCoronaPulse {
   0% {
     opacity: 0.75;
-    transform: translateX(-50%) scale(0.98);
+    transform: translateX(-50%) scale(0.97);
   }
   100% {
     opacity: 1;
-    transform: translateX(-50%) scale(1.04);
+    transform: translateX(-50%) scale(1.05);
   }
 }
 
@@ -75,7 +124,7 @@
   background-image: var(--l-neo-convex);
   border: 1px solid var(--l-border-glass);
   box-shadow: var(--l-neo-shadow);
-  border-radius: 20px;
+  border-radius: 22px;
   position: relative;
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
@@ -91,7 +140,7 @@
 .l-section {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 5rem 1.5rem;
+  padding: 5.5rem 1.5rem;
   position: relative;
   z-index: 2;
 }
@@ -121,10 +170,10 @@
 }
 
 .l-section-title {
-  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-size: clamp(2.2rem, 4.5vw, 3.5rem);
   font-weight: 800;
   line-height: 1.1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
   color: #ffffff;
   margin-bottom: 1rem;
 }
@@ -159,9 +208,9 @@
 
 /* Floating Animation Utility */
 .l-floating-badge {
-  animation: lFloatY 5s ease-in-out infinite alternate;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  animation: lFloatY 4.5s ease-in-out infinite alternate;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 @keyframes lFloatY {
@@ -169,7 +218,79 @@
     transform: translateY(0px);
   }
   100% {
-    transform: translateY(-8px);
+    transform: translateY(-9px);
+  }
+}
+
+/* Seesaw Physics Animation */
+@keyframes lSeesawTilt {
+  0%, 100% {
+    transform: rotate(-11deg);
+  }
+  50% {
+    transform: rotate(7deg);
+  }
+}
+
+.l-seesaw-bar {
+  transform-origin: center center;
+  animation: lSeesawTilt 4.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+/* Orbit Rotations */
+@keyframes lOrbitRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lOrbitRotateRev {
+  0% {
+    transform: rotate(360deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* Pulse Glow Keyframes */
+@keyframes lNeonPulse {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(168, 85, 247, 0.6), inset 0 0 15px rgba(168, 85, 247, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(168, 85, 247, 0.9), inset 0 0 25px rgba(168, 85, 247, 0.7);
+  }
+}
+
+/* Simulated Cursor Drag and Drop Animation */
+@keyframes lCursorDragDrop {
+  0% {
+    transform: translate(20px, 30px) scale(1);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(20px, 30px) scale(1);
+    opacity: 1;
+  }
+  35% {
+    transform: translate(90px, 70px) scale(0.95);
+    opacity: 1;
+  }
+  55% {
+    transform: translate(140px, 110px) scale(0.92);
+    opacity: 1;
+  }
+  75% {
+    transform: translate(140px, 110px) scale(1);
+    opacity: 1;
+  }
+  90%, 100% {
+    transform: translate(140px, 110px) scale(1);
+    opacity: 0;
   }
 }
 

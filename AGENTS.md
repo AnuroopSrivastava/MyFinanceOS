@@ -17,3 +17,6 @@ When performing whole-project tasks (styling, theme audits, refactoring, transla
   `DashboardView.tsx`, `LedgerView.tsx`, `InvestmentsView.tsx`, `TaxView.tsx`, `BusinessView.tsx`, `SankeyView.tsx`, `InvestmentPlanner/`, `AutomationView.tsx`, `DocumentVaultView.tsx`, `EMICalculator.tsx`, `GoalTracker.tsx`, `ReportsView.tsx`, `SettingsView.tsx`, `AIChatView.tsx`, `Landing.tsx`, `PrivacyView.tsx`, `TermsView.tsx`.
 - Keep Next.js routes (`app/privacy/page.tsx`, `app/terms/page.tsx`) and public static files (`public/privacy.html`, `public/terms.html`) synchronized with core design tokens.
 
+## Browser Preview Prohibition
+- **Never** perform browser previews, open browser pages, or invoke the browser subagent (`browser_subagent`) for visual testing or verification unless the user explicitly asks for it.
+

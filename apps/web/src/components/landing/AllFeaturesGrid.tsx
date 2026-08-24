@@ -7,9 +7,8 @@ import {
   FileSpreadsheet,
   MessageSquare,
   Sparkles,
-  ShieldCheck,
   Zap,
-  PieChart
+  Layers
 } from 'lucide-react';
 
 const ADDITIONAL_FEATURES = [
@@ -60,6 +59,22 @@ const ADDITIONAL_FEATURES = [
     title: 'Contextual AI Financial Co-Pilot',
     description:
       'Ask natural language queries regarding your spending velocity, tax liability headroom, and investment compounding directly on your private vault.'
+  },
+  {
+    id: 'automation',
+    icon: <Zap size={22} />,
+    color: '#eab308',
+    title: 'Smart Automation & Rule Engine',
+    description:
+      'Create automatic categorization rules for bank transfers, recurring UPI subscriptions, and automatic split-allocations for salary credits.'
+  },
+  {
+    id: 'multi-profile',
+    icon: <Layers size={22} />,
+    color: '#6366f1',
+    title: 'Multi-Profile Family & Entity Vault',
+    description:
+      'Switch between Personal, Spouse, and Corporate ledgers with independent double-entry accounts, separate PIN access, and isolated tax reports.'
   }
 ];
 
@@ -69,18 +84,18 @@ export const AllFeaturesGrid: React.FC = () => {
       <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
         <div className="l-badge-pill">
           <Sparkles size={14} color="#c4b5fd" />
-          <span>Extensible Ecosystem</span>
+          <span>Complete Financial Operating System</span>
         </div>
-        <h2 className="l-section-title">The Complete Operating System for Total Financial Control</h2>
+        <h2 className="l-section-title">Every Tool You Need for Uncompromising Control</h2>
         <p className="l-section-subtitle" style={{ margin: '0 auto' }}>
-          Every module is built from first principles for uncompromising depth and responsiveness.
+          Engineered from first principles with mathematical rigor, tactile aesthetics, and client-side privacy.
         </p>
       </div>
 
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           gap: '1.5rem'
         }}
       >
@@ -93,14 +108,14 @@ export const AllFeaturesGrid: React.FC = () => {
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              minHeight: '210px'
+              minHeight: '220px'
             }}
           >
             <div>
               <div
                 style={{
-                  width: '42px',
-                  height: '42px',
+                  width: '44px',
+                  height: '44px',
                   borderRadius: '12px',
                   background: `rgba(255, 255, 255, 0.04)`,
                   border: `1px solid rgba(255, 255, 255, 0.08)`,
@@ -116,7 +131,7 @@ export const AllFeaturesGrid: React.FC = () => {
               <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#ffffff', marginBottom: '0.5rem' }}>
                 {f.title}
               </h3>
-              <p style={{ fontSize: '0.88rem', lineHeight: 1.55, color: 'var(--l-text-secondary)' }}>
+              <p style={{ fontSize: '0.88rem', lineHeight: 1.6, color: 'var(--l-text-secondary)' }}>
                 {f.description}
               </p>
             </div>

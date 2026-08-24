@@ -72,7 +72,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       onClick={onClick}
       role={isInteractive ? 'button' : undefined}
       tabIndex={isInteractive ? 0 : undefined}
-      onKeyDown={(e) => { if (isInteractive && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
+      onKeyDown={(e: React.KeyboardEvent) => { if (isInteractive && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
         <span className="type-label-upper">
