@@ -1,140 +1,143 @@
 import React from 'react';
-import { Layers, ShieldCheck, Zap, Database, Download, Lock, TrendingUp, Sparkles, Users, ShoppingBag, CreditCard, Coins } from 'lucide-react';
+import {
+  ShieldCheck,
+  Lock,
+  Key,
+  TrendingUp,
+  Database,
+  CreditCard,
+  Layers,
+  Cpu,
+  Sparkles
+} from 'lucide-react';
+import { LandingBadge, LandingMetricCard } from './primitives/index.js';
 
-const STATS = [
+interface StatMetric {
+  icon: React.ReactNode;
+  value: string;
+  label: string;
+  sub: string;
+  glowColor: string;
+}
+
+const STATS: StatMetric[] = [
   {
-    icon: <Coins size={18} color="#f59e0b" />,
-    value: '35+',
-    label: 'Cryptocurrencies Supported',
-    sub: 'BTC, ETH, SOL, LTC, USDT, etc.'
+    icon: <ShieldCheck size={18} color="#10b981" />,
+    value: '100%',
+    label: 'Zero-Knowledge Privacy',
+    sub: '100% client-side execution • Zero plaintext custody',
+    glowColor: 'rgba(16, 185, 129, 0.25)'
   },
   {
-    icon: <Zap size={18} color="#a855f7" />,
-    value: '60M+',
-    label: 'Crypto Payments Processed in USD',
-    sub: 'Sub-second decentralized routing'
+    icon: <Lock size={18} color="#06b6d4" />,
+    value: 'AES-256',
+    label: 'Authenticated Encryption',
+    sub: 'Hardware-accelerated GCM ciphers • 96-bit unique IVs',
+    glowColor: 'rgba(6, 182, 212, 0.25)'
   },
   {
-    icon: <CreditCard size={18} color="#06b6d4" />,
-    value: '25+',
-    label: 'Fiat Options Supported',
-    sub: 'USD, EUR, GBP, INR, CAD, etc.'
+    icon: <Key size={18} color="#14b8a6" />,
+    value: '100k',
+    label: 'PBKDF2 & Argon2id Rounds',
+    sub: 'Salted cryptographic master key derivation',
+    glowColor: 'rgba(20, 184, 166, 0.25)'
   },
   {
     icon: <TrendingUp size={18} color="#10b981" />,
-    value: '100M+',
-    label: 'Total Payments Volume Processed in USD',
-    sub: 'Global enterprise scale volume'
+    value: '199+',
+    label: 'Automated Test Suites',
+    sub: 'Tax slabs, double-entry math & crypto invariants',
+    glowColor: 'rgba(16, 185, 129, 0.25)'
   },
   {
-    icon: <Database size={18} color="#6366f1" />,
-    value: '8.2M+',
-    label: 'Transactions Completed',
-    sub: '100% verified settlement accuracy'
+    icon: <Database size={18} color="#06b6d4" />,
+    value: '0 ms',
+    label: 'Local Database Latency',
+    sub: 'Sub-second IndexedDB engine & offline-first cache',
+    glowColor: 'rgba(6, 182, 212, 0.25)'
   },
   {
-    icon: <Users size={18} color="#ec4899" />,
-    value: '3.2M+',
-    label: 'Global End-Customers',
-    sub: 'Seamless 1-click checkout flow'
+    icon: <CreditCard size={18} color="#f59e0b" />,
+    value: '₹0',
+    label: 'Vendor Lock-in or Ads',
+    sub: '100% user data ownership • 1-click JSON/CSV export',
+    glowColor: 'rgba(245, 158, 11, 0.25)'
   },
   {
-    icon: <ShieldCheck size={18} color="#34d399" />,
-    value: '350K+',
-    label: 'Registered Vault Users',
-    sub: 'Zero-knowledge client encrypted'
+    icon: <Layers size={18} color="#38bdf8" />,
+    value: '5',
+    label: 'Studio Theme Engines',
+    sub: 'Glass Cyan, Emerald, Gold, Obsidian Dark & Light',
+    glowColor: 'rgba(56, 189, 248, 0.25)'
   },
   {
-    icon: <ShoppingBag size={18} color="#38bdf8" />,
-    value: '3.5K+',
-    label: 'Active Merchants',
-    sub: 'Stores, SaaS, and creators'
+    icon: <Cpu size={18} color="#eab308" />,
+    value: '60 FPS',
+    label: 'Hardware Accelerated UI',
+    sub: 'GPU-accelerated CSS transforms & 3D canvas',
+    glowColor: 'rgba(234, 179, 8, 0.25)'
   }
 ];
 
 export const MetricsInNumbers: React.FC = () => {
   return (
-    <div className="l-section" style={{ paddingTop: '3rem', paddingBottom: '4rem' }}>
+    <div className="l-section" style={{ paddingTop: '3rem', paddingBottom: '4.5rem' }}>
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '3.5rem',
-          alignItems: 'start'
+          gridTemplateColumns: 'minmax(280px, 1fr) minmax(320px, 2fr)',
+          gap: 'clamp(2rem, 4vw, 4rem)',
+          alignItems: 'center'
         }}
       >
-        {/* Left Column: Heading */}
+        {/* Left Column: Heading & Mission Telemetry Statement */}
         <div>
-          <div className="l-badge-pill">
-            <Sparkles size={14} color="#c4b5fd" />
-            <span>Platform Telemetry</span>
-          </div>
           <h2
             style={{
-              fontSize: 'clamp(2.75rem, 5vw, 4.25rem)',
+              fontFamily: 'var(--font-display, "Plus Jakarta Sans", sans-serif)',
+              fontSize: 'clamp(2.5rem, 4.5vw, 3.8rem)',
               fontWeight: 900,
-              lineHeight: 1.05,
-              letterSpacing: '-0.04em',
+              lineHeight: 1.08,
+              letterSpacing: '-0.035em',
               color: '#ffffff',
               marginBottom: '1.25rem'
             }}
           >
-            In Numbers
+            Platform telemetry in numbers
           </h2>
-          <p style={{ fontSize: '1.05rem', lineHeight: 1.65, color: 'var(--l-text-secondary)', maxWidth: '380px' }}>
-            Powering millions of frictionless payments, sovereign asset custody, and high-frequency settlement across the globe.
+          <p
+            style={{
+              fontSize: 'clamp(0.95rem, 1.4vw, 1.12rem)',
+              lineHeight: 1.65,
+              color: 'var(--l-text-secondary, rgba(255, 255, 255, 0.84))',
+              maxWidth: '380px',
+              margin: 0
+            }}
+          >
+            Cryptographically verified, local-first computing power engineered for the Indian wealth and tax ecosystem.
           </p>
         </div>
 
-        {/* Right Column: 2x4 Stats Grid */}
+        {/* Right Column: 2x4 Asymmetrical Telemetry Card Matrix */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '1.1rem'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '1rem'
           }}
         >
           {STATS.map((s, idx) => (
-            <div
+            <LandingMetricCard
               key={idx}
-              className="l-glass-card"
-              style={{
-                padding: '1.4rem',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                minHeight: '145px',
-                background: 'rgba(14, 14, 22, 0.75)',
-                border: '1px solid rgba(255, 255, 255, 0.07)'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--l-text-muted)' }}>
-                  {s.label}
-                </div>
-                {s.icon}
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: 'clamp(1.6rem, 2.4vw, 2.1rem)',
-                    fontWeight: 900,
-                    color: '#ffffff',
-                    letterSpacing: '-0.03em',
-                    lineHeight: 1.1
-                  }}
-                  className="l-num"
-                >
-                  {s.value}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--l-text-secondary)', marginTop: '0.25rem' }}>
-                  {s.sub}
-                </div>
-              </div>
-            </div>
+              label={s.label}
+              value={s.value}
+              sub={s.sub}
+              icon={s.icon}
+            />
           ))}
         </div>
       </div>
     </div>
   );
 };
+

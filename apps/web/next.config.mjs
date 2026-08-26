@@ -37,6 +37,7 @@ class ResolveJsImportsPlugin {
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
+  allowedDevOrigins: ['*.run.app', 'localhost', '127.0.0.1'],
   transpilePackages: [
     '@financeos/ui',
     '@financeos/shared',

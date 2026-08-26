@@ -12,22 +12,34 @@ export class AuthSessionManager {
   }
 
   public get supabase(): SupabaseClient | null {
-    if (!this._supabase) {
-      // We expect the consumer app (e.g. Next/Vite) to inject these env vars
-      const supabaseUrl = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SUPABASE_URL 
-        ? process.env.NEXT_PUBLIC_SUPABASE_URL 
-        : (typeof process !== 'undefined' && process.env.VITE_SUPABASE_URL 
-          ? process.env.VITE_SUPABASE_URL 
-          : (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_URL));
-        
-      const supabaseAnonKey = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY 
-        ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY 
-        : (typeof process !== 'undefined' && process.env.VITE_SUPABASE_ANON_KEY 
-          ? process.env.VITE_SUPABASE_ANON_KEY 
-          : (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_ANON_KEY));
+    if (this._supabase) {
+      return this._supabase;
+    }
 
-      if (supabaseUrl && supabaseAnonKey) {
+    if ((globalThis as any).__FINANCEOS_SUPABASE_CLIENT__) {
+      this._supabase = (globalThis as any).__FINANCEOS_SUPABASE_CLIENT__;
+      return this._supabase;
+    }
+
+    // We expect the consumer app (e.g. Next/Vite) to inject these env vars
+    const supabaseUrl = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SUPABASE_URL 
+      ? process.env.NEXT_PUBLIC_SUPABASE_URL 
+      : (typeof process !== 'undefined' && process.env.VITE_SUPABASE_URL 
+        ? process.env.VITE_SUPABASE_URL 
+        : (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_URL));
+      
+    const supabaseAnonKey = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY 
+      ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY 
+      : (typeof process !== 'undefined' && process.env.VITE_SUPABASE_ANON_KEY 
+        ? process.env.VITE_SUPABASE_ANON_KEY 
+        : (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_ANON_KEY));
+
+    if (supabaseUrl && supabaseAnonKey && (supabaseUrl.startsWith('http://') || supabaseUrl.startsWith('https://'))) {
+      try {
         this._supabase = createClient(supabaseUrl, supabaseAnonKey);
+        (globalThis as any).__FINANCEOS_SUPABASE_CLIENT__ = this._supabase;
+      } catch {
+        this._supabase = null;
       }
     }
     return this._supabase;
@@ -35,11 +47,15 @@ export class AuthSessionManager {
 
   public set supabase(client: SupabaseClient | null) {
     this._supabase = client;
+    if (client) {
+      (globalThis as any).__FINANCEOS_SUPABASE_CLIENT__ = client;
+    }
   }
 
   // Allow replacing the client dynamically (e.g. in React components)
   public setClient(client: SupabaseClient) {
     this._supabase = client;
+    (globalThis as any).__FINANCEOS_SUPABASE_CLIENT__ = client;
   }
 
   public async getSession(): Promise<Session | null> {

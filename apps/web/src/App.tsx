@@ -50,7 +50,6 @@ const PAGE_TITLES: Record<ActivePage, string> = {
 const App: React.FC = () => {
   useInteractiveCardSystem();
   const dbVersion = useDbVersion();
-  const [isBooting, setIsBooting] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [needsPin, setNeedsPin] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -226,8 +225,6 @@ const App: React.FC = () => {
         } catch {
           setIsInitialized(false);
         }
-      } finally {
-        setIsBooting(false);
       }
     };
 
@@ -363,19 +360,6 @@ const App: React.FC = () => {
       default: return <DashboardView key={`${activeProfileId}`} activeProfileId={activeProfileId} dateRange={dateRange} />;
     }
   };
-
-  // 0. Booting phase
-  if (isBooting) {
-    return (
-      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '2rem', minWidth: '300px' }}>
-          <img src="/logo.png" alt="MyFinanceOS Logo" className="animate-boot-pulse" style={{ width: '56px', height: '56px', borderRadius: '50%', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }} />
-          <h3 style={{ fontSize: '1.2rem', margin: 0 }}>MyFinanceOS</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>Synchronizing Secure Vault...</p>
-        </div>
-      </div>
-    );
-  }
 
   // 1. Unauthenticated landing screen
   if (!isAuthenticated && !isUnlocked) {

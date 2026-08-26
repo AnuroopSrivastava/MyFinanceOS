@@ -1,5 +1,5 @@
 # ==============================================================================
-# MASTER GITIGNORE — MyFinanceOS (Comprehensive Enterprise Standard)
+# MASTER GITIGNORE — MyFinanceOS (Enterprise FinTech & Monorepo Standard)
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -25,6 +25,7 @@ bower_components/
 package-lock.json.bak
 yarn.lock.bak
 pnpm-lock.yaml.bak
+bun.lockb.bak
 
 # ------------------------------------------------------------------------------
 # 2. Build, Bundler & Distribution Artifacts
@@ -37,6 +38,7 @@ out/
 .output/
 .open-next/
 .next/
+.next-cache/
 .turbo/
 .wireit/
 .nx/
@@ -50,6 +52,7 @@ storybook-static/
 .storybook-cache/
 *.tsbuildinfo
 tsconfig.tsbuildinfo
+tsconfig.*.tsbuildinfo
 
 # Desktop, Mobile & Native Platform Builds
 app-builds/
@@ -99,7 +102,7 @@ stats.html
 report.html
 
 # ------------------------------------------------------------------------------
-# 3. Environment Variables, Secrets & API Credentials (CRITICAL SECURITY)
+# 3. Environment Variables, Secrets & API Credentials (CRITICAL FINTECH SECURITY)
 # ------------------------------------------------------------------------------
 .env
 .env.local
@@ -199,6 +202,8 @@ playwright-trace/
 lighthouse-report.html
 lighthouse-report.json
 .lighthouseci/
+allure-results/
+allure-report/
 
 # ------------------------------------------------------------------------------
 # 5. Logs, Diagnostics & Memory Profiles
@@ -301,9 +306,10 @@ x86/
 *#
 .netrwhist
 
-# Temporary Files, Diffs & Patches
+# Temporary Files, Scratchpads & Patches
 tmp/
 temp/
+scratch/
 *.tmp
 *.temp
 *.patch
@@ -313,11 +319,11 @@ temp/
 *.bak
 
 # ------------------------------------------------------------------------------
-# 8. AI Assistants, Autonomous Agents & Scratchpads
+# 8. AI Assistants, Autonomous Agents & Scratch Artifacts
 # ------------------------------------------------------------------------------
 .claude/
 .gemini/
-.codex
+.codex/
 .kilocode/
 .kilo/
 .impeccable/
@@ -327,6 +333,8 @@ temp/
 .aider/
 .aider.*.history*
 .copilot/
+
+# Agent Scratch, Benchmarks & Trajectories (Preserve Rules/Skills/Workflows)
 .agents/tmp/
 .agents/.cache/
 .agents/scratch/
@@ -335,6 +343,8 @@ temp/
 eval-runs/
 benchmark-results/
 agent-trajectories/
+*.trajectory.json
+*.agent.log
 
 # Vector Embeddings & Local LLM Model Caches
 chroma_db/
@@ -351,7 +361,7 @@ tiktoken_cache/
 hf_cache/
 
 # ------------------------------------------------------------------------------
-# 9. Python (Virtual Environments, Bytecode, Analyzers)
+# 9. Python (Virtual Environments, Bytecode & Graph Extraction Scratch)
 # ------------------------------------------------------------------------------
 __pycache__/
 *.py[cod]
@@ -370,7 +380,14 @@ venv.bak/
 *.egg
 .mypy_cache/
 .ruff_cache/
-/*.py
+/*_cache.py
+/check_cache.py
+/detect_files.py
+/run_ast.py
+/show_summary.py
+/split_chunks.py
+scratch_*.py
+temp_*.py
 
 # ------------------------------------------------------------------------------
 # 10. Cloud Infrastructure, Serverless, Docker & Terraform
@@ -382,6 +399,7 @@ venv.bak/
 .supabase/functions/.env
 supabase/.temp/
 supabase/.branches/
+supabase/storage-data/
 .docker/
 docker-compose.override.yml
 docker-compose.*.override.yml
@@ -439,12 +457,19 @@ financeos_config*.json
 financeos-backup-*.json
 financeos-export-*.csv
 india_tax_summary*.csv
-Documents/
 test-vault/
 vault-storage/
 document-vault-local/
+documents-vault/
+user-vault/
 exports/
 *.dump
+
+# Whitelist Repository Documentation (Prevent unintended ignore of Docs)
+!Documents/
+!Documents/**
+!docs/
+!docs/**
 
 # ------------------------------------------------------------------------------
 # 15. FinTech, Banking, Statements & Tax Returns (ISOLATION OF SENSITIVE USER DATA)
@@ -503,3 +528,56 @@ graphify-out/
 graphify-cache/
 graphify-backups/
 *.graph.json
+.graphify_*
+
+# ------------------------------------------------------------------------------
+# 17. Video Rendering, HyperFrames, Remotion & Motion Media
+# ------------------------------------------------------------------------------
+.hyperframes/
+.media/
+snapshots/
+*/snapshots/
+contact-sheet.jpg
+*-contact-sheet.jpg
+*.motion.json
+*.mp4
+*.mov
+*.webm
+*.avi
+*.mkv
+*.m4v
+*.flv
+*.wmv
+*.h264
+*.264
+*.hevc
+intro_source.mp4
+out.mp4
+reference/
+renders/
+video-exports/
+product-intro/snapshots/
+product-intro/out.mp4
+product-intro/assets/source.mp4
+product-intro/assets/source_audio.mp3
+
+# ------------------------------------------------------------------------------
+# 18. Visual Alignment Diffs & Scratch Transcripts (Prevent CI/Git Clutter)
+# ------------------------------------------------------------------------------
+diff.png
+latest_render.png
+current_render.png
+overlay.png
+reference-*.png
+render-*.png
+*_diff.png
+*_overlay.png
+*_render.png
+*_crop.png
+compare_*.png
+ref_*.png
+*.transcript.txt
+*.transcript_full.txt
+*_history.jsonl
+last_css.jsonl
+recovered_from_*.css

@@ -29,9 +29,21 @@ let _standaloneClient: SupabaseClient | null | undefined;
 
 function getFallbackClient(): SupabaseClient | null {
   if (_standaloneClient === undefined) {
-    _standaloneClient = (supabaseUrl && supabaseAnonKey)
-      ? createClient(supabaseUrl, supabaseAnonKey)
-      : null;
+    if ((globalThis as any).__FINANCEOS_SUPABASE_CLIENT__) {
+      _standaloneClient = (globalThis as any).__FINANCEOS_SUPABASE_CLIENT__;
+      return _standaloneClient!;
+    }
+
+    if (supabaseUrl && supabaseAnonKey && (supabaseUrl.startsWith('http://') || supabaseUrl.startsWith('https://'))) {
+      try {
+        _standaloneClient = createClient(supabaseUrl, supabaseAnonKey);
+        (globalThis as any).__FINANCEOS_SUPABASE_CLIENT__ = _standaloneClient;
+      } catch {
+        _standaloneClient = null;
+      }
+    } else {
+      _standaloneClient = null;
+    }
   }
   return _standaloneClient;
 }

@@ -55,7 +55,7 @@ export const TermsView: React.FC<TermsViewProps> = ({ onBack, showNav = true }) 
           right: '10%',
           width: '500px',
           height: '500px',
-          background: 'radial-gradient(circle, var(--accent-glow, rgba(99, 102, 241, 0.15)) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, var(--accent-glow, rgba(6, 182, 212, 0.15)) 0%, transparent 70%)',
           filter: 'blur(80px)',
           pointerEvents: 'none',
           zIndex: 0

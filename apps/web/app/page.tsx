@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import App from '../src/App';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
@@ -8,28 +8,33 @@ import { getSavedTheme, setTheme } from '@financeos/ui';
 import { authSession } from '@financeos/auth';
 import { createClient } from '../utils/supabase/client';
 
+// Eagerly initialize browser Supabase client singleton before child components mount
+if (typeof window !== 'undefined') {
+  createClient();
+}
+
 export default function Page() {
-  const [mounted, setMounted] = useState(false);
-  
   useEffect(() => {
-    // Inject the Next.js SSR-aware Supabase client into the AuthSessionManager
-    const client = createClient();
-    if (client) {
-      authSession.setClient(client);
-    }
+    createClient();
     setTheme(getSavedTheme());
-    setMounted(true);
   }, []);
 
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || 'demo-client-id';
+  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || '';
+  const hasValidClientId = Boolean(clientId && clientId !== 'demo-client-id' && clientId.includes('.apps.googleusercontent.com'));
 
-  if (!mounted) return null;
+  const appContent = <App />;
 
   return (
     <ErrorBoundary>
-      <GoogleOAuthProvider clientId={clientId}>
-        <App />
-      </GoogleOAuthProvider>
+      {hasValidClientId ? (
+        <GoogleOAuthProvider clientId={clientId}>
+          {appContent}
+        </GoogleOAuthProvider>
+      ) : (
+        appContent
+      )}
     </ErrorBoundary>
   );
 }
+
+

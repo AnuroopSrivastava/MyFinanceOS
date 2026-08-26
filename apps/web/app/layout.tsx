@@ -1,6 +1,5 @@
 import React from 'react';
 import '../../../packages/ui/src/styles/global.css';
-import { getSavedTheme, setTheme } from '@financeos/ui';
 
 export const metadata = {
   title: 'MyFinanceOS',
