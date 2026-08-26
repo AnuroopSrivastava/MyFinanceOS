@@ -600,3 +600,5 @@ ref_*.png
 *_history.jsonl
 last_css.jsonl
 recovered_from_*.css
+.env.*
+.credentials
