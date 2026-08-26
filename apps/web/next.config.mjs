@@ -37,7 +37,15 @@ class ResolveJsImportsPlugin {
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
-  allowedDevOrigins: ['*.run.app', 'localhost', '127.0.0.1'],
+  allowedDevOrigins: [
+    '*.run.app',
+    'localhost',
+    '127.0.0.1',
+    '*.preview.emergentagent.com',
+    '*.preview.emergentcf.cloud',
+    '*.emergentagent.com',
+    '*.emergentcf.cloud',
+  ],
   transpilePackages: [
     '@financeos/ui',
     '@financeos/shared',
