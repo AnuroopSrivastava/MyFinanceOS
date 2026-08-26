@@ -10,7 +10,7 @@
     "incremental": true,
     "isolatedModules": true,
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./src/*", "./*"]
     },
     "plugins": [
       {

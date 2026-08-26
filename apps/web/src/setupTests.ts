@@ -72,3 +72,18 @@ Object.defineProperty(globalThis, 'ResizeObserver', {
   value: ResizeObserverMock
 });
 
+if (typeof URL.createObjectURL === 'undefined') {
+  URL.createObjectURL = () => 'blob:mock-url';
+}
+if (typeof URL.revokeObjectURL === 'undefined') {
+  URL.revokeObjectURL = () => {};
+}
+if (typeof window !== 'undefined') {
+  if (typeof window.URL.createObjectURL === 'undefined') {
+    window.URL.createObjectURL = () => 'blob:mock-url';
+  }
+  if (typeof window.URL.revokeObjectURL === 'undefined') {
+    window.URL.revokeObjectURL = () => {};
+  }
+}
+

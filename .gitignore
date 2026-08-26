@@ -3,13 +3,15 @@
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# 1. Package Managers, Lock Artifacts & Dependency Trees
+# 1. Package Managers, Lock Artifacts & Dependency Trees (Root & Sub-packages)
 # ------------------------------------------------------------------------------
 node_modules/
+**/node_modules/
 jspm_packages/
 web_modules/
 bower_components/
 .pnpm-store/
+**/.pnpm-store/
 .npm/
 .pnp/
 .pnp.js
@@ -31,15 +33,20 @@ bun.lockb.bak
 # 2. Build, Bundler & Distribution Artifacts
 # ------------------------------------------------------------------------------
 dist/
+**/dist/
 dist-ssr/
 build/
+**/build/
 release/
 out/
+**/out/
 .output/
 .open-next/
 .next/
+**/.next/
 .next-cache/
 .turbo/
+**/.turbo/
 .wireit/
 .nx/
 .parcel-cache/
@@ -47,6 +54,7 @@ out/
 .terser-cache/
 .swc/
 .vite/
+**/.vite/
 .cache/
 storybook-static/
 .storybook-cache/
@@ -113,12 +121,14 @@ report.html
 .env.*.local
 .env*.local
 *.env
+**/*.env
+**/.env.*
+
+# Whitelist safe template & example files
 !*.env.example
 !*.env.sample
 !*.env.template
 !*.env.defaults
-
-# Whitelist safe template files
 !.env.example
 !.env.*.example
 !.env.test.example
@@ -177,6 +187,7 @@ credentials.csv
 # 4. Testing, Code Coverage, E2E & Browser Automation Artifacts
 # ------------------------------------------------------------------------------
 coverage/
+**/coverage/
 .nyc_output/
 playwright-report/
 test-results/
@@ -186,6 +197,7 @@ playwright/.auth/
 playwright-har/
 user-data-dir/
 .pytest_cache/
+**/.pytest_cache/
 .vitest/
 .vitest-cache/
 *.lcov
@@ -209,6 +221,7 @@ allure-report/
 # 5. Logs, Diagnostics & Memory Profiles
 # ------------------------------------------------------------------------------
 logs/
+**/logs/
 *.log
 *.log.*
 npm-debug.log*
@@ -364,22 +377,28 @@ hf_cache/
 # 9. Python (Virtual Environments, Bytecode & Graph Extraction Scratch)
 # ------------------------------------------------------------------------------
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
 env/
+**/env/
 venv/
+**/venv/
 ENV/
 env.bak/
 venv.bak/
 .env/
 .venv/
+**/.venv/
 .eggs/
 *.egg-info/
 *.egg
 .mypy_cache/
+**/.mypy_cache/
 .ruff_cache/
+**/.ruff_cache/
 /*_cache.py
 /check_cache.py
 /detect_files.py
