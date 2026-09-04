@@ -215,12 +215,6 @@ class DatabaseService {
     }
   }
 
-  public async syncDatabaseState(): Promise<void> {
-    if (this.db) {
-      await this.save();
-    }
-  }
-
   public async initializeNewDb(adminName: string): Promise<void> {
     this.lastSavedPayload = null;
     const adminId = 'p1';
@@ -359,45 +353,40 @@ class DatabaseService {
         const pin = authSession.getSessionPin() || undefined;
         let storagePayload = '';
 
+        const serializeAndEncryptSync = async (): Promise<string | null> => {
+          if (!this.db) return null;
+          const plainPayload = JSON.stringify(this.db);
+          let payload = plainPayload;
+          if (pin) {
+            try {
+              payload = await encryptData(plainPayload, pin);
+            } catch (e) {
+              console.error('Encryption failed', e);
+              this.setSaveError('Authentication failed');
+              this.setUnsavedChanges(true);
+              return null;
+            }
+          } else if (this.lastSavedPayload && this.lastSavedPayload.includes(':')) {
+            this.setSaveError('Authentication failed');
+            this.setUnsavedChanges(true);
+            return null;
+          }
+          return payload;
+        };
+
         if (typeof window !== 'undefined' && window.Worker) {
           try {
             storagePayload = await runWorkerSave(this.db, pin);
           } catch (err) {
             console.error('Worker save failed, falling back to synchronous save', err);
-            const plainPayload = JSON.stringify(this.db);
-            storagePayload = plainPayload;
-            if (pin) {
-              try {
-                storagePayload = await encryptData(plainPayload, pin);
-              } catch (e) {
-                console.error('Encryption failed', e);
-                this.setSaveError('Authentication failed');
-                this.setUnsavedChanges(true);
-                return;
-              }
-            } else if (this.lastSavedPayload && this.lastSavedPayload.includes(':')) {
-              this.setSaveError('Authentication failed');
-              this.setUnsavedChanges(true);
-              return;
-            }
+            const fallback = await serializeAndEncryptSync();
+            if (!fallback) return;
+            storagePayload = fallback;
           }
         } else {
-          const plainPayload = JSON.stringify(this.db);
-          storagePayload = plainPayload;
-          if (pin) {
-            try {
-              storagePayload = await encryptData(plainPayload, pin);
-            } catch (e) {
-              console.error('Encryption failed', e);
-              this.setSaveError('Authentication failed');
-              this.setUnsavedChanges(true);
-              return;
-            }
-          } else if (this.lastSavedPayload && this.lastSavedPayload.includes(':')) {
-            this.setSaveError('Authentication failed');
-            this.setUnsavedChanges(true);
-            return;
-          }
+          const fallback = await serializeAndEncryptSync();
+          if (!fallback) return;
+          storagePayload = fallback;
         }
 
         this.lastSavedPayload = storagePayload;
@@ -1323,91 +1312,6 @@ class DatabaseService {
     return JSON.stringify(this.db, null, 2);
   }
 
-  // Seed sample demo data for new users
-  public async seedSampleData(profileId: string): Promise<void> {
-    if (!this.db) throw new Error('Database is locked');
-
-    // Add sample accounts
-    const acc1 = await this.addAccount({
-      profileId, name: 'HDFC Salary Account', bankName: 'HDFC Bank',
-      accountNumber: '501004829103', ifscCode: 'HDFC0001234', accountType: 'Savings', balance: 245000, nomineeName: 'Ananya Srivastava'
-    });
-
-    const acc2 = await this.addAccount({
-      profileId, name: 'ICICI Savings', bankName: 'ICICI Bank',
-      accountNumber: '000401582910', ifscCode: 'ICIC0000004', accountType: 'Savings', balance: 85000, nomineeName: 'Ananya Srivastava'
-    });
-
-    const acc3 = await this.addAccount({
-      profileId, name: 'SBI Credit Card', bankName: 'SBI Card',
-      accountNumber: '4312-XXXX-9102', ifscCode: 'N/A', accountType: 'CreditCard', balance: -18500
-    });
-
-    // Add sample transactions
-    await this.addTransaction({
-      profileId, accountId: acc1.id, date: '2026-07-01', description: 'Tech Payout - Monthly Salary',
-      amount: 150000, type: 'Income', category: 'Salary'
-    });
-
-    await this.addTransaction({
-      profileId, accountId: acc1.id, date: '2026-07-02', description: 'Apartment Rent Payout',
-      amount: 28000, type: 'Expense', category: 'Rent'
-    });
-
-    await this.addTransaction({
-      profileId, accountId: acc1.id, date: '2026-07-05', description: 'Swiggy Gourmet Delivery',
-      amount: 2450, type: 'Expense', category: 'Food & Dining'
-    });
-
-    await this.addTransaction({
-      profileId, accountId: acc1.id, date: '2026-07-10', description: 'Monthly Mutual Fund SIP',
-      amount: 25000, type: 'Transfer', category: 'Investments'
-    });
-
-    await this.addTransaction({
-      profileId, accountId: acc1.id, date: '2026-07-12', description: 'Airtel Broadband & Electricity',
-      amount: 3200, type: 'Expense', category: 'Utilities'
-    });
-
-    // Add sample stocks
-    await this.addStock({
-      profileId, symbol: 'TCS', name: 'Tata Consultancy Services', quantity: 15,
-      averagePrice: 3850, currentPrice: 4120, nomineeName: 'Ananya Srivastava'
-    });
-
-    await this.addStock({
-      profileId, symbol: 'RELIANCE', name: 'Reliance Industries Ltd', quantity: 25,
-      averagePrice: 2750, currentPrice: 3050, nomineeName: 'Ananya Srivastava'
-    });
-
-    // Add sample mutual funds
-    await this.addMutualFund({
-      profileId, schemeCode: '122639', schemeName: 'Parag Parikh Flexi Cap Fund - Direct Growth', units: 310,
-      averageNav: 72.5, currentNav: 85.4, nomineeName: 'Ananya Srivastava'
-    });
-
-    // Add sample FDs
-    await this.addFD({
-      profileId, bankName: 'HDFC Bank', principalAmount: 200000,
-      interestRate: 7.25, startDate: '2025-08-15', maturityDate: '2026-08-15', maturityAmount: 214950, isMatured: false
-    });
-
-    // Add sample Budgets
-    await this.addBudget({
-      profileId, category: 'Food & Dining', limitAmount: 15000, spentAmount: 2450, period: 'Monthly'
-    });
-
-    await this.addBudget({
-      profileId, category: 'Rent', limitAmount: 30000, spentAmount: 28000, period: 'Monthly'
-    });
-
-    await this.addBudget({
-      profileId, category: 'Utilities', limitAmount: 5000, spentAmount: 3200, period: 'Monthly'
-    });
-
-    this.logAction('SAMPLE_DATA_SEEDED', 'Populated sample financial dataset for testing.');
-  }
-
   // Overwrite database from JSON import
   public async importRawDb(jsonString: string): Promise<boolean> {
     try {
@@ -1767,45 +1671,6 @@ class DatabaseService {
     if (changed || dividendChanged) {
       await this.save();
     }
-  }
-
-  public async syncLiveFeedTransaction(
-    profileId: string,
-    tx: Omit<Transaction, 'id' | 'profileId'>
-  ): Promise<Transaction | null> {
-    const db = this.db;
-    if (!db) return null;
-
-    const newTx: Transaction = {
-      ...tx,
-      id: 't_' + generateSalt(6),
-      profileId
-    };
-
-    if (!db.transactions) db.transactions = [];
-    db.transactions.push(newTx);
-
-    // Update account balances
-    const account = db.accounts.find(a => a.id === tx.accountId);
-    if (account) {
-      if (tx.type === 'Income') account.balance += tx.amount;
-      else if (tx.type === 'Expense') account.balance -= tx.amount;
-      else if (tx.type === 'Transfer' && tx.category === 'Investments') {
-        account.balance -= tx.amount;
-      }
-    }
-
-    if (tx.type === 'Transfer' && tx.refAccountId) {
-      const refAccount = db.accounts.find(a => a.id === tx.refAccountId);
-      if (refAccount) {
-        refAccount.balance += tx.amount;
-      }
-    }
-
-    // Save and log action
-    this.logAction('AUTOMATION', `Live Feed Sync: ${tx.description} (₹${tx.amount})`);
-    await this.save();
-    return newTx;
   }
 
   // --- Auto-Save Feature State Repositories ---

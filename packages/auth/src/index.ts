@@ -1,4 +1,3 @@
-import type { UserProfile } from '@financeos/shared';
 import { createClient, SupabaseClient, Session, User } from '@supabase/supabase-js';
 
 export class AuthSessionManager {

@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@financeos/shared": "*",
-    "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.42.0"
   },
   "devDependencies": {

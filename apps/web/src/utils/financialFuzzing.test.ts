@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateEMI, calculateSIPFutureValue, calculateFIRECorpus, calculateGST } from './financialCalculations';
+import { calculateEMI, calculateSIPFutureValue, calculateFIRECorpus, calculateGST } from '@financeos/shared';
 
 // Property-based fuzzing of the shared production formulas (./financialCalculations).
 // These invariants pin the canonical module used by the UI, not a duplicated copy.

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterByDateRange, GlobalDateRange } from './dateFilter';
+import { filterByDateRange, GlobalDateRange } from '@financeos/shared';
 
 describe('Date Filter Utility', () => {
   const mockData = [

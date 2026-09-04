@@ -21,7 +21,7 @@ import {
   solveXIRR,
   calculateStepUpSIPWealth,
   generateAmortizationSchedule
-} from './financialCalculations';
+} from '@financeos/shared';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TEST SUITES

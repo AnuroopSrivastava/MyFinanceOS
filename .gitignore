@@ -3,7 +3,7 @@
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# 1. Package Managers, Lock Artifacts & Dependency Trees (Root & Sub-packages)
+# 1. Package Managers, Lock Artifacts & Dependency Trees
 # ------------------------------------------------------------------------------
 node_modules/
 **/node_modules/
@@ -16,6 +16,7 @@ bower_components/
 .pnp/
 .pnp.js
 .pnp.cjs
+.pnp.mjs
 .pnp.loader.mjs
 .yarn/cache/
 .yarn/unplugged/
@@ -28,37 +29,53 @@ package-lock.json.bak
 yarn.lock.bak
 pnpm-lock.yaml.bak
 bun.lockb.bak
+bun.lock.bak
 
 # ------------------------------------------------------------------------------
-# 2. Build, Bundler & Distribution Artifacts
+# 2. Build, Bundler & Distribution Artifacts (Next.js, Vite, Turbo, Rollup, SWC)
 # ------------------------------------------------------------------------------
 dist/
 **/dist/
 dist-ssr/
+**/dist-ssr/
 build/
 **/build/
 release/
+**/release/
 out/
 **/out/
 .output/
+**/.output/
 .open-next/
+**/.open-next/
 .next/
 **/.next/
 .next-cache/
+**/.next-cache/
 .turbo/
 **/.turbo/
 .wireit/
+**/.wireit/
 .nx/
+**/.nx/
 .parcel-cache/
+**/.parcel-cache/
 .rollup.cache/
+**/.rollup.cache/
 .terser-cache/
+**/.terser-cache/
 .swc/
+**/.swc/
 .vite/
 **/.vite/
+.vite-temp/
+**/.vite-temp/
 .cache/
+**/.cache/
 storybook-static/
 .storybook-cache/
 *.tsbuildinfo
+**/*.tsbuildinfo
 tsconfig.tsbuildinfo
 tsconfig.*.tsbuildinfo
 
@@ -74,6 +91,7 @@ platforms/
 www/
 android/app/build/
 android/.gradle/
+android/build/
 ios/build/
 ios/DerivedData/
 DerivedData/
@@ -123,8 +141,10 @@ report.html
 *.env
 **/*.env
 **/.env.*
+.env.*
+.credentials
 
-# Whitelist safe template & example files
+# Whitelist safe template, sample & example files
 !*.env.example
 !*.env.sample
 !*.env.template
@@ -134,6 +154,7 @@ report.html
 !.env.test.example
 !.env.sample
 !.env.template
+!.env.defaults
 
 # Cryptographic Keys, Certificates, Salts & Vault Backups
 *.pem
@@ -167,9 +188,11 @@ id_ecdsa*
 id_ed25519*
 secring.gpg
 pubring.gpg
+*.gpg
 
 # Cloud, OAuth & Service Account Credentials
 service-account*.json
+service_account*.json
 google-credentials*.json
 client_secret*.json
 credentials.json
@@ -182,6 +205,8 @@ credentials.csv
 *.credentials.json
 *.postman_environment.json
 *.insomnia.json
+aws-credentials.json
+.aws/
 
 # ------------------------------------------------------------------------------
 # 4. Testing, Code Coverage, E2E & Browser Automation Artifacts
@@ -216,6 +241,9 @@ lighthouse-report.json
 .lighthouseci/
 allure-results/
 allure-report/
+.coverage
+.coverage.*
+htmlcov/
 
 # ------------------------------------------------------------------------------
 # 5. Logs, Diagnostics & Memory Profiles
@@ -231,6 +259,8 @@ pnpm-debug.log*
 lerna-debug.log*
 vite-debug.log*
 firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
 isolate-*.log
 v8.log
 *.cpuprofile
@@ -321,8 +351,11 @@ x86/
 
 # Temporary Files, Scratchpads & Patches
 tmp/
+**/tmp/
 temp/
+**/temp/
 scratch/
+**/scratch/
 *.tmp
 *.temp
 *.patch
@@ -334,20 +367,36 @@ scratch/
 # ------------------------------------------------------------------------------
 # 8. AI Assistants, Autonomous Agents & Scratch Artifacts
 # ------------------------------------------------------------------------------
-.claude/
-.gemini/
-.codex/
-.kilocode/
-.kilo/
-.impeccable/
-.opencode/
-.cursor/
-.windsurf/
-.aider/
-.aider.*.history*
-.copilot/
+# Root-anchored Agent Workspace Overlays (prevents collision with skill packages)
+/.claude/
+/.gemini/
+/.codex/
+/.kilocode/
+/.kilo/
+/.impeccable/
+/.opencode/
+/.cursor/
+/.windsurf/
+/.aider/
+/.aider.*.history*
+/.copilot/
+/.continue/
+/.tabnine/
+/.cody/
 
-# Agent Scratch, Benchmarks & Trajectories (Preserve Rules/Skills/Workflows)
+# Whitelist Core Agent Rules, Skills & Workflows in Repository
+!.agents/rules/
+!.agents/rules/**
+!.agents/skills/
+!.agents/skills/**
+!.agents/workflows/
+!.agents/workflows/**
+!.github/skills/
+!.github/skills/**
+!.github/workflows/
+!.github/workflows/**
+
+# Agent Scratch, Benchmarks & Trajectories
 .agents/tmp/
 .agents/.cache/
 .agents/scratch/
@@ -368,13 +417,13 @@ lancedb/
 *.gguf
 *.safetensors
 *.onnx
-models/
-weights/
+/models/
+/weights/
 tiktoken_cache/
 hf_cache/
 
 # ------------------------------------------------------------------------------
-# 9. Python (Virtual Environments, Bytecode & Graph Extraction Scratch)
+# 9. Python Ecosystem (Virtual Environments, Bytecode & Tooling Caches)
 # ------------------------------------------------------------------------------
 __pycache__/
 **/__pycache__/
@@ -390,15 +439,34 @@ ENV/
 env.bak/
 venv.bak/
 .env/
+**/.env/
 .venv/
 **/.venv/
 .eggs/
 *.egg-info/
 *.egg
+develop-eggs/
+wheels/
+*.whl
+pip-log.txt
+pip-delete-this-directory.txt
 .mypy_cache/
 **/.mypy_cache/
 .ruff_cache/
 **/.ruff_cache/
+.black_cache/
+.flake8_cache/
+.isort_cache/
+.pyre/
+.pytype/
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+.jupyter/
+.pdm.toml
+.pdm-python
+.pdm-build/
+Pipfile.lock.bak
+poetry.lock.bak
 /*_cache.py
 /check_cache.py
 /detect_files.py
@@ -407,9 +475,10 @@ venv.bak/
 /split_chunks.py
 scratch_*.py
 temp_*.py
+tmp_*.py
 
 # ------------------------------------------------------------------------------
-# 10. Cloud Infrastructure, Serverless, Docker & Terraform
+# 10. Cloud Infrastructure, Serverless, Containers & Terraform
 # ------------------------------------------------------------------------------
 .vercel/
 .netlify/
@@ -419,16 +488,18 @@ temp_*.py
 supabase/.temp/
 supabase/.branches/
 supabase/storage-data/
+.firebase/
 .docker/
 docker-compose.override.yml
 docker-compose.*.override.yml
+k8s/local-overrides.yml
 *.tfstate
 *.tfstate.*
 .terraform/
 .terraform.lock.hcl.bak
 
 # ------------------------------------------------------------------------------
-# 11. Databases, IndexedDB & Local Storage Persistence
+# 11. Databases, ORM, NoSQL, IndexedDB & Local Storage Persistence
 # ------------------------------------------------------------------------------
 *.sqlite
 *.sqlite3
@@ -443,6 +514,11 @@ docker-compose.*.override.yml
 *.rdb
 dump.rdb
 *.dump.sql
+backup.sql
+*.sql.gz
+*.sql.bak
+mongodump/
+*.bson
 indexeddb-dump/
 dexie-backup*.json
 idb-backup/
@@ -489,6 +565,8 @@ exports/
 !Documents/**
 !docs/
 !docs/**
+!documentation/
+!documentation/**
 
 # ------------------------------------------------------------------------------
 # 15. FinTech, Banking, Statements & Tax Returns (ISOLATION OF SENSITIVE USER DATA)
@@ -516,6 +594,11 @@ ICICI_*.csv
 SBI_*.csv
 Axis_*.csv
 Kotak_*.csv
+PNB_*.csv
+BOB_*.csv
+IndusInd_*.csv
+IDFC_*.csv
+YesBank_*.csv
 
 # Tax Forms & Government Downloads (Form 16, 26AS, AIS, TIS, ITR, GST)
 *.tax.json
@@ -524,6 +607,7 @@ form26as-*.json
 AIS_*.json
 TIS_*.json
 AIS_*.pdf
+TIS_*.pdf
 Form16*.pdf
 Form26AS*.pdf
 26AS_*.json
@@ -547,7 +631,8 @@ graphify-out/
 graphify-cache/
 graphify-backups/
 *.graph.json
-.graphify_*
+/.graphify_*
+!.agents/skills/graphify/**
 
 # ------------------------------------------------------------------------------
 # 17. Video Rendering, HyperFrames, Remotion & Motion Media
@@ -572,13 +657,17 @@ contact-sheet.jpg
 *.hevc
 intro_source.mp4
 out.mp4
-reference/
-renders/
+/reference/
+/renders/
 video-exports/
 product-intro/snapshots/
 product-intro/out.mp4
 product-intro/assets/source.mp4
 product-intro/assets/source_audio.mp3
+
+# Whitelist core web static assets
+!apps/web/public/**
+!apps/web/src/assets/**
 
 # ------------------------------------------------------------------------------
 # 18. Visual Alignment Diffs & Scratch Transcripts (Prevent CI/Git Clutter)
@@ -600,5 +689,43 @@ ref_*.png
 *_history.jsonl
 last_css.jsonl
 recovered_from_*.css
+
+# Browser preview screenshots (scratch)
+.preview/
+preview.png
+
+# Auto-generated entries
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+*.log
+
+# Environment files
+.env
 .env.*
-.credentials
+!.env.example
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Sensitive files (auto-detected)
+node_modules
+

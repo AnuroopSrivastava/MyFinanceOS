@@ -17,6 +17,16 @@ When performing whole-project tasks (styling, theme audits, refactoring, transla
   `DashboardView.tsx`, `LedgerView.tsx`, `InvestmentsView.tsx`, `TaxView.tsx`, `BusinessView.tsx`, `SankeyView.tsx`, `InvestmentPlanner/`, `AutomationView.tsx`, `DocumentVaultView.tsx`, `EMICalculator.tsx`, `GoalTracker.tsx`, `ReportsView.tsx`, `SettingsView.tsx`, `AIChatView.tsx`, `Landing.tsx`, `PrivacyView.tsx`, `TermsView.tsx`.
 - Keep Next.js routes (`app/privacy/page.tsx`, `app/terms/page.tsx`) and public static files (`public/privacy.html`, `public/terms.html`) synchronized with core design tokens.
 
-## Browser Preview Prohibition
-- **Never** perform browser previews, open browser pages, or invoke the browser subagent (`browser_subagent`) for visual testing or verification unless the user explicitly asks for it.
+## Browser Preview (Enabled)
+- **Proactively** use browser preview to visually verify UI changes after modifying frontend code.
+- Use the **Chrome DevTools MCP** tools (`chrome-devtools-mcp`) for browser interaction:
+  - `new_page` — open the dev server URL (default `http://localhost:3000`) in a new tab.
+  - `navigate_page` — navigate to specific routes to verify changes.
+  - `take_screenshot` — capture screenshots for visual verification and share them with the user.
+  - `take_snapshot` — capture accessibility-tree snapshots for DOM/content verification.
+  - `list_pages` — list currently open browser pages.
+  - `evaluate_script` — run JS in the page for interactive checks.
+- Alternatively, use `browser_subagent` for multi-step browser workflows (click-through flows, form testing, responsive checks).
+- **Workflow**: start the dev server (`npm run dev`) as a background daemon if not already running, then open / navigate / screenshot.
+- Share screenshots in artifacts or inline so the user can see the result without switching windows.
 
