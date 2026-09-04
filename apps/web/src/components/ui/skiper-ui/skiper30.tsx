@@ -205,6 +205,11 @@ const Skiper30 = ({
         gap: "clamp(16px, 2vw, 32px)",
         overflow: "hidden",
         padding: "clamp(16px, 2vw, 32px)",
+        // Composite the clip itself: the four parallax column layers then glide
+        // inside one composited clip surface instead of being re-clipped against
+        // a paint-layer every frame. contain isolates paint/layout of the grid.
+        transform: "translateZ(0)",
+        contain: "layout paint style",
       }}
     >
       <Column ref={col1Ref} images={col1} topOffset="-45%" />
@@ -386,16 +391,20 @@ const Column = React.forwardRef<HTMLDivElement, ColumnProps>(({ images, topOffse
             overflow: "hidden",
             borderRadius: "clamp(14px, 1.2vw, 20px)",
             boxShadow: "0 16px 36px rgba(0, 0, 0, 0.5)",
-            transform: "translateZ(0)",
-            WebkitTransform: "translateZ(0)",
-            WebkitMaskImage: "-webkit-radial-gradient(white, black)",
-            isolation: "isolate",
+            // NOTE: deliberately NOT layer-promoted. Each image tile bakes into
+            // its column's single composited texture (radius + shadow included)
+            // when the column rasterizes, so the four column layers are the ONLY
+            // GPU layers this grid creates. Per-image translateZ(0)/mask/isolation
+            // used to spawn 12 extra masked sublayers that re-composited over the
+            // moving columns every frame — the source of the image scroll lag.
           }}
         >
           <img
             src={src}
             alt="MyFinanceOS Gallery Feature Preview"
             loading="eager"
+            decoding="async"
+            fetchPriority="high"
             className="pointer-events-none h-full w-full object-cover select-none"
             style={{
               width: "100%",
@@ -404,9 +413,6 @@ const Column = React.forwardRef<HTMLDivElement, ColumnProps>(({ images, topOffse
               pointerEvents: "none",
               userSelect: "none",
               display: "block",
-              WebkitBackfaceVisibility: "hidden",
-              backfaceVisibility: "hidden",
-              transform: "translateZ(0)",
             }}
           />
         </div>
