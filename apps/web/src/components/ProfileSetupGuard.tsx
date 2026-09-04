@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { dbService } from '@financeos/database';
 import { createPinHash } from '@financeos/shared';
-import { User, ShieldCheck, ArrowRight, Sparkles, ChevronLeft } from 'lucide-react';
+import { ShieldCheck, ArrowRight, Sparkles, ChevronLeft } from 'lucide-react';
 import { Button, PinDots, NumberPad } from '@financeos/ui';
 import { authSession } from '@financeos/auth';
 import { motion, AnimatePresence } from 'framer-motion';

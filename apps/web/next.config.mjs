@@ -36,6 +36,9 @@ class ResolveJsImportsPlugin {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  // Allows a second `next dev` (e.g. an agent preview server) to run against the
+  // same source tree: Next refuses to start two dev servers sharing one distDir.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   reactStrictMode: true,
   allowedDevOrigins: [
     '*.run.app',

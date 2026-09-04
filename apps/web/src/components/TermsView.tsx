@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   FileText, ShieldCheck, Scale, ArrowLeft, AlertTriangle, CheckCircle2,
-  Building2, Percent, Target, FileSpreadsheet, Lock, HelpCircle
+  Building2, Percent, Lock, HelpCircle
 } from 'lucide-react';
 
 import { getSavedTheme, AppTheme } from '@financeos/ui';

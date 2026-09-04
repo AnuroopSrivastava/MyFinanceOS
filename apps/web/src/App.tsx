@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { authSession } from '@financeos/auth';
-import { GlobalDateRange } from './utils/dateFilter.js';
+import { GlobalDateRange, downloadBlob, todayStamp } from '@financeos/shared';
 import { Button, DateRangePicker, getSavedTheme, setTheme, useInteractiveCardSystem, useToast, CommandPalette, type CommandItem, Toaster } from '@financeos/ui';
 import { Landing } from './components/Landing.js';
 import { PinGuard } from './components/PinGuard.js';
@@ -24,9 +24,10 @@ import { ReportsView } from './components/ReportsView.js';
 import { useDbVersion } from './hooks/useDbSync.js';
 import {
   LayoutDashboard, Landmark, TrendingUp, Percent,
-  Briefcase, Network, Sparkles, Settings, LogOut, Lock,
-  Users, Calendar, Target, ChevronDown, UploadCloud, Menu, X,
-  CheckCircle2, AlertCircle, RefreshCw, ShieldCheck, Zap, FileSpreadsheet,
+  Briefcase, Network, Sparkles, Settings, Lock, LogOut,
+  Users, Target, Menu, X,
+  AlertCircle, RefreshCw, CheckCircle2,
+  ShieldCheck, Zap, FileSpreadsheet,
   Calculator, Download, Plus
 } from 'lucide-react';
 
@@ -54,19 +55,33 @@ const App: React.FC = () => {
   const [needsPin, setNeedsPin] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [activePage, setActivePage] = useState<ActivePage>('dashboard');
   const [dateRange, setDateRange] = useState<GlobalDateRange>({ startDate: null, endDate: null, label: 'All Time' });
   const [activeProfileId, setActiveProfileId] = useState<string>('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
-  const [syncTrigger, setSyncTrigger] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showSavePopup, setShowSavePopup] = useState(false);
   const [showSavedBadge, setShowSavedBadge] = useState(false);
 
   const { toast, toasts } = useToast();
+
+  const earliestDate = useMemo(() => {
+    let earliest: Date | undefined;
+    const checkDate = (dString: string) => {
+      const d = new Date(dString);
+      if (!isNaN(d.getTime()) && (!earliest || d < earliest)) earliest = d;
+    };
+    try {
+      dbService.getTransactions().forEach(t => checkDate(t.date));
+      dbService.getInvoices().forEach(i => checkDate(i.date));
+      dbService.getRegister().forEach(r => checkDate(r.date));
+    } catch { }
+    return earliest;
+  }, [dbVersion]);
 
   const profiles = isUnlocked && dbService.isUnlocked() ? dbService.getProfiles() : [];
   const activeProfile = profiles.find(p => p.id === activeProfileId);
@@ -105,12 +120,7 @@ const App: React.FC = () => {
     { id: 'act-lock', label: 'Lock Vault', group: 'Actions', icon: <Lock size={16} />, action: () => { handleLock(); setIsCommandPaletteOpen(false); }, keywords: 'logout secure close' },
     { id: 'act-export', label: 'Export Full Backup', group: 'Actions', icon: <Download size={16} />, action: () => { 
         const raw = dbService.getRawDb();
-        const blob = new Blob([raw], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `financeos_backup_${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        downloadBlob(`financeos_backup_${todayStamp()}.json`, new Blob([raw], { type: 'application/json' }));
         setIsCommandPaletteOpen(false);
       }, keywords: 'download backup save json' },
     { id: 'act-add-tx', label: 'Add New Transaction', group: 'Actions', icon: <Plus size={16} />, action: () => { setActivePage('ledger'); setIsCommandPaletteOpen(false); }, keywords: 'income expense entry new' },
@@ -263,7 +273,6 @@ const App: React.FC = () => {
     let cleanup = () => { };
     if (isUnlocked) {
       cleanup = dbService.listenForSync(() => {
-        setSyncTrigger(prev => prev + 1);
         toast.success('Vault Synchronized', 'Changes synchronized across browser tabs.');
       });
     }
@@ -304,6 +313,7 @@ const App: React.FC = () => {
   };
 
   const handleUnlock = async () => {
+    if (isAuthenticating) return;
     try {
       const isAuth = await authSession.isAuthenticated();
       setIsAuthenticated(isAuth);
@@ -322,9 +332,18 @@ const App: React.FC = () => {
         } else if (unlockResult === 'needs_pin' || initialized) {
           setNeedsPin(true);
         }
+      } else {
+        // Unauthenticated — initiate the Supabase + Google OAuth flow.
+        // The onAuthStateChange listener (above) handles the post-redirect
+        // state transition once the session is established.
+        setIsAuthenticating(true);
+        await authSession.loginWithGoogle();
       }
     } catch (err) {
       console.error('Failed to unlock database:', err);
+      toast.error('Sign-in unavailable', 'Authentication could not start. Check your connection and try again.');
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
@@ -361,15 +380,21 @@ const App: React.FC = () => {
     }
   };
 
+  const centerStyle: React.CSSProperties = { display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' };
+
+  let gateKey = 'app';
+  let gateContent: React.ReactNode;
+
   // 1. Unauthenticated landing screen
   if (!isAuthenticated && !isUnlocked) {
-    return <Landing onUnlock={handleUnlock} />;
+    gateKey = 'landing';
+    gateContent = <Landing onUnlock={handleUnlock} authenticating={isAuthenticating} />;
   }
-
   // 2. Authenticated but needs PIN verification to decrypt database
-  if (needsPin && !isUnlocked) {
-    return (
-      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' }}>
+  else if (needsPin && !isUnlocked) {
+    gateKey = 'pin';
+    gateContent = (
+      <div style={centerStyle}>
         <PinGuard
           profile={activeProfile || { id: 'p1', name: 'Treasury Admin', role: 'Admin', relationship: 'Self', isNomineeProvided: true }}
           onSuccess={handlePinSuccess}
@@ -378,41 +403,46 @@ const App: React.FC = () => {
       </div>
     );
   }
-
   // 3. Authenticated but uninitialized profile setup
-  if (isAuthenticated && !isInitialized && !isUnlocked) {
-    return (
-      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' }}>
+  else if (isAuthenticated && !isInitialized && !isUnlocked) {
+    gateKey = 'setup';
+    gateContent = (
+      <div style={centerStyle}>
         <ProfileSetupGuard onComplete={handleSetupComplete} />
       </div>
     );
   }
-
   // 4. Authenticated fallback (prompt for PIN or setup, never show Landing when authenticated)
-  if (!isUnlocked) {
+  else if (!isUnlocked) {
     if (isAuthenticated) {
       if (!isInitialized) {
-        return (
-          <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' }}>
+        gateKey = 'setup';
+        gateContent = (
+          <div style={centerStyle}>
             <ProfileSetupGuard onComplete={handleSetupComplete} />
           </div>
         );
+      } else {
+        gateKey = 'pin';
+        gateContent = (
+          <div style={centerStyle}>
+            <PinGuard
+              profile={activeProfile || { id: 'p1', name: 'Treasury Admin', role: 'Admin', relationship: 'Self', isNomineeProvided: true }}
+              onSuccess={handlePinSuccess}
+              overrideVerify={handlePinVerify}
+            />
+          </div>
+        );
       }
-      return (
-        <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' }}>
-          <PinGuard
-            profile={activeProfile || { id: 'p1', name: 'Treasury Admin', role: 'Admin', relationship: 'Self', isNomineeProvided: true }}
-            onSuccess={handlePinSuccess}
-            overrideVerify={handlePinVerify}
-          />
-        </div>
-      );
+    } else {
+      gateKey = 'landing';
+      gateContent = <Landing onUnlock={handleUnlock} authenticating={isAuthenticating} />;
     }
-    return <Landing onUnlock={handleUnlock} />;
   }
-
-  // 2. Main Unlocked Dashboard Workspace
-  return (
+  // 5. Main Unlocked Dashboard Workspace
+  else {
+    gateKey = 'app';
+    gateContent = (
     <div className="page-shell" style={{ position: 'relative' }}>
 
       {/* Mobile Drawer Overlay */}
@@ -827,19 +857,7 @@ const App: React.FC = () => {
             <DateRangePicker
               value={dateRange}
               onChange={setDateRange}
-              earliestDate={(() => {
-                let earliest: Date | undefined;
-                const checkDate = (dString: string) => {
-                  const d = new Date(dString);
-                  if (!isNaN(d.getTime()) && (!earliest || d < earliest)) earliest = d;
-                };
-                try {
-                  dbService.getTransactions().forEach(t => checkDate(t.date));
-                  dbService.getInvoices().forEach(i => checkDate(i.date));
-                  dbService.getRegister().forEach(r => checkDate(r.date));
-                } catch { }
-                return earliest;
-              })()}
+              earliestDate={earliestDate}
             />
 
             <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem' }}>
@@ -919,8 +937,6 @@ const App: React.FC = () => {
         </nav>
       </div>
 
-      <Toaster toasts={toasts} onClose={toast.dismiss} position="bottom-right" />
-
       <SaveStatusPopup
         isOpen={showSavePopup}
         onClose={() => setShowSavePopup(false)}
@@ -928,6 +944,30 @@ const App: React.FC = () => {
         hasUnsavedChanges={hasUnsavedChanges}
       />
     </div>
+    );
+  }
+
+  return (
+    <>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={gateKey}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          style={{ minHeight: '100vh' }}
+        >
+          {gateContent}
+        </motion.div>
+      </AnimatePresence>
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        items={commandPaletteItems}
+      />
+      <Toaster toasts={toasts} onClose={toast.dismiss} position="bottom-right" />
+    </>
   );
 };
 

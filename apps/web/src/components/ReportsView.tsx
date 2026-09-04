@@ -6,7 +6,7 @@ import { exportToCSV } from '../utils/exportCsv.js';
 import { formatRupee } from '@financeos/shared';
 import {
   FileSpreadsheet, Download, Printer, Sparkles,
-  BarChart3, Landmark, TrendingUp, Calendar, ShieldCheck, ArrowRight, ChevronRight
+  BarChart3, Landmark, TrendingUp, Calendar, ShieldCheck, ChevronRight
 } from 'lucide-react';
 
 interface ReportsViewProps {
@@ -19,7 +19,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
   const [selectedReportType, setSelectedReportType] = useState<ReportType>('Monthly');
   const [selectedPeriod, setSelectedPeriod] = useState(() => new Date().toISOString().substring(0, 7));
   const [isGenerating, setIsGenerating] = useState(false);
-  const [reportReady, setReportReady] = useState(false);
+  const [reportReady, setReportReady] = useState(true);
 
   // Compute live user data metrics from dbService
   const transactions = React.useMemo(() => {
@@ -71,12 +71,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
   ];
 
   const handleGenerate = () => {
-    setIsGenerating(true);
-    setReportReady(false);
-    setTimeout(() => {
-      setIsGenerating(false);
-      setReportReady(true);
-    }, 1000);
+    setReportReady(true);
   };
 
   const handleExportCsv = () => {

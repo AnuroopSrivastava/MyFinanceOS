@@ -2,9 +2,8 @@ import React, { useMemo } from 'react';
 import { EmptyState, SectionHeader, InfoCallout } from '@financeos/ui';
 import { dbService } from '@financeos/database';
 import { useDbVersion } from '../hooks/useDbSync.js';
-import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
-import { formatRupee } from '@financeos/shared';
-import { Info, TrendingUp } from 'lucide-react';
+import { formatRupee, GlobalDateRange, filterByDateRange } from '@financeos/shared';
+import { TrendingUp } from 'lucide-react';
 
 interface SankeyNode {
   id: string;

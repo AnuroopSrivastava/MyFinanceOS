@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { dbService } from '@financeos/database';
-import { formatRupee as formatINR } from '@financeos/shared';
-import { calculateFIRECorpus, calculateStepUpSIPWealth } from '../../utils/financialCalculations.js';
+import { formatRupee as formatINR, calculateFIRECorpus, calculateStepUpSIPWealth } from '@financeos/shared';
 import { MetricCard, FormField, SummaryMetricGrid } from '@financeos/ui';
-import { Flame, TrendingUp, Target, Award, ArrowUpRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { Flame, TrendingUp, Target, Award, ArrowUpRight, ShieldCheck } from 'lucide-react';
 
 interface FireSipCalculatorProps {
   activeProfileId?: string;

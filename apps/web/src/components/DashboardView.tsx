@@ -2,8 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { useDbVersion } from '../hooks/useDbSync.js';
-import { FixedDeposit, formatRupee } from '@financeos/shared';
-import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
+import { FixedDeposit, formatRupee, GlobalDateRange, filterByDateRange, calculateFdAccruedValue } from '@financeos/shared';
 import {
   TrendingUp, TrendingDown, Landmark, PieChart as PieIcon,
   Calendar, Users, AlertTriangle, Lightbulb, Wallet, ShieldCheck, CreditCard
@@ -13,28 +12,6 @@ import {
   XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell
 } from 'recharts';
 import { GoalTracker } from './GoalTracker.js';
-
-const calculateFdAccruedValue = (fd: FixedDeposit): number => {
-  const now = new Date(); // Dynamic active date context
-  const start = new Date(fd.startDate);
-  const maturity = new Date(fd.maturityDate);
-
-  if (now <= start) return fd.principalAmount;
-  if (now >= maturity) return fd.maturityAmount;
-
-  // Quarterly compounding (n = 4)
-  const rate = fd.interestRate / 100;
-  const daysTotal = (maturity.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
-  const daysElapsed = (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
-
-  if (daysTotal <= 0 || daysElapsed <= 0) return fd.principalAmount;
-
-  // Compounded quarterly: A = P * (1 + r/4) ^ (4 * years)
-  const years = daysElapsed / 365.25;
-  const accrued = fd.principalAmount * Math.pow(1 + rate / 4, 4 * years);
-
-  return Math.min(fd.maturityAmount, Math.round(accrued));
-};
 
 interface DashboardViewProps {
   activeProfileId: string;

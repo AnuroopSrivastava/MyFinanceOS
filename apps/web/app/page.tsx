@@ -5,7 +5,6 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import App from '../src/App';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { getSavedTheme, setTheme } from '@financeos/ui';
-import { authSession } from '@financeos/auth';
 import { createClient } from '../utils/supabase/client';
 
 // Eagerly initialize browser Supabase client singleton before child components mount

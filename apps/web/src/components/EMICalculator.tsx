@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button, MetricCard, PanelHeader, Slider, Tabs, SummaryMetricGrid, PaginationControls } from '@financeos/ui';
 import { dbService } from '@financeos/database';
-import { formatRupee } from '@financeos/shared';
-import { calculateEMI, generateAmortizationSchedule, AmortRow } from '../utils/financialCalculations.js';
+import { formatRupee, calculateEMI, generateAmortizationSchedule } from '@financeos/shared';
 import { exportToCSV } from '../utils/exportCsv.js';
 import { Calculator, Download, IndianRupee, Clock, PieChart as PieIcon } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, AreaChart, Area, XAxis, YAxis } from 'recharts';

@@ -1,10 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Button, CurrencyInput, Badge, StatusBadge, SectionHeader, Modal, SearchFilterBar, IconButton, PanelHeader, EmptyState, InfoCallout, FileDropzone, FormRow, FormField, FormActions, ActionRow, chartTooltipStyle, chartTooltipItemStyle, useReducedMotion } from '@financeos/ui';
+import { Button, CurrencyInput, Badge, SectionHeader, Modal, ConfirmModal, useConfirmModal, SearchFilterBar, IconButton, PanelHeader, EmptyState, InfoCallout, FileDropzone, FormRow, FormField, FormActions, ActionRow, chartTooltipStyle, chartTooltipItemStyle, useReducedMotion } from '@financeos/ui';
 import { motion } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { useDbSyncCallback } from '../hooks/useDbSync.js';
-import { BankAccount, Transaction, AccountType, RecurringTransaction, formatRupee, downloadBlob, todayStamp, parseRupeeToNumber } from '@financeos/shared';
-import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
+import { BankAccount, Transaction, AccountType, RecurringTransaction, formatRupee, downloadBlob, todayStamp, parseRupeeToNumber, GlobalDateRange, filterByDateRange } from '@financeos/shared';
 import {
   Plus, Upload, Download, Landmark, Search, Trash2, CreditCard,
   RefreshCw, Edit2, PieChart as PieIcon, ArrowUpRight,
@@ -14,7 +13,6 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip
 } from 'recharts';
 import { exportToCSV } from '../utils/exportCsv.js';
-import { ConfirmModal, useConfirmModal } from './ConfirmModal.js';
 
 interface ParsedTx {
   id: string;
@@ -171,8 +169,7 @@ const parseStatementText = (text: string): ParsedTx[] => {
 };
 
 interface LedgerViewProps {
-  dateRange: import('../utils/dateFilter.js').GlobalDateRange;
-
+  dateRange: GlobalDateRange;
   activeProfileId: string;
 }
 

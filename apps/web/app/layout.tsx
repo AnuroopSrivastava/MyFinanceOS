@@ -1,4 +1,5 @@
 import React from 'react';
+import '../src/styles/globals.css';
 import '../../../packages/ui/src/styles/global.css';
 import '../src/styles/emergent-landing.css';
 

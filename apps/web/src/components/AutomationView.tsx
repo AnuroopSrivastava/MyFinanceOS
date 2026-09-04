@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button, Modal, SectionHeader, Badge, FormField, FormActions, EmptyState, ActionRow, IconButton, FormRow } from '@financeos/ui';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { AutomationRule } from '@financeos/shared';
 import { dbService } from '@financeos/database';
 import { useDbSyncCallback, useDbVersion } from '../hooks/useDbSync.js';
 import {
   Zap, Calendar, Bell, Plus, Trash2, ToggleLeft, ToggleRight,
-  Sparkles, X
+  Sparkles
 } from 'lucide-react';
 import { formatRupee } from '@financeos/shared';
 

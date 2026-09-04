@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { dbService } from '@financeos/database';
 import { useDbSyncCallback } from '../hooks/useDbSync.js';
-import { setTheme, AppTheme, Button, Modal, SectionHeader, Badge, StatusBadge, FormField, IconInput, FileDropzone, FormRow, FormActions } from '@financeos/ui';
-import { UserProfile, AuditLog, SystemSettings, createPinHash, downloadBlob, todayStamp } from '@financeos/shared';
+import { setTheme, AppTheme, Button, Modal, ConfirmModal, useConfirmModal, SectionHeader, Badge, StatusBadge, FormField, IconInput, FileDropzone, FormRow, FormActions } from '@financeos/ui';
+import { UserProfile, SystemSettings, createPinHash, downloadBlob, todayStamp } from '@financeos/shared';
 import { ImageCropperModal } from './ImageCropperModal.js';
-import { ConfirmModal, useConfirmModal } from './ConfirmModal.js';
 import {
-  Settings, Users, Shield, Download, Upload,
+  Settings, Users, Download, Upload,
   Trash2, Plus, Sliders, CheckCircle2, AlertTriangle,
-  Building2, FileText, Check, Lock, History, X,
-  ShieldCheck, RefreshCw, Key, Sparkles, Database, Save
+  Building2, FileText, Lock, X,
+  ShieldCheck, Database, Save
 } from 'lucide-react';
 
 interface SettingsViewProps {

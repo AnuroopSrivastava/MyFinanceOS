@@ -1,13 +1,10 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { useDbVersion } from '../hooks/useDbSync.js';
-import { Calculator, Percent, FileText, AlertCircle, Edit2, Trash2, Plus, X, Download, Calendar, Clock, Target, TrendingUp, Shield, Wallet } from 'lucide-react';
-import { TDSSummary } from '@financeos/shared';
-import { formatRupee } from '@financeos/shared';
-import { calculateTaxOldRegime, calculateTaxNewRegime } from '../utils/financialCalculations.js';
+import { Calculator, Percent, FileText, AlertCircle, Edit2, Trash2, Plus, Download, Calendar, Clock, Target, TrendingUp, Shield, Wallet } from 'lucide-react';
+import { TDSSummary, formatRupee, calculateTaxOldRegime, calculateTaxNewRegime } from '@financeos/shared';
 import { exportToCSV } from '../utils/exportCsv.js';
-import { ConfirmModal, useConfirmModal } from './ConfirmModal.js';
 import {
   Button,
   IconButton, FormField, TaxRegimeToggle,
@@ -16,6 +13,7 @@ import {
   TaxExportButton,
   CurrencyInput,
   Modal,
+  ConfirmModal, useConfirmModal,
   FileDropzone,
   FormRow,
   FormActions,
@@ -52,7 +50,6 @@ interface DeductionSection {
 export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
   const { modal: confirmModal, openConfirm, closeConfirm } = useConfirmModal();
 
-  const [refresh, setRefresh] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const dbVersion = useDbVersion();
 
@@ -85,7 +82,6 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
   const [tdsAmountPaid, setTdsAmountPaid] = useState<number>(0);
   const [tdsTaxDeducted, setTdsTaxDeducted] = useState<number>(0);
   const [tdsFY, setTdsFY] = useState('2026-27');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load saved Tax Inputs on activeProfileId change
   useEffect(() => {
@@ -152,7 +148,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
     return () => clearTimeout(timer);
   }, [grossSalary, ded80C, ded80D, dedNps, dedHomeLoan, hraExempt, assetType, buyValue, sellValue, holdingMonths, activeProfileId, isLoaded]);
 
-  const tdsRecords = useMemo(() => dbService.getTDSRecords().filter(r => r.profileId === activeProfileId), [refresh, activeProfileId, dbVersion]);
+  const tdsRecords = useMemo(() => dbService.getTDSRecords().filter(r => r.profileId === activeProfileId), [activeProfileId, dbVersion]);
   const totalTdsDeducted = useMemo(() => tdsRecords.reduce((sum, record) => sum + record.taxDeducted, 0), [tdsRecords]);
 
   // --- Regimes Calculator Logic (FY 2026-27 Slabs) ---
@@ -349,7 +345,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
           actions.push({
             id: 'action-80c',
             title: 'Invest in ELSS / PPF to max 80C',
-            description: `You have ₹${(150000 - ded80C).toLocaleString('en-IN')} remaining in your 80C limit. Invest in ELSS (3-yr lock-in) or PPF (15-yr) to claim full deduction.`,
+            description: `You have ${formatRupee(150000 - ded80C)} remaining in your 80C limit. Invest in ELSS (3-yr lock-in) or PPF (15-yr) to claim full deduction.`,
             amount: 150000 - ded80C,
             section: '80C',
             priority: 'high',
@@ -372,7 +368,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
           actions.push({
             id: 'action-80d',
             title: 'Buy health insurance to max 80D',
-            description: `Health insurance premium gap of ₹${(max80D - ded80D).toLocaleString('en-IN')}. Covers self, spouse, dependent children. Parents additional ₹25k/₹50k.`,
+            description: `Health insurance premium gap of ${formatRupee(max80D - ded80D)}. Covers self, spouse, dependent children. Parents additional ₹25k/₹50k.`,
             amount: max80D - ded80D,
             section: '80D',
             priority: 'high',
@@ -394,7 +390,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
           actions.push({
             id: 'action-nps',
             title: 'Contribute to NPS Tier I for extra ₹50k',
-            description: `Additional NPS deduction of ₹${(50000 - dedNps).toLocaleString('en-IN')} available. Only Tier I contributions qualify. Lock-in till age 60.`,
+            description: `Additional NPS deduction of ${formatRupee(50000 - dedNps)} available. Only Tier I contributions qualify. Lock-in till age 60.`,
             amount: 50000 - dedNps,
             section: '80CCD(1B)',
             priority: 'medium',
@@ -416,7 +412,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
           actions.push({
             id: 'action-hl',
             title: 'Claim full home loan interest (Sec 24b)',
-            description: `₹${(200000 - dedHomeLoan).toLocaleString('en-IN')} interest deduction remaining. Ensure you have interest certificate from bank. Pre-construction interest claimable in 5 installments.`,
+            description: `${formatRupee(200000 - dedHomeLoan)} interest deduction remaining. Ensure you have interest certificate from bank. Pre-construction interest claimable in 5 installments.`,
             amount: 200000 - dedHomeLoan,
             section: '24(b)',
             priority: 'medium',
@@ -451,7 +447,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
       actions.push({
         id: 'action-advance-tax',
         title: 'Pay Advance Tax to avoid interest',
-        description: `Net liability ₹${netAdvanceTaxLiability.toLocaleString('en-IN')} exceeds ₹10k threshold. Pay quarterly installments to avoid Sec 234B/234C interest (1%/month).`,
+        description: `Net liability ${formatRupee(netAdvanceTaxLiability)} exceeds ₹10k threshold. Pay quarterly installments to avoid Sec 234B/234C interest (1%/month).`,
         amount: netAdvanceTaxLiability,
         section: 'Advance Tax',
         priority: 'high',
@@ -482,7 +478,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
       actions.push({
         id: 'action-std-ded',
         title: 'Evaluate Old vs New regime trade-off',
-        description: `Old regime deductions (₹${taxCalculations.totalDeductionsOld.toLocaleString('en-IN')}) exceed new regime std deduction (₹75k). You lose ₹${(taxCalculations.totalDeductionsOld - 75000).toLocaleString('en-IN')} deductions by choosing New Regime.`,
+        description: `Old regime deductions (${formatRupee(taxCalculations.totalDeductionsOld)}) exceed new regime std deduction (₹75k). You lose ${formatRupee(taxCalculations.totalDeductionsOld - 75000)} deductions by choosing New Regime.`,
         amount: taxCalculations.totalDeductionsOld - 75000,
         section: 'Regime Analysis',
         priority: 'medium',
@@ -536,7 +532,6 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
           financialYear: tdsFY
         });
       }
-      setRefresh(r => r + 1);
       closeTdsModal();
     } catch (err) {
       console.error('Failed to save TDS record.', err);
@@ -551,7 +546,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
       message: `Permanently delete this TDS entry${details}? This will remove it from your Form 26AS reconciliation total.`,
       confirmLabel: 'Delete TDS Record',
       isDanger: true,
-      onConfirm: async () => { await dbService.deleteTDSRecord(id); setRefresh(r => r + 1); }
+      onConfirm: async () => { await dbService.deleteTDSRecord(id); }
     });
   };
 
@@ -574,7 +569,6 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
             });
           }
         }
-        setRefresh(r => r + 1);
       } catch (err) {
         console.error('Failed to parse AIS/26AS JSON', err);
       }

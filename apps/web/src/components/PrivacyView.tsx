@@ -2,11 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   ShieldCheck, Lock, Database, ArrowLeft, Key, Server, Cpu,
-  ExternalLink, FileText, CheckCircle2, AlertTriangle, HelpCircle,
-  FolderLock, EyeOff, ShieldAlert, Sparkles, Terminal
+  CheckCircle2, HelpCircle, FolderLock, Sparkles
 } from 'lucide-react';
 
 import { getSavedTheme, AppTheme } from '@financeos/ui';

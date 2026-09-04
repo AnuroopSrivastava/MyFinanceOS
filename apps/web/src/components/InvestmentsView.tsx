@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Button, CurrencyInput, Modal, Tabs, IconButton, StatRow, EmptyState, PanelHeader, FormField, FormActions, SummaryMetricGrid, FormRow, InfoCallout, Slider, chartTooltipStyle, chartTooltipItemStyle } from '@financeos/ui';
+import { Button, CurrencyInput, Modal, ConfirmModal, useConfirmModal, Tabs, IconButton, StatRow, EmptyState, PanelHeader, FormField, FormActions, SummaryMetricGrid, FormRow, InfoCallout, Slider, chartTooltipStyle, chartTooltipItemStyle } from '@financeos/ui';
 import { dbService } from '@financeos/database';
 import { useDbSyncCallback } from '../hooks/useDbSync.js';
 import {
@@ -7,15 +7,13 @@ import {
   HelpCircle, Layers, Sliders, Play, Trash2, Plus, Edit2
 } from 'lucide-react';
 import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, AreaChart, Area
+  ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, AreaChart, Area
 } from 'recharts';
 import {
   FixedDeposit, StockHolding, MutualFundHolding, GoldHolding,
-  NPSHolding, ProvidentFundHolding, BankAccount
+  NPSHolding, ProvidentFundHolding, BankAccount, formatRupee,
+  calculateFdAccruedValue, solveXIRR, type CashFlow
 } from '@financeos/shared';
-import { formatRupee } from '@financeos/shared';
-import { ConfirmModal, useConfirmModal } from './ConfirmModal.js';
-import { calculateFdAccruedValue, solveXIRR, CashFlow } from '../utils/financialCalculations.js';
 
 interface InvestmentsViewProps {
   activeProfileId: string;

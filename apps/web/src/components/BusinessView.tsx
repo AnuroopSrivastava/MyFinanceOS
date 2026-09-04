@@ -1,63 +1,21 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Button, CurrencyInput, Modal, SectionHeader, Tabs, StatusBadge, FormActions, FormField, FormRow } from '@financeos/ui';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Button, CurrencyInput, Modal, ConfirmModal, useConfirmModal, SectionHeader, Tabs, StatusBadge, FormActions, FormField, FormRow } from '@financeos/ui';
+import { motion } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { useDbSyncCallback, useDbVersion } from '../hooks/useDbSync.js';
-import { GlobalDateRange, filterByDateRange } from '../utils/dateFilter.js';
 import {
   BusinessInvoice, InventoryItem, VendorCustomer,
-  BusinessRegisterEntry
+  BusinessRegisterEntry, formatRupee, GlobalDateRange
 } from '@financeos/shared';
 import {
-  Printer, Coins, ShoppingBag, Eye, Trash2, Edit2,
+  Printer, Coins, Eye, Trash2, Edit2,
   FileText, Archive, BarChart2, Plus, Download, Briefcase
 } from 'lucide-react';
-import { formatRupee } from '@financeos/shared';
-
 import { exportToCSV } from '../utils/exportCsv.js';
-import { ConfirmModal, useConfirmModal } from './ConfirmModal.js';
 
 interface BusinessViewProps {
   dateRange: GlobalDateRange;
   activeProfileId: string;
-}
-
-interface InvoiceFormState {
-  customerId: string;
-  items: { itemId: string; quantity: number }[];
-  notes: string;
-  invoiceNumber: string;
-}
-
-interface ContactFormState {
-  name: string;
-  gstin: string;
-  phone: string;
-  email: string;
-  address: string;
-  type: 'Customer' | 'Vendor';
-}
-
-interface InventoryFormState {
-  code: string;
-  name: string;
-  quantity: string;
-  purchasePrice: string;
-  salesPrice: string;
-  gstRate: string;
-  reorder: string;
-}
-
-interface RegisterFormState {
-  date: string;
-  type: string;
-  refNumber: string;
-  partyName: string;
-  taxableAmount: number;
-  cgst: number;
-  sgst: number;
-  igst: number;
-  totalAmount: number;
 }
 
 export const BusinessView: React.FC<BusinessViewProps> = ({ dateRange, activeProfileId }) => {

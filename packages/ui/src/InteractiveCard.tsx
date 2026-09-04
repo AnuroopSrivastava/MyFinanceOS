@@ -60,12 +60,27 @@ export const useInteractiveCardSystem = (): void => {
     const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
     let activeCard: HTMLElement | null = null;
 
+    // Pointer moves are coalesced to one processed event per animation frame.
+    // A raw pointermove handler writing 3D transforms (with a forced layout via
+    // getBoundingClientRect) fires far more often than the display refreshes —
+    // during a scroll gesture it invalidates layers mid-frame and directly
+    // fights the landing page's Lenis parallax budget.
+    let pendingFrame = 0;
+    let pendingEvent: PointerEvent | null = null;
+
+    const getLenisVelocity = (): number => {
+      const lenis = (window as unknown as { __myfinanceos_lenis__?: { velocity?: number } }).__myfinanceos_lenis__;
+      return lenis ? Math.abs(lenis.velocity ?? 0) : 0;
+    };
+
     const resetCard = (card: HTMLElement | null) => {
       if (!card) return;
 
       card.classList.remove('is-interactive-card-active');
-      // Exact TiltCard un-hovered return transform state
-      card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0)';
+      // Clear instead of leaving a resident identity 3D transform: a permanent
+      // inline perspective() keeps the (often section-sized) panel on its own
+      // composited layer forever — a standing raster cost next to the gallery.
+      card.style.transform = '';
       card.style.removeProperty('--interactive-pointer-x');
       card.style.removeProperty('--interactive-pointer-y');
 
@@ -106,18 +121,39 @@ export const useInteractiveCardSystem = (): void => {
       handleCardPointerMove(card, event);
     };
 
-    const handlePointerMove = (event: PointerEvent) => {
-      if (event.pointerType !== 'mouse' || reduceMotion.matches || !finePointer.matches) return;
-      // FIX: Freeze 3D transform recalculation while the user is actively clicking (mouse button down).
-      // If the transform updates between mousedown and mouseup, the browser invalidates the hit-test and drops the `click` event!
-      if (event.buttons > 0) return;
+    const flushPendingMove = () => {
+      pendingFrame = 0;
+      const event = pendingEvent;
+      pendingEvent = null;
+      if (!event) return;
 
       const card = getCardFromTarget(event.target);
       if (!card) {
         resetCard(activeCard);
         return;
       }
+
+      // While the page is smooth-scrolling, tilt is a compositor liability:
+      // rewriting 3D transforms on large panels churns layers in the exact
+      // frames the parallax columns must stay cheap. Freeze until at rest.
+      if (getLenisVelocity() > 0.5) {
+        resetCard(activeCard);
+        return;
+      }
+
       activateCard(card, event);
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (event.pointerType !== 'mouse' || reduceMotion.matches || !finePointer.matches) return;
+      // FIX: Freeze 3D transform recalculation while the user is actively clicking (mouse button down).
+      // If the transform updates between mousedown and mouseup, the browser invalidates the hit-test and drops the `click` event!
+      if (event.buttons > 0) return;
+
+      pendingEvent = event;
+      if (!pendingFrame) {
+        pendingFrame = requestAnimationFrame(flushPendingMove);
+      }
     };
 
     const handlePointerOut = (event: PointerEvent) => {
@@ -170,6 +206,7 @@ export const useInteractiveCardSystem = (): void => {
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      if (pendingFrame) cancelAnimationFrame(pendingFrame);
       resetCard(activeCard);
       document.removeEventListener('pointermove', handlePointerMove);
       document.removeEventListener('pointerout', handlePointerOut);

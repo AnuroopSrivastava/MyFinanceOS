@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Button, IconButton, FormattedMarkdown, SectionHeader, Tabs, CopyableField, FormField } from '@financeos/ui';
+import { Button, IconButton, FormattedMarkdown, SectionHeader, Tabs, CopyableField, FormField, ConfirmModal, useConfirmModal } from '@financeos/ui';
 import { dbService } from '@financeos/database';
 import { useDbVersion } from '../hooks/useDbSync.js';
-import { MessageSquare, Send, Sparkles, User, ShieldCheck, Cloud, Settings, Compass, Trash2 } from 'lucide-react';
+import { Send, Sparkles, User, ShieldCheck, Cloud, Settings, Compass, Trash2 } from 'lucide-react';
 import { aiService, AIMode } from '../utils/aiService.js';
-import { ConfirmModal, useConfirmModal } from './ConfirmModal.js';
 
 interface ChatMessage {
   id: string;

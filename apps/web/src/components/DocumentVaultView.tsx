@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Badge, Button, IconButton, FormField, FormActions, FileDropzone, EmptyState, Modal, SectionHeader, Tabs, InfoCallout, FormRow, IconInput } from '@financeos/ui';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { EncryptedDocument } from '@financeos/shared';
 import { dbService } from '@financeos/database';
 import { useDbSyncCallback } from '../hooks/useDbSync.js';
 import {
-  FileText, ShieldCheck, Lock, Upload, Search, Tag, Eye, Trash2,
-  CheckCircle2, AlertTriangle, FileCode, HardDrive, Key, Sparkles, Filter, Plus, X
+  FileText, ShieldCheck, Lock, Upload, Search, Eye, Trash2,
+  FileCode, HardDrive, Key, Sparkles, Filter
 } from 'lucide-react';
 
 interface DocumentVaultViewProps {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, ButtonProps } from './Button.js';
+import { Button } from './Button.js';
 
 export interface ActionRowProps {
   /** Left side content - typically title and description */

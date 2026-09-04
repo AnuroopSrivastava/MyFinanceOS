@@ -22,7 +22,6 @@
     "src",
     "app",
     "utils",
-    "proxy.ts",
     "next-env.d.ts",
     ".next/types/**/*.ts"
   ],

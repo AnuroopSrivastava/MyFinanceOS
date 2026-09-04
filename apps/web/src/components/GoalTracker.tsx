@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Button, CurrencyInput, CircularProgress, Badge, IconButton, EmptyState, PanelHeader, FormField, FormActions, FormRow, type BadgeVariant } from '@financeos/ui';
+import { Button, CurrencyInput, CircularProgress, Badge, IconButton, EmptyState, PanelHeader, FormField, FormActions, FormRow, ConfirmModal, useConfirmModal, type BadgeVariant } from '@financeos/ui';
 import { dbService } from '@financeos/database';
-import { SavingsGoal } from '@financeos/shared';
+import { SavingsGoal, formatRupee } from '@financeos/shared';
 import { Target, Plus, Trash2, Edit2, TrendingUp } from 'lucide-react';
-import { formatRupee } from '@financeos/shared';
-
 import { useDbSyncCallback } from '../hooks/useDbSync.js';
-import { ConfirmModal, useConfirmModal } from './ConfirmModal.js';
 
 interface GoalTrackerProps {
   activeProfileId: string;
