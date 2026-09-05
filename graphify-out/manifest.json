@@ -395,9 +395,9 @@
     "semantic_hash": "5085cc90ecb4059fdf2f6e6110eabe71"
   },
   "vercel.json": {
-    "mtime": 1787579839.6884584,
-    "ast_hash": "758bcf21e6e00304e40e32e69e8145b4",
-    "semantic_hash": "758bcf21e6e00304e40e32e69e8145b4"
+    "mtime": 1788617240.6377308,
+    "ast_hash": "0c89a2b38d92d1be20ac193c05962b8d",
+    "semantic_hash": ""
   },
   "vitest.config.ts": {
     "mtime": 1787749157.4465592,
@@ -6422,6 +6422,11 @@
   "packages/ui/src/PanelHeader.tsx": {
     "mtime": 1787579839.1616921,
     "ast_hash": "31c8f5cff37c3a53ba59e25859c3ae0b",
+    "semantic_hash": ""
+  },
+  "apps/web/vercel.json": {
+    "mtime": 1788617310.2870457,
+    "ast_hash": "695b7cebe80789f38deb08a89ba4d399",
     "semantic_hash": ""
   }
 }
