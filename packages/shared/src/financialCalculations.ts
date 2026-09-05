@@ -98,21 +98,30 @@ export function calculateFdAccruedValue(fd: {
   principalAmount: number;
   interestRate: number;
   startDate: string;
-  maturityDate: string;
-  maturityAmount: number;
-  isMatured: boolean;
+  maturityDate?: string;
+  maturityAmount?: number;
+  isMatured?: boolean;
   interestPayoutType?: string;
   tenureMonths?: number;
 }): number {
   const now = new Date();
   const start = new Date(fd.startDate);
-  const maturity = new Date(fd.maturityDate);
-  if (now < start) return fd.principalAmount;
-  if (fd.isMatured || now >= maturity) return fd.maturityAmount;
+  if (now < start || isNaN(start.getTime())) return fd.principalAmount || 0;
+  if (fd.isMatured) return fd.maturityAmount ?? fd.principalAmount ?? 0;
+
+  const maturity = fd.maturityDate ? new Date(fd.maturityDate) : null;
+  if (maturity && !isNaN(maturity.getTime()) && now >= maturity) {
+    return fd.maturityAmount ?? fd.principalAmount ?? 0;
+  }
+
   const quartersElapsed = (now.getTime() - start.getTime()) / (91.25 * 24 * 60 * 60 * 1000);
-  const r = fd.interestRate / 100;
-  const accrued = fd.principalAmount * Math.pow(1 + r / 4, quartersElapsed);
-  return Math.min(Math.round(accrued), fd.maturityAmount);
+  const r = (fd.interestRate || 0) / 100;
+  const accrued = (fd.principalAmount || 0) * Math.pow(1 + r / 4, Math.max(0, quartersElapsed));
+  const roundedAccrued = Math.round(accrued);
+  if (typeof fd.maturityAmount === 'number' && !isNaN(fd.maturityAmount)) {
+    return Math.min(roundedAccrued, fd.maturityAmount);
+  }
+  return roundedAccrued;
 }
 
 /**
@@ -257,3 +266,97 @@ export function generateAmortizationSchedule(
 
   return rows;
 }
+
+export interface NetWorthSummaryInputs {
+  accounts?: Array<{ accountType: string; balance: number }>;
+  stocks?: Array<{ quantity: number; currentPrice: number }>;
+  mfs?: Array<{ units: number; currentNav: number }>;
+  mutualfunds?: Array<{ units: number; currentNav: number }>;
+  gold?: Array<{ quantityGrams: number; currentPrice: number }>;
+  nps?: Array<{ balance: number }>;
+  pf?: Array<{ balance: number }>;
+  fds?: Array<{
+    principalAmount: number;
+    interestRate?: number;
+    startDate?: string;
+    maturityDate?: string;
+    maturityAmount?: number;
+    isMatured?: boolean;
+    interestPayoutType?: string;
+    tenureMonths?: number;
+  }>;
+}
+
+export interface NetWorthSummaryResult {
+  stockValue: number;
+  mfValue: number;
+  goldValue: number;
+  npsValue: number;
+  pfValue: number;
+  fdValue: number;
+  totalInvestments: number;
+  bankBalances: number;
+  totalAssets: number;
+  loanDebt: number;
+  cardDebt: number;
+  totalLiabilities: number;
+  netWorth: number;
+}
+
+/**
+ * Canonical Net Worth & Multi-Asset Portfolio Aggregator
+ * Computes consolidated holdings, liquid assets, debt liabilities, and net worth
+ * across personal bank accounts and investment assets.
+ */
+export function calculateNetWorthSummary(inputs: NetWorthSummaryInputs): NetWorthSummaryResult {
+  const stockValue = (inputs.stocks || []).reduce((sum, s) => sum + (s.quantity * s.currentPrice), 0);
+  const mfList = inputs.mfs || inputs.mutualfunds || [];
+  const mfValue = mfList.reduce((sum, m) => sum + (m.units * m.currentNav), 0);
+  const goldValue = (inputs.gold || []).reduce((sum, g) => sum + (g.quantityGrams * g.currentPrice), 0);
+  const npsValue = (inputs.nps || []).reduce((sum, n) => sum + (n.balance || 0), 0);
+  const pfValue = (inputs.pf || []).reduce((sum, p) => sum + (p.balance || 0), 0);
+  const fdValue = (inputs.fds || [])
+    .filter(f => !f.isMatured)
+    .reduce((sum, f) => {
+      if (f.startDate && typeof f.interestRate === 'number') {
+        return sum + calculateFdAccruedValue(f as any);
+      }
+      return sum + (f.principalAmount || 0);
+    }, 0);
+
+  const totalInvestments = stockValue + mfValue + goldValue + npsValue + pfValue + fdValue;
+
+  const bankBalances = (inputs.accounts || [])
+    .filter(a => a.accountType !== 'Loan' && a.accountType !== 'CreditCard')
+    .reduce((sum, a) => sum + a.balance, 0);
+
+  const totalAssets = totalInvestments + bankBalances;
+
+  const loanDebt = (inputs.accounts || [])
+    .filter(a => a.accountType === 'Loan')
+    .reduce((sum, a) => sum + Math.abs(a.balance), 0);
+
+  const cardDebt = (inputs.accounts || [])
+    .filter(a => a.accountType === 'CreditCard' && a.balance < 0)
+    .reduce((sum, a) => sum + Math.abs(a.balance), 0);
+
+  const totalLiabilities = loanDebt + cardDebt;
+  const netWorth = totalAssets - totalLiabilities;
+
+  return {
+    stockValue,
+    mfValue,
+    goldValue,
+    npsValue,
+    pfValue,
+    fdValue,
+    totalInvestments,
+    bankBalances,
+    totalAssets,
+    loanDebt,
+    cardDebt,
+    totalLiabilities,
+    netWorth,
+  };
+}
+

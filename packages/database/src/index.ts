@@ -96,6 +96,7 @@ class DatabaseService {
   private activeProfileId: string | null = null;
   private subscribers: Array<() => void> = [];
   private lastSyncedAt: number = 0;
+  private unlockPromise: Promise<boolean | 'needs_pin'> | null = null;
 
   public hasUnsavedChanges = false;
   public lastSaveError: string | null = null;
@@ -239,6 +240,16 @@ class DatabaseService {
   }
 
   public async unlock(): Promise<boolean | 'needs_pin'> {
+    if (this.unlockPromise) {
+      return this.unlockPromise;
+    }
+    this.unlockPromise = this.internalUnlock().finally(() => {
+      this.unlockPromise = null;
+    });
+    return this.unlockPromise;
+  }
+
+  private async internalUnlock(): Promise<boolean | 'needs_pin'> {
     if (!(await authSession.isAuthenticated())) return false;
 
     // 1. Cloud pull — cross-device canonical source. If the cloud has a row it

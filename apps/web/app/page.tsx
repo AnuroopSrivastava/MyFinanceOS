@@ -18,7 +18,7 @@ export default function Page() {
     setTheme(getSavedTheme());
   }, []);
 
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || '';
+  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
   const hasValidClientId = Boolean(clientId && clientId !== 'demo-client-id' && clientId.includes('.apps.googleusercontent.com'));
 
   const appContent = <App />;

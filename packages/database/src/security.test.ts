@@ -28,7 +28,7 @@ vi.mock('@financeos/shared', async (importOriginal) => {
 });
 
 // Mock the supabase client accessor. The default (no client) mirrors the real
-// env where NEXT_PUBLIC_SUPABASE_* / VITE_SUPABASE_* are unset; SYNC-01 injects
+// env where NEXT_PUBLIC_SUPABASE_* is unset; SYNC-01 injects
 // a fake client so the consent / plaintext gates in saveCloudDb are exercised
 // rather than short-circuiting on a missing client.
 const mockUpsert = vi.hoisted(() => vi.fn());

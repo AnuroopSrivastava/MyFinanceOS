@@ -30,6 +30,8 @@ yarn.lock.bak
 pnpm-lock.yaml.bak
 bun.lockb.bak
 bun.lock.bak
+package.tgz
+*.tgz
 
 # ------------------------------------------------------------------------------
 # 2. Build, Bundler & Distribution Artifacts (Next.js, Vite, Turbo, Rollup, SWC)
@@ -52,6 +54,8 @@ out/
 **/.next/
 .next-cache/
 **/.next-cache/
+*.nft.json
+*.nft.json.map
 .turbo/
 **/.turbo/
 .wireit/
@@ -70,6 +74,10 @@ out/
 **/.vite/
 .vite-temp/
 **/.vite-temp/
+.webpack/
+**/.webpack/
+.postcss-cache/
+**/.postcss-cache/
 .cache/
 **/.cache/
 storybook-static/
@@ -115,17 +123,18 @@ Pods/
 *.msm
 *.zip
 *.tar.gz
-*.tgz
 *.rar
 *.7z
 
-# Source Maps & Bundler Reports
+# Source Maps, Bundle Profiles & Reports
 *.map.tmp
 *.bundle.meta.json
 bundle-analysis.html
 bundle-report.html
 stats.html
 report.html
+*.profiling.json
+profiler-*.json
 
 # ------------------------------------------------------------------------------
 # 3. Environment Variables, Secrets & API Credentials (CRITICAL FINTECH SECURITY)
@@ -189,6 +198,10 @@ id_ed25519*
 secring.gpg
 pubring.gpg
 *.gpg
+localhost.pem
+localhost-key.pem
+cert.pem
+key.pem
 
 # Cloud, OAuth & Service Account Credentials
 service-account*.json
@@ -207,6 +220,8 @@ credentials.csv
 *.insomnia.json
 aws-credentials.json
 .aws/
+.gcp/
+.azure/
 
 # ------------------------------------------------------------------------------
 # 4. Testing, Code Coverage, E2E & Browser Automation Artifacts
@@ -224,7 +239,9 @@ user-data-dir/
 .pytest_cache/
 **/.pytest_cache/
 .vitest/
+**/.vitest/
 .vitest-cache/
+**/.vitest-cache/
 *.lcov
 lcov-report/
 jest-coverage/
@@ -232,6 +249,7 @@ test-coverage/
 test-artifacts/
 cypress/videos/
 cypress/screenshots/
+cypress/fixtures/local/
 __screenshots__/
 *.har
 *.trace.zip
@@ -263,6 +281,9 @@ firestore-debug.log*
 ui-debug.log*
 isolate-*.log
 v8.log
+gc-*.log
+diagnostic-*.json
+report.*.json
 *.cpuprofile
 *.heapprofile
 *.heapsnapshot
@@ -356,6 +377,9 @@ temp/
 **/temp/
 scratch/
 **/scratch/
+scratch.*
+scratch_*
+test_scratch.*
 *.tmp
 *.temp
 *.patch
@@ -365,9 +389,9 @@ scratch/
 *.bak
 
 # ------------------------------------------------------------------------------
-# 8. AI Assistants, Autonomous Agents & Scratch Artifacts
+# 8. AI Assistants, Autonomous Agents & MCP Workspace Overlays
 # ------------------------------------------------------------------------------
-# Root-anchored Agent Workspace Overlays (prevents collision with skill packages)
+# Root-anchored Agent Workspace Overlays
 /.claude/
 /.gemini/
 /.codex/
@@ -378,11 +402,44 @@ scratch/
 /.cursor/
 /.windsurf/
 /.aider/
-/.aider.*.history*
 /.copilot/
 /.continue/
 /.tabnine/
 /.cody/
+/.kiro/
+/.cline/
+/.roo/
+/.antigravity/
+/.brain/
+/brain/
+/.agent/
+/.agents/local/
+
+# Agent Session Dumps, Rules & Chat Histories
+/.aider.*.history*
+*.chat.json
+*.prompts.jsonl
+*.completion.json
+*.embedding.json
+.cursorrules.local
+.windsurfrules.local
+.roomodes
+cline_tasks/
+roo_tasks/
+claude.json
+.claude.json
+
+# Model Context Protocol (MCP) local workspace configs
+.mcp.json
+mcp.json
+mcp_config.json
+mcp_config.local.json
+.mcp/
+mcp/
+mcp*.log
+mcp-server-*.log
+!.mcp.example.json
+!mcp_config.example.json
 
 # Whitelist Core Agent Rules, Skills & Workflows in Repository
 !.agents/rules/
@@ -407,6 +464,7 @@ benchmark-results/
 agent-trajectories/
 *.trajectory.json
 *.agent.log
+task-*.log
 
 # Vector Embeddings & Local LLM Model Caches
 chroma_db/
@@ -423,7 +481,7 @@ tiktoken_cache/
 hf_cache/
 
 # ------------------------------------------------------------------------------
-# 9. Python Ecosystem (Virtual Environments, Bytecode & Tooling Caches)
+# 9. Python Ecosystem (Data Science & Pipeline Tooling)
 # ------------------------------------------------------------------------------
 __pycache__/
 **/__pycache__/
@@ -493,6 +551,7 @@ supabase/storage-data/
 docker-compose.override.yml
 docker-compose.*.override.yml
 k8s/local-overrides.yml
+*.kubeconfig
 *.tfstate
 *.tfstate.*
 .terraform/
@@ -511,8 +570,14 @@ k8s/local-overrides.yml
 *.sqlite-wal
 *.sqlite-shm
 *.sqlite-journal
+*.ldb
+*.sst
+MANIFEST-*
+CURRENT
+LOG.old
 *.rdb
 dump.rdb
+appendonly.aof
 *.dump.sql
 backup.sql
 *.sql.gz
@@ -524,8 +589,6 @@ dexie-backup*.json
 idb-backup/
 localstorage-backup*.json
 sessionstorage-backup*.json
-*.ldb
-MANIFEST-*
 
 # ------------------------------------------------------------------------------
 # 12. Linters, Formatters & Typecheckers
@@ -560,18 +623,20 @@ user-vault/
 exports/
 *.dump
 
-# Whitelist Repository Documentation (Prevent unintended ignore of Docs)
-!Documents/
-!Documents/**
-!docs/
-!docs/**
-!documentation/
-!documentation/**
-
 # ------------------------------------------------------------------------------
 # 15. FinTech, Banking, Statements & Tax Returns (ISOLATION OF SENSITIVE USER DATA)
 # ------------------------------------------------------------------------------
-# Bank & Demat Statements
+# Account Aggregator (AA) Ecosystem (Setu, Finvu, OneMoney, Anumati, Saafe)
+setu_*.json
+finvu_*.json
+onemoney_*.json
+anumati_*.json
+saafe_*.json
+aa-consent-*.json
+aa_data_*.json
+aa-payload-*.xml
+
+# Bank & Demat Statements (PDF, CSV, Excel, OFX, QIF, CAMT)
 mock-statements/
 sample-statements/
 statement-staging/
@@ -581,57 +646,172 @@ pdf-cache/
 *.camt053
 *.qif
 *.ofx
-*.cas.pdf
-*.cas.json
-*CAS*.pdf
-*CAS*.xlsx
 statement*.pdf
 statement*.csv
 statement*.xlsx
 passbook*.pdf
-HDFC_*.csv
-ICICI_*.csv
-SBI_*.csv
-Axis_*.csv
-Kotak_*.csv
-PNB_*.csv
-BOB_*.csv
-IndusInd_*.csv
-IDFC_*.csv
-YesBank_*.csv
 
-# Tax Forms & Government Downloads (Form 16, 26AS, AIS, TIS, ITR, GST)
-*.tax.json
-ais-mock-*.json
-form26as-*.json
-AIS_*.json
-TIS_*.json
-AIS_*.pdf
-TIS_*.pdf
-Form16*.pdf
-Form26AS*.pdf
-26AS_*.json
-Form16*.json
-ITR*.json
-ITR*.xml
-Computation*.pdf
-ITR_V_*.pdf
-GSTR1_*.json
-GSTR3B_*.json
-GSTR2A_*.json
-GSTR2B_*.json
-gstin_*.json
+# Major Indian Bank Statement File Exports
+HDFC_*
+ICICI_*
+SBI_*
+Axis_*
+Kotak_*
+PNB_*
+BOB_*
+IndusInd_*
+IDFC_*
+YesBank_*
+Canara_*
+UnionBank_*
+RBL_*
+Federal_*
+AU_*
+Bandhan_*
+IDBI_*
+CentralBank_*
+IndianBank_*
+BankOfIndia_*
+
+# UPI Transaction Data & Receipts
+upi-history*.csv
+phonepe_*.csv
+gpay_*.csv
+paytm_*.csv
+bhim_*.csv
+cred_*.csv
 upi-logs/
 payment-receipts/
 
+# Demat, Mutual Funds & Indian Broker Exports
+zerodha*
+kite*
+coin*
+groww*
+upstox*
+angel*
+angelone*
+dhan*
+motilal*
+icicidirect*
+hdfcsec*
+kotaksecurities*
+sharekhan*
+5paisa*
+paytmmoney*
+kuvera*
+indmoney*
+etmoney*
+scripbox*
+*.cas.pdf
+*.cas.json
+*CAS*.pdf
+*CAS*.xlsx
+*CAS*.csv
+cams*.pdf
+kfintech*.pdf
+nsdl*.pdf
+cdsl*.pdf
+tradebook*
+contract_note*
+holdings*.csv
+pnl*.xlsx
+
+# Tax Forms, Government Downloads & Tax Filing Software
+*.tax.json
+ais-mock-*.json
+form26as-*.json
+AIS_*
+TIS_*
+Form16*
+Form26AS*
+26AS_*
+ITR*
+Computation*.pdf
+ITR_V_*.pdf
+GSTR1_*
+GSTR3B_*
+GSTR2A_*
+GSTR2B_*
+GSTR*.zip
+ITC_*.xlsx
+gstin_*
+e-way-bill*
+einvoice*
+Genius_*.json
+Winman_*.json
+ClearTax_*.json
+Tax2win_*.json
+Quicko_*.json
+Computax_*.json
+
+# EPFO / Provident Fund & NPS
+epfo*.pdf
+uan*.pdf
+passbook_*.pdf
+claim_status*.pdf
+cra_nsdl*.pdf
+kfin_nps*.pdf
+pran_*.pdf
+
+# Insurance Policies
+lic_*.pdf
+policy_document*.pdf
+health_insurance*.pdf
+
+# KYC, Identity & Personally Identifiable Documents (Aadhaar, PAN, Passport, Driving License)
+*Aadhaar*
+*aadhaar*
+*PAN*
+*pan*
+*passport*
+*voter_id*
+*driving_license*
+cancelled_cheque*
+payslip*.pdf
+salary_slip*.pdf
+kyc-docs/
+kyc_docs/
+
+# Web3 & Crypto Keys
+*keystore*.json
+seed_phrase*.txt
+mnemonic*.txt
+wallet_backup*.json
+private_key*.txt
+
 # ------------------------------------------------------------------------------
-# 16. Knowledge Graph & Code Intelligence Cache
+# 16. Knowledge Graph & Multi-Agent Architecture (Graphify for GitHub Agents)
 # ------------------------------------------------------------------------------
-graphify-out/
+# We deliberately TRACK the core Graphify deliverables on GitHub so any AI agent
+# (Claude, Cursor, Windsurf, Codex, Antigravity, Copilot, etc.) inspecting this
+# repository can immediately parse the codebase topology, god nodes, and communities:
+#   - graphify-out/GRAPH_REPORT.md (Comprehensive architectural dossier)
+#   - graphify-out/graph.html       (Interactive visual knowledge graph)
+#   - graphify-out/graph.json       (Full AST relational graph & dependency edges)
+#   - graphify-out/manifest.json    (Indexed entity metadata & community clusters)
+#   - graphify-out/wiki/**          (Structured codebase documentation)
+
+# Filter out internal graphify churn, intermediate caches, daily backups & runners:
 graphify-cache/
 graphify-backups/
-*.graph.json
+graphify-out/cache/
+graphify-out/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
+graphify-out/.*
+graphify-out/*.py
+graphify-out/cost.json
 /.graphify_*
+.graphify_*
+
+# Whitelist Graphify Core Deliverables & Agent Skill Package
+!graphify-out/GRAPH_REPORT.md
+!graphify-out/graph.html
+!graphify-out/graph.json
+!graphify-out/manifest.json
+!graphify-out/wiki/
+!graphify-out/wiki/**
+!graph.html
+!GRAPH_REPORT.md
 !.agents/skills/graphify/**
 
 # ------------------------------------------------------------------------------
@@ -665,12 +845,8 @@ product-intro/out.mp4
 product-intro/assets/source.mp4
 product-intro/assets/source_audio.mp3
 
-# Whitelist core web static assets
-!apps/web/public/**
-!apps/web/src/assets/**
-
 # ------------------------------------------------------------------------------
-# 18. Visual Alignment Diffs & Scratch Transcripts (Prevent CI/Git Clutter)
+# 18. Visual Alignment Diffs, Screenshots & Scratch Transcripts
 # ------------------------------------------------------------------------------
 diff.png
 latest_render.png
@@ -693,39 +869,50 @@ recovered_from_*.css
 # Browser preview screenshots (scratch)
 .preview/
 preview.png
+/preview-*.png
+preview-hero.png
 
-# Auto-generated entries
-# Dependencies
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Scroll/perf profiling artifacts (output of scripts/*-jank*.mjs harnesses)
+/gallery-jank-*.json
+/gallery-trace.json
+/filmstrip-*/
 
-# Build outputs
-dist/
-build/
-*.log
+# ------------------------------------------------------------------------------
+# 19. Core Repository Whitelist Guards (Uncompromisable Source Assets)
+# ------------------------------------------------------------------------------
+# Brand & Visual Assets in Root
+!logo.png
+!logo.svg
+!icon.ico
 
-# Environment files
-.env
-.env.*
-!.env.example
+# Web App Static Assets
+!apps/web/public/**
+!apps/web/src/assets/**
+!apps/web/src/**
+!apps/web/app/**
+!apps/web/utils/**
+!packages/**/src/**
 
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
+# Repository Documentation
+!Documents/
+!Documents/**
+!docs/
+!docs/**
+!documentation/
+!documentation/**
+!memory/
+!memory/**
+!README.md
+!AGENTS.md
+!CLAUDE.md
+!DESIGN.md
+!PRODUCT.md
 
-# OS files
-.DS_Store
-Thumbs.db
-
-# Temporary files
-*.tmp
-*.temp
-.cache/
-
-# Sensitive files (auto-detected)
-node_modules
-
+# Knowledge Graph & Architecture Deliverables
+!GRAPH_REPORT.md
+!graph.html
+!graphify-out/GRAPH_REPORT.md
+!graphify-out/graph.html
+!graphify-out/graph.json
+!graphify-out/manifest.json
+!graphify-out/wiki/**

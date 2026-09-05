@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { useDbVersion } from '../hooks/useDbSync.js';
-import { FixedDeposit, formatRupee, GlobalDateRange, filterByDateRange, calculateFdAccruedValue } from '@financeos/shared';
+import { formatRupee, GlobalDateRange, filterByDateRange, calculateNetWorthSummary } from '@financeos/shared';
 import {
   TrendingUp, TrendingDown, Landmark, PieChart as PieIcon,
   Calendar, Users, AlertTriangle, Lightbulb, Wallet, ShieldCheck, CreditCard
@@ -32,50 +32,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
   const pf = useMemo(() => dbService.getPF().filter(p => p.profileId === activeProfileId), [activeProfileId, dbVersion]);
   const profiles = useMemo(() => dbService.getProfiles(), [dbVersion]);
 
-  // Compute Aggregates
-  const bankBalances = useMemo(() => {
-    return accounts
-      .filter(a => a.accountType !== 'Loan')
-      .reduce((sum, a) => sum + a.balance, 0);
-  }, [accounts]);
-
-  const stockValue = useMemo(() => {
-    return stocks.reduce((sum, s) => sum + (s.quantity * s.currentPrice), 0);
-  }, [stocks]);
-
-  const mfValue = useMemo(() => {
-    return mfs.reduce((sum, m) => sum + (m.units * m.currentNav), 0);
-  }, [mfs]);
-
-  const goldValue = useMemo(() => {
-    return gold.reduce((sum, g) => sum + (g.quantityGrams * g.currentPrice), 0);
-  }, [gold]);
-
-  const npsValue = useMemo(() => {
-    return nps.reduce((sum, n) => sum + n.balance, 0);
-  }, [nps]);
-
-  const pfValue = useMemo(() => {
-    return pf.reduce((sum, p) => sum + p.balance, 0);
-  }, [pf]);
-
-  const fdValue = useMemo(() => {
-    return fds.filter(f => !f.isMatured).reduce((sum, f) => sum + calculateFdAccruedValue(f), 0);
-  }, [fds]);
-
-  const totalAssets = bankBalances + stockValue + mfValue + goldValue + npsValue + pfValue + fdValue;
-
-  const totalLiabilities = useMemo(() => {
-    const loanDebt = accounts
-      .filter(a => a.accountType === 'Loan')
-      .reduce((sum, a) => sum + Math.abs(a.balance), 0);
-    const cardDebt = accounts
-      .filter(a => a.accountType === 'CreditCard' && a.balance < 0)
-      .reduce((sum, a) => sum + Math.abs(a.balance), 0);
-    return loanDebt + cardDebt;
-  }, [accounts]);
-
-  const netWorth = totalAssets - totalLiabilities;
+  // Compute Aggregates via canonical shared aggregator
+  const {
+    bankBalances,
+    stockValue,
+    mfValue,
+    goldValue,
+    npsValue,
+    pfValue,
+    fdValue,
+    totalAssets,
+    totalLiabilities,
+    netWorth,
+  } = useMemo(() => {
+    return calculateNetWorthSummary({
+      accounts,
+      stocks,
+      mfs,
+      gold,
+      nps,
+      pf,
+      fds,
+    });
+  }, [accounts, stocks, mfs, gold, nps, pf, fds]);
 
   // Budgets & Spending Alerts
   const budgets = useMemo(() => dbService.getBudgets().filter(b => b.profileId === activeProfileId), [activeProfileId, dbVersion]);

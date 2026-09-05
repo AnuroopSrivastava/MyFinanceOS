@@ -13,7 +13,8 @@ declare global {
 }
 
 export const SKIPER30_SCROLL_PHYSICS = {
-  lerp: 0.08,
+  // 0.1 = upstream skiper-ui / Lenis default feel (snappier catch-up).
+  lerp: 0.1,
   smoothWheel: true,
   syncTouch: true,
   wheelMultiplier: 0.95,

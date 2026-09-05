@@ -18,6 +18,7 @@ import {
   calculateTaxOldRegime,
   calculateTaxNewRegime,
   calculateFdAccruedValue,
+  calculateNetWorthSummary,
   solveXIRR,
   calculateStepUpSIPWealth,
   generateAmortizationSchedule
@@ -431,6 +432,66 @@ describe('Financial Calculations — Loan Amortization Schedule', () => {
     const scheduleWithPrepayment = generateAmortizationSchedule(500000, 10, 60, 100000, 12);
     expect(scheduleWithPrepayment[11].principal).toBeGreaterThan(100000);
     expect(scheduleWithPrepayment[scheduleWithPrepayment.length - 1].closingBalance).toBe(0);
+  });
+});
+
+describe('Financial Calculations — Canonical Net Worth Summary Aggregator', () => {
+  it('correctly computes consolidated assets, liabilities, and net worth across all asset classes', () => {
+    const summary = calculateNetWorthSummary({
+      accounts: [
+        { accountType: 'Savings', balance: 50000 },
+        { accountType: 'Current', balance: 25000 },
+        { accountType: 'Loan', balance: -200000 },
+        { accountType: 'CreditCard', balance: -15000 }
+      ],
+      stocks: [
+        { quantity: 10, currentPrice: 2500 }, // 25,000
+        { quantity: 5, currentPrice: 1000 }   // 5,000
+      ],
+      mfs: [
+        { units: 100, currentNav: 50 }        // 5,000
+      ],
+      gold: [
+        { quantityGrams: 10, currentPrice: 7000 } // 70,000
+      ],
+      nps: [
+        { balance: 100000 }
+      ],
+      pf: [
+        { balance: 150000 }
+      ],
+      fds: [
+        { principalAmount: 50000, interestRate: 7, startDate: new Date().toISOString().split('T')[0], isMatured: false }
+      ]
+    });
+
+    expect(summary.bankBalances).toBe(75000);
+    expect(summary.stockValue).toBe(30000);
+    expect(summary.mfValue).toBe(5000);
+    expect(summary.goldValue).toBe(70000);
+    expect(summary.npsValue).toBe(100000);
+    expect(summary.pfValue).toBe(150000);
+    expect(summary.fdValue).toBeGreaterThanOrEqual(50000);
+    expect(summary.totalInvestments).toBe(30000 + 5000 + 70000 + 100000 + 150000 + summary.fdValue);
+    expect(summary.totalAssets).toBe(75000 + summary.totalInvestments);
+    expect(summary.loanDebt).toBe(200000);
+    expect(summary.cardDebt).toBe(15000);
+    expect(summary.totalLiabilities).toBe(215000);
+    expect(summary.netWorth).toBe(summary.totalAssets - 215000);
+  });
+
+  it('supports mutualfunds property alias and handles empty inputs gracefully', () => {
+    const emptySummary = calculateNetWorthSummary({});
+    expect(emptySummary.totalAssets).toBe(0);
+    expect(emptySummary.totalLiabilities).toBe(0);
+    expect(emptySummary.netWorth).toBe(0);
+
+    const aliasSummary = calculateNetWorthSummary({
+      mutualfunds: [{ units: 200, currentNav: 25 }]
+    });
+    expect(aliasSummary.mfValue).toBe(5000);
+    expect(aliasSummary.totalAssets).toBe(5000);
+    expect(aliasSummary.netWorth).toBe(5000);
   });
 });
 

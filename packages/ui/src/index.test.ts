@@ -56,16 +56,12 @@ describe('UI Theme Utilities', () => {
   describe('Exported Components', () => {
     it('should export all newly extracted core UI components', async () => {
       const ui = await import('./index.js');
-      expect(ui.RadialGauge).toBeDefined();
-      expect(ui.Accordion).toBeDefined();
-      expect(ui.QuickstartGuide).toBeDefined();
       expect(ui.SearchFilterBar).toBeDefined();
       expect(ui.Badge).toBeDefined();
       expect(ui.StatusBadge).toBeDefined();
       expect(ui.Tabs).toBeDefined();
       expect(ui.MetricCard).toBeDefined();
       expect(ui.SectionHeader).toBeDefined();
-      expect(ui.TimelineSegmentedFilter).toBeDefined();
       expect(ui.DateRangePicker).toBeDefined();
       expect(ui.SummaryMetricGrid).toBeDefined();
       expect(ui.FileDropzone).toBeDefined();

@@ -3,7 +3,7 @@ import { Button, SectionHeader, SummaryMetricGrid } from '@financeos/ui';
 import { motion } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { exportToCSV } from '../utils/exportCsv.js';
-import { formatRupee } from '@financeos/shared';
+import { formatRupee, calculateNetWorthSummary, calculateFdAccruedValue } from '@financeos/shared';
 import {
   FileSpreadsheet, Download, Printer, Sparkles,
   BarChart3, Landmark, TrendingUp, Calendar, ShieldCheck, ChevronRight
@@ -54,11 +54,54 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
     }
   }, [profileId]);
 
+  const gold = React.useMemo(() => {
+    try {
+      return dbService.getGold().filter((g) => g.profileId === profileId);
+    } catch {
+      return [];
+    }
+  }, [profileId]);
+
+  const fds = React.useMemo(() => {
+    try {
+      return dbService.getFDs().filter((f) => f.profileId === profileId);
+    } catch {
+      return [];
+    }
+  }, [profileId]);
+
+  const nps = React.useMemo(() => {
+    try {
+      return dbService.getNPS().filter((n) => n.profileId === profileId);
+    } catch {
+      return [];
+    }
+  }, [profileId]);
+
+  const pf = React.useMemo(() => {
+    try {
+      return dbService.getPF().filter((p) => p.profileId === profileId);
+    } catch {
+      return [];
+    }
+  }, [profileId]);
+
+  const netWorthSummary = React.useMemo(() => {
+    return calculateNetWorthSummary({
+      accounts,
+      stocks,
+      mutualfunds,
+      gold,
+      fds,
+      nps,
+      pf,
+    });
+  }, [accounts, stocks, mutualfunds, gold, fds, nps, pf]);
+
+  const { totalInvestments, netWorth } = netWorthSummary;
+
   const totalIncome = transactions.filter((t) => t.type === 'Income').reduce((acc: number, t) => acc + t.amount, 0);
   const totalExpense = transactions.filter((t) => t.type === 'Expense').reduce((acc: number, t) => acc + t.amount, 0);
-  const stockVal = stocks.reduce((acc: number, s) => acc + s.quantity * s.currentPrice, 0);
-  const mfVal = mutualfunds.reduce((acc: number, m) => acc + m.units * m.currentNav, 0);
-  const totalInvestments = stockVal + mfVal;
   const netSavings = totalIncome - totalExpense;
   const savingsRate = totalIncome > 0 ? ((netSavings / totalIncome) * 100).toFixed(1) + '%' : '0.0%';
 
@@ -103,13 +146,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
       const data: Array<{ AssetClass: string; HoldingName: string; Quantity: number | string; Valuation: number }> = [];
       stocks.forEach(s => data.push({ AssetClass: 'Equity Stock', HoldingName: s.symbol, Quantity: s.quantity, Valuation: s.quantity * s.currentPrice }));
       mutualfunds.forEach(m => data.push({ AssetClass: 'Mutual Fund', HoldingName: m.schemeName, Quantity: m.units, Valuation: m.units * m.currentNav }));
-      
-      try {
-        const gold = dbService.getGold().filter(g => g.profileId === profileId);
-        gold.forEach(g => data.push({ AssetClass: 'Gold', HoldingName: g.type, Quantity: `${g.quantityGrams}g`, Valuation: g.quantityGrams * g.currentPrice }));
-        const fds = dbService.getFDs().filter(f => f.profileId === profileId);
-        fds.forEach(f => data.push({ AssetClass: 'Fixed Deposit', HoldingName: f.bankName, Quantity: '1', Valuation: f.maturityAmount }));
-      } catch { /* ignore */ }
+      gold.forEach(g => data.push({ AssetClass: 'Gold', HoldingName: g.type, Quantity: `${g.quantityGrams}g`, Valuation: g.quantityGrams * g.currentPrice }));
+      fds.filter(f => !f.isMatured).forEach(f => data.push({ AssetClass: 'Fixed Deposit', HoldingName: f.bankName, Quantity: '1', Valuation: calculateFdAccruedValue(f) }));
+      nps.forEach(n => data.push({ AssetClass: 'NPS Retirement', HoldingName: 'Tier 1 / Tier 2', Quantity: '1', Valuation: n.balance }));
+      pf.forEach(p => data.push({ AssetClass: 'Provident Fund', HoldingName: 'Retirement PF', Quantity: '1', Valuation: p.balance }));
 
       exportToCSV(`MyFinanceOS_Investment_Portfolio_${selectedPeriod}`, headers, data.length > 0 ? data : [
         { AssetClass: 'Portfolio', HoldingName: 'Total Holdings', Quantity: 1, Valuation: totalInvestments }
@@ -399,7 +439,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
                 </tr>
                 <tr>
                   <td><strong>Portfolio Valuation</strong></td>
-                  <td style={{ color: 'var(--text-secondary)' }}>Holdings in Stocks & Mutual Funds</td>
+                  <td style={{ color: 'var(--text-secondary)' }}>Multi-Asset Holdings (Stocks, MFs, FDs, Gold, Retirement)</td>
                   <td style={{ textAlign: 'right', fontWeight: 'var(--fw-semibold)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: "'tnum' 1", color: 'var(--color-asset-stocks)' }}>{formatRupee(totalInvestments)}</td>
                   <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>—</td>
                 </tr>

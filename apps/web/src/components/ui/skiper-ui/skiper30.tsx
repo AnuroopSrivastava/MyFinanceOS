@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef } from "react";
-import { cn } from "@/lib/utils";
+import { cx } from "@financeos/ui";
 import { useLenisScroll } from "@/hooks/useLenisScroll";
 
 export const DEFAULT_IMAGES = [
@@ -74,7 +74,7 @@ const Skiper30 = ({
   /**
    * Pure Synchronous Lockstep Parallax Engine.
    *
-   * Lenis ALREADY computes an exquisitely smooth exponential scroll position (lerp: 0.08)
+   * Lenis ALREADY computes an exquisitely smooth exponential scroll position (lerp: 0.1)
    * in each requestAnimationFrame tick.
    *
    * By mapping progress directly to column transforms in the exact same RAF tick:
@@ -191,7 +191,7 @@ const Skiper30 = ({
       ref={gallery}
       data-testid="parallax-gallery-section"
       aria-label="MyFinanceOS Skiper30 Parallax Showcase"
-      className={cn(
+      className={cx(
         "box-border flex h-[175vh] w-full gap-[2vw] overflow-hidden p-[2vw]",
         standalone ? "bg-white" : "bg-transparent",
         className
@@ -390,7 +390,12 @@ const Column = React.forwardRef<HTMLDivElement, ColumnProps>(({ images, topOffse
             minHeight: "360px",
             overflow: "hidden",
             borderRadius: "clamp(14px, 1.2vw, 20px)",
-            boxShadow: "0 16px 36px rgba(0, 0, 0, 0.5)",
+            // boxShadow is deliberately omitted: presented-frame tracing (CDP
+            // screencast) measured the 36px translucent shadows on these moving
+            // layers as the dominant per-frame GPU fill-rate cost on the landing
+            // page (presented p99 81ms -> 26ms when removed, equal to the
+            // standalone page). On the #070810 section background a black shadow
+            // is imperceptible, so this is a zero-visual-delta removal.
             // NOTE: deliberately NOT layer-promoted. Each image tile bakes into
             // its column's single composited texture (radius + shadow included)
             // when the column rasterizes, so the four column layers are the ONLY

@@ -72,37 +72,104 @@ type LenisViewportAnchors = { start: number; end: number };
 const SECTION_ANCHORS: LenisViewportAnchors = { start: 1, end: 0 };
 
 /**
- * Pause every decorative CSS animation (hero aurora/lens/glare blurs, outro
- * drifts, marquee, floats) while their section is off-screen. CSS animations
- * keep running forever otherwise — blended blur layers re-composite every
- * frame even when invisible, which starves the gallery's Lenis scroll.
- * `animation-play-state: paused` freezes in place and resumes losslessly.
+ * Sections whose decorative CSS animations should be frozen off-screen.
+ * CSS animations keep running forever otherwise — blended blur layers
+ * re-composite every frame even when invisible, which starves the gallery's
+ * Lenis scroll with compositor work the user never sees.
  */
 const ANIMATION_PAUSE_SELECTOR = 'main.hero, section#gallery, section.showcase, div.outro';
 
+/**
+ * Off-screen animation freeze + render skip.
+ *
+ * visibility:hidden (class `section-hidden`) drops a fully off-screen
+ * section's retained layers, filters and tiles from the display list — the
+ * 15% IntersectionObserver margin restores it before the section re-enters
+ * the viewport (no flash) and hides it only once fully off-screen (no
+ * pop-out). Layout is untouched, so scroll height stays exact.
+ *
+ * Animations are frozen through the Web Animations API (`Animation.pause()`)
+ * instead of a CSS `[data-anim-paused] *` attribute rule: pausing Animation
+ * objects performs zero style matching, while an attribute flip on a section
+ * root forces a whole-subtree style recalc (measured at 26ms) — and those
+ * flips land exactly at the parallax gallery's entry/exit doorstep, on top
+ * of the moving columns. The freeze walk itself is deferred to an idle
+ * callback so its one-time subtree scan never competes with active scrolling.
+ */
 function useOffscreenAnimationPause() {
   useEffect(() => {
     if (typeof window === 'undefined' || !('IntersectionObserver' in window)) return;
     const targets = Array.from(document.querySelectorAll<HTMLElement>(ANIMATION_PAUSE_SELECTOR));
     if (!targets.length) return;
+
+    const frozenAnims = new Map<HTMLElement, Set<Animation>>();
+    const pendingFreezes = new Map<HTMLElement, number>();
+
+    const freezeSection = (el: HTMLElement) => {
+      if (frozenAnims.has(el) || pendingFreezes.has(el)) return;
+      const run = () => {
+        pendingFreezes.delete(el);
+        if (frozenAnims.has(el)) return;
+        const set = new Set<Animation>();
+        try {
+          for (const anim of el.getAnimations({ subtree: true })) {
+            if (anim.playState === 'running') {
+              try {
+                anim.pause();
+                set.add(anim);
+              } catch {
+                // animation may have been cancelled mid-walk
+              }
+            }
+          }
+        } catch {
+          return;
+        }
+        if (set.size) frozenAnims.set(el, set);
+      };
+      if (typeof window.requestIdleCallback === 'function') {
+        pendingFreezes.set(el, window.requestIdleCallback(run, { timeout: 400 }));
+      } else {
+        pendingFreezes.set(el, window.setTimeout(run, 120));
+      }
+    };
+
+    const wakeSection = (el: HTMLElement) => {
+      const pending = pendingFreezes.get(el);
+      if (pending !== undefined) {
+        if (typeof window.cancelIdleCallback === 'function') {
+          window.cancelIdleCallback(pending);
+        } else {
+          window.clearTimeout(pending);
+        }
+        pendingFreezes.delete(el);
+      }
+      const set = frozenAnims.get(el);
+      if (set) {
+        for (const anim of set) {
+          try {
+            anim.play();
+          } catch {
+            // animation may have been cancelled while frozen
+          }
+        }
+        frozenAnims.delete(el);
+      }
+    };
+
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           const el = entry.target as HTMLElement;
-          const isGallery = el.matches('section#gallery');
           if (entry.isIntersecting) {
-            entry.target.removeAttribute('data-anim-paused');
             el.classList.remove('section-hidden');
+            wakeSection(el);
             if (el.matches('main.hero')) {
               document.body.classList.remove('past-hero');
             }
           } else {
-            entry.target.setAttribute('data-anim-paused', 'true');
-            // Drop retained layers/filters of fully off-screen sections so the
-            // gallery renders with the standalone page's clean raster budget.
-            if (!isGallery) {
-              el.classList.add('section-hidden');
-            }
+            el.classList.add('section-hidden');
+            freezeSection(el);
             if (el.matches('main.hero')) {
               document.body.classList.add('past-hero');
             }
@@ -112,7 +179,11 @@ function useOffscreenAnimationPause() {
       { rootMargin: '15% 0px 15% 0px' }
     );
     for (const target of targets) observer.observe(target);
-    return () => observer.disconnect();
+
+    return () => {
+      observer.disconnect();
+      for (const el of targets) wakeSection(el);
+    };
   }, []);
 }
 
@@ -1739,9 +1810,7 @@ export function FinanceGallerySection() {
 export function Showcase() {
   return (
     <section className="showcase" id="features" data-testid="showcase-section">
-      <div className="showcase-mesh" aria-hidden="true" />
       <div className="showcase-bloom" aria-hidden="true" />
-      <div className="showcase-seam" aria-hidden="true" />
       <LogoCloud />
       <div className="panel-shell" data-testid="panel-shell">
         <div className="panel-stack" aria-hidden="true">
@@ -1806,11 +1875,16 @@ export function Showcase() {
 export function ScrollProgress() {
   const barRef = useRef<HTMLDivElement | null>(null);
   const maxScrollRef = useRef(1);
+  const lastProgressRef = useRef(-1);
 
   const apply = useCallback((scroll: number) => {
     const bar = barRef.current;
     if (!bar) return;
     const p = Math.min(Math.max(scroll / maxScrollRef.current, 0), 1);
+    // Deadband: skip the style write when the bar cannot visibly change
+    // (0.05% ≈ sub-pixel at any realistic width).
+    if (Math.abs(p - lastProgressRef.current) < 0.0005) return;
+    lastProgressRef.current = p;
     bar.style.transform = `scaleX(${p.toFixed(4)})`;
   }, []);
 

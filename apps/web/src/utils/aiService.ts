@@ -1,4 +1,4 @@
-import { BankAccount, Transaction, StockHolding, MutualFundHolding, FixedDeposit, GoldHolding, NPSHolding, ProvidentFundHolding, TDSSummary, TaxViewInputs, formatRupee, calculateFdAccruedValue, calculateNetWorth, calculateTaxOldRegime, calculateTaxNewRegime, calculateFIRECorpus } from '@financeos/shared';
+import { BankAccount, Transaction, StockHolding, MutualFundHolding, FixedDeposit, GoldHolding, NPSHolding, ProvidentFundHolding, TDSSummary, TaxViewInputs, formatRupee, calculateNetWorthSummary, calculateFdAccruedValue, calculateFIRECorpus, calculateTaxOldRegime, calculateTaxNewRegime } from '@financeos/shared';
 
 export type AIMode = 'local' | 'cloud';
 
@@ -55,24 +55,9 @@ export class AIService {
     }
 
     // 2. Net Worth Query
-    // BUG-028 FIX: Use accrued FD value (not principal) and only count negative credit card balances as liabilities
+    // 2. Net Worth Query
     if (/net\s*worth/.test(qLower) || /total\s*wealth/.test(qLower) || /how much.*worth/.test(qLower)) {
-      const stockVal = stocks.reduce((sum, s) => sum + (s.quantity * s.currentPrice), 0);
-      const mfVal = mfs.reduce((sum, m) => sum + (m.units * m.currentNav), 0);
-      const goldVal = gold.reduce((sum, g) => sum + (g.quantityGrams * g.currentPrice), 0);
-      const npsVal = nps.reduce((sum, n) => sum + n.balance, 0);
-      const pfVal = pf.reduce((sum, p) => sum + p.balance, 0);
-      // Use accrued interest-adjusted FD value (matches Dashboard behaviour)
-      const fdVal = fds.filter(f => !f.isMatured).reduce((sum, f) => sum + calculateFdAccruedValue(f), 0);
-
-      const bankAssets = accounts.filter(a => a.accountType !== 'Loan' && a.accountType !== 'CreditCard').reduce((sum, a) => sum + a.balance, 0);
-      const totalAssets = stockVal + mfVal + goldVal + npsVal + pfVal + fdVal + bankAssets;
-      // Only count loans and negative credit card balances as liabilities
-      const loanDebt = accounts.filter(a => a.accountType === 'Loan').reduce((sum, a) => sum + Math.abs(a.balance), 0);
-      const cardDebt = accounts.filter(a => a.accountType === 'CreditCard' && a.balance < 0).reduce((sum, a) => sum + Math.abs(a.balance), 0);
-      const totalLiabilities = loanDebt + cardDebt;
-
-      const netWorth = calculateNetWorth(totalAssets, totalLiabilities);
+      const { totalAssets, totalLiabilities, netWorth } = calculateNetWorthSummary(context);
       return `Your estimated **Net Worth is ${formatRupee(netWorth)}**.\n\n- **Total Assets**: ${formatRupee(totalAssets)}\n- **Total Liabilities (Loans/Credit Cards)**: ${formatRupee(totalLiabilities)}`;
     }
 
@@ -207,16 +192,9 @@ export class AIService {
 
     // 8. Generate Financial Report
     if (/report/.test(qLower) || /annual report/.test(qLower) || /summary report/.test(qLower)) {
-      const bankBalances = accounts.filter(a => a.accountType !== 'Loan' && a.accountType !== 'CreditCard').reduce((sum, a) => sum + a.balance, 0);
-      const stockVal = stocks.reduce((sum, s) => sum + (s.quantity * s.currentPrice), 0);
-      const mfVal = mfs.reduce((sum, m) => sum + (m.units * m.currentNav), 0);
-      const goldVal = gold.reduce((sum, g) => sum + (g.quantityGrams * g.currentPrice), 0);
-      const npsVal = nps.reduce((sum, n) => sum + n.balance, 0);
-      const pfVal = pf.reduce((sum, p) => sum + p.balance, 0);
-      const fdVal = fds.filter(f => !f.isMatured).reduce((sum, f) => sum + f.principalAmount, 0);
-      const assets = bankBalances + stockVal + mfVal + goldVal + npsVal + pfVal + fdVal;
+      const summary = calculateNetWorthSummary(context);
 
-      return `Here is your **Annual Wealth Summary Report**:\n\n- **Liquid Cash & Banks:** ${formatRupee(bankBalances)}\n- **Direct Equity Stocks:** ${formatRupee(stockVal)}\n- **Mutual Funds:** ${formatRupee(mfVal)}\n- **Fixed Deposits & Gold:** ${formatRupee(fdVal + goldVal)}\n- **Retirement Funds (NPS/PF):** ${formatRupee(npsVal + pfVal)}\n\n**Total Assets Under Management:** **${formatRupee(assets)}**\n\nAll metrics are compiled locally and encrypted on disk. You can download a full spreadsheet under Ledger options.`;
+      return `Here is your **Annual Wealth Summary Report**:\n\n- **Liquid Cash & Banks:** ${formatRupee(summary.bankBalances)}\n- **Direct Equity Stocks:** ${formatRupee(summary.stockValue)}\n- **Mutual Funds:** ${formatRupee(summary.mfValue)}\n- **Fixed Deposits & Gold:** ${formatRupee(summary.fdValue + summary.goldValue)}\n- **Retirement Funds (NPS/PF):** ${formatRupee(summary.npsValue + summary.pfValue)}\n\n**Total Assets Under Management:** **${formatRupee(summary.totalAssets)}**\n\nAll metrics are compiled locally and encrypted on disk. You can download a full spreadsheet under Ledger options.`;
     }
 
     // 9. Monthly Cashflow & Income vs Expenses Query
