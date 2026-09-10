@@ -27,6 +27,13 @@ describe('ChangelogView Component', () => {
     expect(baselineCard).toBeDefined();
     expect(baselineCard.textContent).toContain('v1.0.0');
     expect(baselineCard.textContent).toContain('Initial baseline release');
+
+    // Expand older release details if collapsed
+    const expandButtons = screen.queryAllByRole('button', { name: /expand changelog details/i });
+    if (expandButtons.length > 0) {
+      fireEvent.click(expandButtons[0]);
+    }
+
     expect(baselineCard.textContent).toContain('Features');
     expect(baselineCard.textContent).toContain('Security');
   });
@@ -36,7 +43,7 @@ describe('ChangelogView Component', () => {
     const card = screen.getByTestId('release-card-1.0.0');
     expect(card.getAttribute('id')).toBe('v1.0.0');
 
-    const shareButton = screen.getByRole('button', { name: /copy direct link to release/i });
+    const shareButton = screen.getByRole('button', { name: /copy direct link to release v1\.0\.0/i });
     expect(shareButton).toBeDefined();
   });
 

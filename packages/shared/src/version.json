@@ -1,7 +1,7 @@
 {
-  "version": "1.1.0",
+  "version": "1.1.1",
   "releaseDate": "2026-09-10",
-  "releaseType": "minor",
-  "summary": "Enhanced AI financial advisor capabilities and user experience; Enhanced Business invoice and register workflows capabilities and user experience.",
-  "lastReleaseCommit": "434efa83b09086b0cb7e0913db6344e3e37de085"
+  "releaseType": "patch",
+  "summary": "Performance improvements, bug fixes, and polish.",
+  "lastReleaseCommit": "bf63e358b8cda8cf6079339a73b49cc363e0c54d"
 }

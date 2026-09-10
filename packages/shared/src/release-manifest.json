@@ -1,6 +1,41 @@
 [
   {
     "schemaVersion": 1,
+    "version": "1.1.1",
+    "releaseTag": "v1.1.1",
+    "commitSha": "bf63e358b8cda8cf6079339a73b49cc363e0c54d",
+    "previousVersion": "1.1.0",
+    "previousCommitSha": "434efa83b09086b0cb7e0913db6344e3e37de085",
+    "releaseType": "patch",
+    "releaseDate": "2026-09-10",
+    "summary": "Performance improvements, bug fixes, and polish.",
+    "confidence": {
+      "score": 60,
+      "level": "medium",
+      "signals": [
+        "Signal B: Test coverage expanded (apps/web/src/components/ChangelogView.test.tsx)"
+      ]
+    },
+    "manualOverride": false,
+    "commits": [],
+    "filesChanged": [
+      "GENTS.md",
+      "apps/web/src/components/ChangelogView.test.tsx",
+      "CLAUDE.md"
+    ],
+    "categories": [
+      {
+        "category": "Improvements",
+        "items": [
+          "Maintenance updates, styling corrections, and performance optimizations"
+        ]
+      }
+    ],
+    "breakingChanges": [],
+    "migrationRequired": false
+  },
+  {
+    "schemaVersion": 1,
     "version": "1.1.0",
     "releaseTag": "v1.1.0",
     "commitSha": "434efa83b09086b0cb7e0913db6344e3e37de085",

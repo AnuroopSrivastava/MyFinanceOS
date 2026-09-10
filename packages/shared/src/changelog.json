@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.1.1",
+    "date": "2026-09-10",
+    "releaseType": "patch",
+    "summary": "Performance improvements, bug fixes, and polish.",
+    "changes": [
+      {
+        "category": "Improvements",
+        "items": [
+          "Maintenance updates, styling corrections, and performance optimizations"
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.1.0",
     "date": "2026-09-10",
     "releaseType": "minor",
