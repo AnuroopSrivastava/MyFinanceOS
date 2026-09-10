@@ -13,10 +13,9 @@ import {
   AboutSection,
   PricingSection,
   BlogSection,
-  CareersSection,
   ContactSection,
-  Error404Section,
   ChangelogSection,
+  FivePhasesSection,
   LegalSection,
 } from './Landing.js';
 
@@ -30,7 +29,6 @@ describe('Emergent Landing Page Component', () => {
     expect(screen.getByTestId('nav-link-features')).toBeDefined();
     expect(screen.getByTestId('nav-link-pricing')).toBeDefined();
     expect(screen.getByTestId('nav-link-blog')).toBeDefined();
-    expect(screen.getByTestId('nav-link-careers')).toBeDefined();
   });
 
   it('renders hero headline, description, and visual stage elements', () => {
@@ -47,7 +45,7 @@ describe('Emergent Landing Page Component', () => {
     expect(screen.getByTestId('mini-amount-card')).toBeDefined();
   });
 
-  it('renders all 12 core sections and reference UI showcases', () => {
+  it('renders all core sections and reference UI showcases', () => {
     render(<Landing />);
     expect(screen.getByTestId('about-section')).toBeDefined();
     expect(screen.getByTestId('together-card')).toBeDefined();
@@ -59,9 +57,7 @@ describe('Emergent Landing Page Component', () => {
     expect(screen.getByTestId('pricing-card-plus')).toBeDefined();
     expect(screen.getByTestId('pricing-card-premium')).toBeDefined();
     expect(screen.getByTestId('blog-section')).toBeDefined();
-    expect(screen.getByTestId('careers-section')).toBeDefined();
     expect(screen.getByTestId('contact-section')).toBeDefined();
-    expect(screen.getByTestId('error-404-section')).toBeDefined();
     expect(screen.getByTestId('changelog-section')).toBeDefined();
     expect(screen.getByTestId('legal-section')).toBeDefined();
     expect(screen.getByTestId('faq-section')).toBeDefined();
@@ -127,20 +123,25 @@ describe('Emergent Landing Page Component', () => {
     const { container: blogContainer } = render(<BlogSection />);
     expect(blogContainer.querySelector('.blog-grid')).toBeDefined();
 
-    const { container: careersContainer } = render(<CareersSection />);
-    expect(careersContainer.querySelector('.careers-grid')).toBeDefined();
-
     const { container: contactContainer } = render(<ContactSection />);
     expect(contactContainer.querySelector('.contact-card-console')).toBeDefined();
 
-    const { container: errorContainer } = render(<Error404Section />);
-    expect(errorContainer.querySelector('.error-cannot-founded')?.textContent).toBe('CANNOT BE FOUNDED.');
-
     const { container: changelogContainer } = render(<ChangelogSection />);
     expect(changelogContainer.querySelector('.changelog-timeline')).toBeDefined();
+
+    const { container: phasesContainer } = render(<FivePhasesSection />);
+    expect(phasesContainer.querySelector('.phases-headline')?.textContent).toContain('Five phases.');
+    expect(phasesContainer.querySelector('.phases-headline')?.textContent).toContain('No mystery.');
+    expect(phasesContainer.textContent).toContain('Capture');
+    expect(phasesContainer.textContent).toContain('Dissect');
+    expect(phasesContainer.textContent).toContain('Optimize');
+    expect(phasesContainer.textContent).toContain('Compound');
+    expect(phasesContainer.textContent).toContain('Govern');
+    expect(phasesContainer.querySelectorAll('.phases-item').length).toBe(5);
 
     const { container: legalContainer } = render(<LegalSection />);
     expect(legalContainer.querySelector('.legal-cards-grid')).toBeDefined();
   });
 });
+
 

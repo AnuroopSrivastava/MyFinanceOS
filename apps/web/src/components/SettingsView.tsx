@@ -227,8 +227,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
   };
 
   const handleResetDatabase = async () => {
-    localStorage.clear();
-    window.location.reload();
+    dbService.purgeLocalDatabase();
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('financeos_last_synced_at');
+        localStorage.removeItem('financeos-theme');
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('pre_import_snapshot_') || key.startsWith('financeos_'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+      } catch (e) {
+        console.error('Failed to clean local storage items', e);
+      }
+      window.location.reload();
+    }
   };
 
   // Backups: Download database JSON

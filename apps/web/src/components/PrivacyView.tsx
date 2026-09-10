@@ -560,6 +560,7 @@ export const PrivacyView: React.FC<PrivacyViewProps> = ({ onBack, showNav = true
           <div>© 2026 MyFinanceOS. India-Ready Local-First Financial Operating System.</div>
           <div style={{ display: 'flex', gap: '1.5rem' }}>
             <Link href="/" style={{ color: 'var(--text-secondary, #94a3b8)', textDecoration: 'none' }}>Home</Link>
+            <Link href="/changelog" style={{ color: 'var(--text-secondary, #94a3b8)', textDecoration: 'none' }}>Changelog</Link>
             <Link href="/terms" style={{ color: 'var(--text-secondary, #94a3b8)', textDecoration: 'none' }}>Terms of Service</Link>
             <a href="#architecture" style={{ color: 'var(--accent-1, #38bdf8)', textDecoration: 'none' }}>Top ↑</a>
           </div>

@@ -29,10 +29,10 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ dateRange, activePro
   const activeProfile = useMemo(() => profiles.find(p => p.id === activeProfileId) || profiles[0], [profiles, activeProfileId]);
 
   // DB States
-  const [invoices, setInvoices] = useState<BusinessInvoice[]>(() => dbService.getInvoices());
-  const [inventory, setInventory] = useState<InventoryItem[]>(() => dbService.getInventory());
-  const [contacts, setContacts] = useState<VendorCustomer[]>(() => dbService.getContacts());
-  const [register, setRegister] = useState<BusinessRegisterEntry[]>(() => dbService.getRegister());
+  const [invoices, setInvoices] = useState<BusinessInvoice[]>(() => dbService.getInvoices(activeProfileId));
+  const [inventory, setInventory] = useState<InventoryItem[]>(() => dbService.getInventory(activeProfileId));
+  const [contacts, setContacts] = useState<VendorCustomer[]>(() => dbService.getContacts(activeProfileId));
+  const [register, setRegister] = useState<BusinessRegisterEntry[]>(() => dbService.getRegister(activeProfileId));
 
   // Modals Toggles
   const [showCreateInvoice, setShowCreateInvoice] = useState(false);
@@ -185,10 +185,10 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ dateRange, activePro
   ]);
 
   const refreshData = () => {
-    setInvoices(dbService.getInvoices().filter(i => i.profileId === activeProfileId));
-    setInventory(dbService.getInventory().filter(i => i.profileId === activeProfileId));
-    setContacts(dbService.getContacts().filter(c => c.profileId === activeProfileId));
-    setRegister(dbService.getRegister().filter(r => r.profileId === activeProfileId));
+    setInvoices(dbService.getInvoices(activeProfileId));
+    setInventory(dbService.getInventory(activeProfileId));
+    setContacts(dbService.getContacts(activeProfileId));
+    setRegister(dbService.getRegister(activeProfileId));
   };
 
   useDbSyncCallback(refreshData);

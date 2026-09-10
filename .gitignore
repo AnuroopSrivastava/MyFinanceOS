@@ -916,3 +916,8 @@ preview-hero.png
 !graphify-out/graph.json
 !graphify-out/manifest.json
 !graphify-out/wiki/**
+
+# Release Engine Lock & Traces
+.release.lock
+trace.json.gz
+*.trace.json.gz

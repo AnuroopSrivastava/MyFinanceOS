@@ -35,6 +35,24 @@ class ResolveJsImportsPlugin {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: '/ingest/static/:path*',
+        destination: 'https://us-assets.i.posthog.com/static/:path*',
+      },
+      {
+        source: '/ingest/array/:path*',
+        destination: 'https://us-assets.i.posthog.com/array/:path*',
+      },
+      {
+        source: '/ingest/:path*',
+        destination: 'https://us.i.posthog.com/:path*',
+      },
+    ];
+  },
+  // Required to support PostHog trailing slash API requests
+  skipTrailingSlashRedirect: true,
   output: 'standalone',
   // Allows a second `next dev` (e.g. an agent preview server) to run against the
   // same source tree: Next refuses to start two dev servers sharing one distDir.

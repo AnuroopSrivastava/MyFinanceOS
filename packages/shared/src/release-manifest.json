@@ -1,0 +1,159 @@
+[
+  {
+    "schemaVersion": 1,
+    "version": "1.1.0",
+    "releaseTag": "v1.1.0",
+    "commitSha": "434efa83b09086b0cb7e0913db6344e3e37de085",
+    "previousVersion": "1.0.0",
+    "previousCommitSha": "882a27a",
+    "releaseType": "minor",
+    "releaseDate": "2026-09-10",
+    "summary": "Enhanced AI financial advisor capabilities and user experience; Enhanced Business invoice and register workflows capabilities and user experience.",
+    "confidence": {
+      "score": 95,
+      "level": "high",
+      "signals": [
+        "Signal B: General codebase update (apps/web/.claude/skills/integration-nextjs-app-router/.posthog-wizard)",
+        "Signal B/F: New or updated user-facing Next.js page route (apps/web/app/changelog/page.tsx)",
+        "Signal B/D: Primary product view updated (apps/web/src/components/AIChatView.tsx)",
+        "Signal B/D: Primary product view updated (apps/web/src/components/BusinessView.tsx)",
+        "Signal B/D: Primary product view updated (apps/web/src/components/ChangelogView.tsx)"
+      ]
+    },
+    "manualOverride": false,
+    "commits": [],
+    "filesChanged": [
+      "apps/web/.claude/skills/integration-nextjs-app-router/.posthog-wizard",
+      "apps/web/.claude/skills/integration-nextjs-app-router/SKILL.md",
+      "apps/web/.claude/skills/integration-nextjs-app-router/references/1-begin.md",
+      "apps/web/.claude/skills/integration-nextjs-app-router/references/2-edit.md",
+      "apps/web/.claude/skills/integration-nextjs-app-router/references/3-revise.md",
+      "apps/web/.claude/skills/integration-nextjs-app-router/references/4-conclude.md",
+      "apps/web/.claude/skills/integration-nextjs-app-router/references/COMMANDMENTS.md",
+      "apps/web/.claude/skills/integration-nextjs-app-router/references/EXAMPLE.md",
+      "apps/web/.claude/skills/integration-nextjs-app-router/references/identify-users.md",
+      "apps/web/.claude/skills/integration-nextjs-app-router/references/next-js.md",
+      "apps/web/app/auth/callback/route.ts",
+      "apps/web/app/changelog/page.tsx",
+      "apps/web/app/layout.tsx",
+      "apps/web/instrumentation-client.ts",
+      "apps/web/next.config.mjs",
+      "apps/web/package.json",
+      "apps/web/public/footer_animated.png",
+      "apps/web/public/gallery_smooth_verification.png",
+      "apps/web/public/gallery_verified.png",
+      "apps/web/public/mega_cta_animated.png",
+      "apps/web/public/privacy.html",
+      "apps/web/public/skiper30_matched_speed.png",
+      "apps/web/public/skiper30_mobile_speed.png",
+      "apps/web/public/terms.html",
+      "apps/web/src/App.tsx",
+      "apps/web/src/components/AIChatView.tsx",
+      "apps/web/src/components/AuthenticatedApp.tsx",
+      "apps/web/src/components/BusinessView.tsx",
+      "apps/web/src/components/ChangelogView.test.tsx",
+      "apps/web/src/components/ChangelogView.tsx",
+      "apps/web/src/components/DashboardView.tsx",
+      "apps/web/src/components/ErrorBoundary.tsx",
+      "apps/web/src/components/InvestmentsView.tsx",
+      "apps/web/src/components/Landing.test.tsx",
+      "apps/web/src/components/Landing.tsx",
+      "apps/web/src/components/LedgerView.tsx",
+      "apps/web/src/components/PrivacyView.tsx",
+      "apps/web/src/components/SettingsView.tsx",
+      "apps/web/src/components/SettingsViewControls.test.tsx",
+      "apps/web/src/components/SiteFooterChangelog.test.tsx",
+      "apps/web/src/components/TermsView.tsx",
+      "apps/web/src/components/ui/skiper-ui/skiper30.tsx",
+      "apps/web/src/hooks/useLenisScroll.ts",
+      "apps/web/src/lib/posthog-server.ts",
+      "apps/web/src/styles/emergent-landing.css",
+      "apps/web/src/utils/statementParser.test.ts",
+      "apps/web/src/utils/statementParser.ts",
+      "docs/VERSIONING_AND_CHANGELOG.md",
+      "package-lock.json",
+      "package.json",
+      "packages/database/src/index.ts",
+      "packages/database/src/security.test.ts",
+      "packages/shared/src/changelog.ts",
+      "packages/shared/src/index.ts",
+      "packages/shared/src/manifest.ts",
+      "packages/shared/src/version.test.ts",
+      "packages/shared/src/version.ts",
+      "scripts/install-hooks.mjs",
+      "scripts/release-engine/boundary.mjs",
+      "scripts/release-engine/changelog.mjs",
+      "scripts/release-engine/classifier.mjs",
+      "scripts/release-engine/git.mjs",
+      "scripts/release-engine/lock.mjs",
+      "scripts/release-engine/manifest.mjs",
+      "scripts/release-engine/validator.mjs",
+      "scripts/release.mjs",
+      "scripts/release.test.ts",
+      "AGENTS.md",
+      "CLAUDE.md"
+    ],
+    "categories": [
+      {
+        "category": "Features",
+        "items": [
+          "Enhanced AI financial advisor capabilities and user experience",
+          "Enhanced Business invoice and register workflows capabilities and user experience",
+          "Enhanced Mission Control dashboard capabilities and user experience",
+          "Enhanced Portfolio & investment analytics capabilities and user experience",
+          "Enhanced Banking & Ledger transactions capabilities and user experience"
+        ]
+      }
+    ],
+    "breakingChanges": [],
+    "migrationRequired": false
+  },
+  {
+    "schemaVersion": 1,
+    "version": "1.0.0",
+    "releaseTag": "v1.0.0",
+    "commitSha": "882a27a",
+    "previousVersion": null,
+    "previousCommitSha": null,
+    "releaseType": "major",
+    "releaseDate": "2026-09-10",
+    "summary": "Initial baseline release of MyFinanceOS: Sovereign local-first wealth operating system for India.",
+    "confidence": {
+      "score": 100,
+      "level": "high",
+      "signals": [
+        "Baseline initial product release"
+      ]
+    },
+    "manualOverride": false,
+    "commits": [
+      {
+        "sha": "882a27a",
+        "message": "fix(deploy): remove rootDirectory from vercel.json and add apps/web/vercel.json for Vercel monorepo deployment"
+      }
+    ],
+    "filesChanged": [],
+    "categories": [
+      {
+        "category": "Features",
+        "items": [
+          "Encrypted offline-first ledger and double-entry accounting engine",
+          "Multi-profile net worth consolidation and portfolio tracking",
+          "Indian taxation suite with automatic Old vs New Regime comparisons and Advance Tax scheduler",
+          "Interactive Mission Control dashboard with real-time financial health metrics",
+          "Bank statement parsing and transaction categorization"
+        ]
+      },
+      {
+        "category": "Security",
+        "items": [
+          "AES-256 encrypted SQLite vault running purely in browser memory",
+          "Zero telemetry of financial records and DPDP Act 2023 compliance",
+          "Optional PIN encryption and profile-level security locks"
+        ]
+      }
+    ],
+    "breakingChanges": [],
+    "migrationRequired": false
+  }
+]

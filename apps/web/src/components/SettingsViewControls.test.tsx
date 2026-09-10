@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, act } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { SettingsView } from './SettingsView';
 import { dbService } from '@financeos/database';
@@ -62,7 +62,9 @@ describe('SettingsView profile controls', () => {
     expect(screen.getByText(/Permanently delete profile "Member 2"/i)).toBeTruthy();
 
     const confirmBtn = screen.getByRole('button', { name: 'Delete Profile' });
-    fireEvent.click(confirmBtn);
+    await act(async () => {
+      fireEvent.click(confirmBtn);
+    });
 
     expect(dbService.deleteProfile).toHaveBeenCalledWith('p2');
   });

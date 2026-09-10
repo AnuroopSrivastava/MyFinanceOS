@@ -13,12 +13,12 @@ declare global {
 }
 
 export const SKIPER30_SCROLL_PHYSICS = {
-  // 0.1 = upstream skiper-ui / Lenis default feel (snappier catch-up).
+  // 0.1 = Lenis gold standard buttery-smooth inertial curve
   lerp: 0.1,
   smoothWheel: true,
   syncTouch: true,
-  wheelMultiplier: 0.95,
-  touchMultiplier: 1.5,
+  wheelMultiplier: 1.0,
+  touchMultiplier: 1.0,
   infinite: false,
   respectReducedMotion: false,
 } as const;
@@ -57,15 +57,16 @@ export function useLenisScroll(
     window.__myfinanceos_lenis_refs__ =
       (window.__myfinanceos_lenis_refs__ || 0) + 1;
 
-    if (!window.__myfinanceos_lenis_subscribers__) {
-      window.__myfinanceos_lenis_subscribers__ = new Set();
+    let subscriber: LenisScrollCallback | null = null;
+    if (onScroll) {
+      if (!window.__myfinanceos_lenis_subscribers__) {
+        window.__myfinanceos_lenis_subscribers__ = new Set();
+      }
+      subscriber = (e) => {
+        callbackRef.current?.(e);
+      };
+      window.__myfinanceos_lenis_subscribers__.add(subscriber);
     }
-
-    const subscriber: LenisScrollCallback = (e) => {
-      callbackRef.current?.(e);
-    };
-
-    window.__myfinanceos_lenis_subscribers__.add(subscriber);
 
     let lenis = window.__myfinanceos_lenis__ ?? null;
     let rafId: number | null = null;
@@ -90,22 +91,38 @@ export function useLenisScroll(
           velocity: 0,
         };
 
+        let lastEmittedScroll = -1;
+        let wasMoving = false;
+
         /**
          * ONE and ONLY ONE RAF loop drives Lenis and all synchronized subscribers.
+         * Suppresses subscriber iteration when stationary, but guarantees a final
+         * settling frame (velocity: 0) when motion halts.
          */
         const raf = (time: number) => {
           lenis?.raf(time);
 
-          payload.scroll = lenis?.scroll ?? window.scrollY;
-          payload.velocity = lenis?.velocity ?? 0;
+          const currentScroll = lenis?.scroll ?? window.scrollY;
+          const currentVelocity = lenis?.velocity ?? 0;
+          const isMoving =
+            Boolean(lenis?.isScrolling) ||
+            Math.abs(currentVelocity) > 0.00001 ||
+            Math.abs(currentScroll - lastEmittedScroll) > 0.0001;
 
-          const subs = window.__myfinanceos_lenis_subscribers__;
-          if (subs) {
-            for (const sub of subs) {
-              try {
-                sub(payload);
-              } catch (e) {
-                console.error('[Lenis subscriber error]', e);
+          if (isMoving || lastEmittedScroll === -1 || wasMoving) {
+            lastEmittedScroll = currentScroll;
+            payload.scroll = currentScroll;
+            payload.velocity = isMoving ? currentVelocity : 0;
+            wasMoving = isMoving;
+
+            const subs = window.__myfinanceos_lenis_subscribers__;
+            if (subs && subs.size > 0) {
+              for (const sub of subs) {
+                try {
+                  sub(payload);
+                } catch (e) {
+                  console.error('[Lenis subscriber error]', e);
+                }
               }
             }
           }
@@ -118,14 +135,18 @@ export function useLenisScroll(
         window.__myfinanceos_lenis_raf__ = rafId;
       }
 
-      // Initial position update
-      callbackRef.current?.({
-        scroll: lenis?.scroll ?? window.scrollY,
-        velocity: lenis?.velocity ?? 0,
-      });
+      // Initial position update if onScroll callback was provided
+      if (onScroll) {
+        callbackRef.current?.({
+          scroll: lenis?.scroll ?? window.scrollY,
+          velocity: lenis?.velocity ?? 0,
+        });
+      }
 
       return () => {
-        window.__myfinanceos_lenis_subscribers__?.delete(subscriber);
+        if (subscriber && window.__myfinanceos_lenis_subscribers__) {
+          window.__myfinanceos_lenis_subscribers__.delete(subscriber);
+        }
 
         window.__myfinanceos_lenis_refs__ = Math.max(
           0,

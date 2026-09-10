@@ -1,13 +1,16 @@
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
+import posthog from 'posthog-js';
 import {
   AnimatePresence,
   animate,
   motion,
   useInView,
+  MotionConfig,
 } from 'framer-motion';
+import Link from 'next/link';
 import '../styles/emergent-landing.css';
 import { getSavedTheme, setTheme } from '@financeos/ui';
-import { STORAGE_KEYS } from '@financeos/shared';
+import { STORAGE_KEYS, CURRENT_VERSION, LATEST_CHANGELOG_ENTRY } from '@financeos/shared';
 import { DEFAULT_IMAGES, Skiper30 } from './ui/skiper-ui/skiper30';
 import { useLenisScroll } from '../hooks/useLenisScroll';
 
@@ -56,7 +59,7 @@ interface LandingProps {
  * framer-motion's useTransform(progress, xs, ys), driven manually so every
  * scroll-linked style write happens inside the gallery's single Lenis RAF tick.
  */
-function piecewiseMap(progress: number, xs: number[], ys: number[]): number {
+function piecewiseMap(progress: number, xs: readonly number[] | number[], ys: readonly number[] | number[]): number {
   if (progress <= xs[0]) return ys[0];
   for (let i = 1; i < xs.length; i++) {
     if (progress <= xs[i]) {
@@ -72,117 +75,33 @@ type LenisViewportAnchors = { start: number; end: number };
 const SECTION_ANCHORS: LenisViewportAnchors = { start: 1, end: 0 };
 
 /**
- * Sections whose decorative CSS animations should be frozen off-screen.
- * CSS animations keep running forever otherwise — blended blur layers
- * re-composite every frame even when invisible, which starves the gallery's
- * Lenis scroll with compositor work the user never sees.
- */
-const ANIMATION_PAUSE_SELECTOR = 'main.hero, section#gallery, section.showcase, div.outro';
-
 /**
- * Off-screen animation freeze + render skip.
- *
- * visibility:hidden (class `section-hidden`) drops a fully off-screen
- * section's retained layers, filters and tiles from the display list — the
- * 15% IntersectionObserver margin restores it before the section re-enters
- * the viewport (no flash) and hides it only once fully off-screen (no
- * pop-out). Layout is untouched, so scroll height stays exact.
- *
- * Animations are frozen through the Web Animations API (`Animation.pause()`)
- * instead of a CSS `[data-anim-paused] *` attribute rule: pausing Animation
- * objects performs zero style matching, while an attribute flip on a section
- * root forces a whole-subtree style recalc (measured at 26ms) — and those
- * flips land exactly at the parallax gallery's entry/exit doorstep, on top
- * of the moving columns. The freeze walk itself is deferred to an idle
- * callback so its one-time subtree scan never competes with active scrolling.
+ * Lightweight hero viewport observer.
+ * Toggles `body.past-hero` so the site header drops backdrop-filter
+ * and ambient hero CSS animations pause declaratively via CSS.
+ * Completely eliminates the 1,374ms forced reflow from getAnimations() subtree walks.
  */
-function useOffscreenAnimationPause() {
+function useHeroScrollObserver() {
   useEffect(() => {
     if (typeof window === 'undefined' || !('IntersectionObserver' in window)) return;
-    const targets = Array.from(document.querySelectorAll<HTMLElement>(ANIMATION_PAUSE_SELECTOR));
-    if (!targets.length) return;
-
-    const frozenAnims = new Map<HTMLElement, Set<Animation>>();
-    const pendingFreezes = new Map<HTMLElement, number>();
-
-    const freezeSection = (el: HTMLElement) => {
-      if (frozenAnims.has(el) || pendingFreezes.has(el)) return;
-      const run = () => {
-        pendingFreezes.delete(el);
-        if (frozenAnims.has(el)) return;
-        const set = new Set<Animation>();
-        try {
-          for (const anim of el.getAnimations({ subtree: true })) {
-            if (anim.playState === 'running') {
-              try {
-                anim.pause();
-                set.add(anim);
-              } catch {
-                // animation may have been cancelled mid-walk
-              }
-            }
-          }
-        } catch {
-          return;
-        }
-        if (set.size) frozenAnims.set(el, set);
-      };
-      if (typeof window.requestIdleCallback === 'function') {
-        pendingFreezes.set(el, window.requestIdleCallback(run, { timeout: 400 }));
-      } else {
-        pendingFreezes.set(el, window.setTimeout(run, 120));
-      }
-    };
-
-    const wakeSection = (el: HTMLElement) => {
-      const pending = pendingFreezes.get(el);
-      if (pending !== undefined) {
-        if (typeof window.cancelIdleCallback === 'function') {
-          window.cancelIdleCallback(pending);
-        } else {
-          window.clearTimeout(pending);
-        }
-        pendingFreezes.delete(el);
-      }
-      const set = frozenAnims.get(el);
-      if (set) {
-        for (const anim of set) {
-          try {
-            anim.play();
-          } catch {
-            // animation may have been cancelled while frozen
-          }
-        }
-        frozenAnims.delete(el);
-      }
-    };
+    const hero = document.querySelector<HTMLElement>('main.hero');
+    if (!hero) return;
 
     const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          const el = entry.target as HTMLElement;
-          if (entry.isIntersecting) {
-            el.classList.remove('section-hidden');
-            wakeSection(el);
-            if (el.matches('main.hero')) {
-              document.body.classList.remove('past-hero');
-            }
-          } else {
-            el.classList.add('section-hidden');
-            freezeSection(el);
-            if (el.matches('main.hero')) {
-              document.body.classList.add('past-hero');
-            }
-          }
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          document.body.classList.remove('past-hero');
+        } else {
+          document.body.classList.add('past-hero');
         }
       },
-      { rootMargin: '15% 0px 15% 0px' }
+      { rootMargin: '0px 0px -5% 0px' }
     );
-    for (const target of targets) observer.observe(target);
+    observer.observe(hero);
 
     return () => {
       observer.disconnect();
-      for (const el of targets) wakeSection(el);
+      document.body.classList.remove('past-hero');
     };
   }, []);
 }
@@ -203,42 +122,30 @@ function useLenisSectionProgress(
   anchors: LenisViewportAnchors = SECTION_ANCHORS
 ) {
   const applyRef = useRef(apply);
-  const metricsRef = useRef({ top: 0, height: 0, vh: 900 });
   const lastProgressRef = useRef(-1);
 
   useEffect(() => {
     applyRef.current = apply;
   }, [apply]);
 
-  const measure = useCallback(() => {
+  const update = useCallback(() => {
     const el = targetRef.current;
     if (!el || typeof window === 'undefined') return;
-    let top = 0;
-    let curr: HTMLElement | null = el;
-    while (curr) {
-      top += curr.offsetTop;
-      curr = curr.offsetParent as HTMLElement | null;
-    }
-    metricsRef.current = { top, height: el.offsetHeight, vh: window.innerHeight };
-  }, [targetRef]);
-
-  const update = useCallback((e?: { scroll: number }) => {
-    const { top, height, vh } = metricsRef.current;
-    const scroll = e?.scroll ?? (typeof window !== 'undefined' ? window.scrollY : 0);
-    const span = height + (anchors.start - anchors.end) * vh;
+    const rect = el.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const span = rect.height + (anchors.start - anchors.end) * vh;
     if (span <= 0) return;
-    const progress = Math.min(Math.max((scroll - top + anchors.start * vh) / span, 0), 1);
+    const progress = Math.min(Math.max((anchors.start * vh - rect.top) / span, 0), 1);
     if (Math.abs(progress - lastProgressRef.current) < 0.0005) return;
     lastProgressRef.current = progress;
     applyRef.current(progress);
-  }, [anchors.start, anchors.end]);
+  }, [anchors.start, anchors.end, targetRef]);
 
   useLenisScroll(true, update);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const remeasure = () => {
-      measure();
       lastProgressRef.current = -1;
       update();
     };
@@ -254,10 +161,10 @@ function useLenisSectionProgress(
       window.removeEventListener('load', remeasure);
       clearTimeout(timer);
     };
-  }, [measure, update]);
+  }, [update]);
 }
 
-const navItems = ['Home', 'About', 'Features', 'Pricing', 'Blog', 'Careers'];
+const navItems = ['Home', 'About', 'Features', 'Pricing', 'Blog'];
 const easeOutExpo = [0.16, 1, 0.3, 1] as const;
 const springBouncy = { type: 'spring', stiffness: 240, damping: 20 } as const;
 
@@ -323,71 +230,61 @@ export function ThemeToggle({ dark, onToggle }: { dark: boolean; onToggle: () =>
 
 export const Header = memo(function Header({ dark, onToggleTheme, onUnlock, authenticating = false }: { dark: boolean; onToggleTheme: () => void; onUnlock?: () => void; authenticating?: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [hidden, setHidden] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
   const lastYRef = useRef(0);
   const scrolledRef = useRef(false);
   const hiddenRef = useRef(false);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
+  const accumulatedDownRef = useRef(0);
+  const accumulatedUpRef = useRef(0);
 
-    let accumulatedDown = 0;
-    let accumulatedUp = 0;
-    let ticking = false;
+  const handleScrollTick = useCallback((e?: { scroll: number }) => {
+    const el = headerRef.current;
+    if (!el) return;
 
-    const handleScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        const y = window.scrollY;
-        const isScrolled = y > 20;
-        if (scrolledRef.current !== isScrolled) {
-          scrolledRef.current = isScrolled;
-          setScrolled(isScrolled);
+    const y = e?.scroll ?? (typeof window !== 'undefined' ? window.scrollY : 0);
+    const isScrolled = y > 20;
+    if (scrolledRef.current !== isScrolled) {
+      scrolledRef.current = isScrolled;
+      // Direct classList toggle — zero React re-renders during scroll.
+      el.classList.toggle('is-scrolled', isScrolled);
+    }
+
+    const diff = y - lastYRef.current;
+    lastYRef.current = y;
+
+    if (y < 120) {
+      if (hiddenRef.current) {
+        hiddenRef.current = false;
+        el.classList.remove('is-retracted');
+      }
+      accumulatedDownRef.current = 0;
+      accumulatedUpRef.current = 0;
+      return;
+    }
+
+    if (diff > 0) {
+      accumulatedDownRef.current += diff;
+      accumulatedUpRef.current = 0;
+      if (accumulatedDownRef.current > 60 && y > 300) {
+        if (!hiddenRef.current) {
+          hiddenRef.current = true;
+          el.classList.add('is-retracted');
         }
-
-        const diff = y - lastYRef.current;
-        lastYRef.current = y;
-
-        if (y < 120) {
-          if (hiddenRef.current) {
-            hiddenRef.current = false;
-            setHidden(false);
-          }
-          accumulatedDown = 0;
-          accumulatedUp = 0;
-          ticking = false;
-          return;
+      }
+    } else if (diff < 0) {
+      accumulatedUpRef.current += Math.abs(diff);
+      accumulatedDownRef.current = 0;
+      if (accumulatedUpRef.current > 16) {
+        if (hiddenRef.current) {
+          hiddenRef.current = false;
+          el.classList.remove('is-retracted');
         }
-
-        if (diff > 0) {
-          accumulatedDown += diff;
-          accumulatedUp = 0;
-          if (accumulatedDown > 60 && y > 300) {
-            if (!hiddenRef.current) {
-              hiddenRef.current = true;
-              setHidden(true);
-            }
-          }
-        } else if (diff < 0) {
-          accumulatedUp += Math.abs(diff);
-          accumulatedDown = 0;
-          if (accumulatedUp > 16) {
-            if (hiddenRef.current) {
-              hiddenRef.current = false;
-              setHidden(false);
-            }
-          }
-        }
-        ticking = false;
-      });
-    };
-
-    handleScroll();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+      }
+    }
   }, []);
+
+  useLenisScroll(true, handleScrollTick);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -395,6 +292,13 @@ export const Header = memo(function Header({ dark, onToggleTheme, onUnlock, auth
     return () => {
       document.body.style.overflow = '';
     };
+  }, [menuOpen]);
+
+  // When the mobile menu opens, ensure header is visible
+  useEffect(() => {
+    if (menuOpen && headerRef.current) {
+      headerRef.current.classList.remove('is-retracted');
+    }
   }, [menuOpen]);
 
   const handleNavClick = (e: React.MouseEvent, item: string) => {
@@ -408,7 +312,8 @@ export const Header = memo(function Header({ dark, onToggleTheme, onUnlock, auth
 
   return (
     <header
-      className={`site-header ${scrolled ? 'is-scrolled' : ''} ${hidden && !menuOpen ? 'is-retracted' : ''}`}
+      ref={headerRef}
+      className={`site-header`}
       data-testid="main-header"
     >
       <Logo />
@@ -517,8 +422,7 @@ export const Header = memo(function Header({ dark, onToggleTheme, onUnlock, auth
 export function PhoneMockup() {
   return (
     <motion.div
-      className="phone-glow parallax-item"
-      data-parallax="0.6"
+      className="phone-glow"
       data-testid="phone-glow"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -561,8 +465,7 @@ export function PhoneMockup() {
 export function BalanceCard() {
   return (
     <motion.div
-      className="finance-card balance-card parallax-item"
-      data-parallax="2.4"
+      className="finance-card balance-card"
       data-testid="balance-card"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -591,8 +494,7 @@ export function BalanceCard() {
 export function WeeklyCard() {
   return (
     <motion.div
-      className="weekly-wrap parallax-item"
-      data-parallax="3"
+      className="weekly-wrap"
       data-testid="weekly-spend-card"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -608,13 +510,13 @@ export function WeeklyCard() {
   );
 }
 
+const EXPENSE_DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const;
+const EXPENSE_BARS = [42, 65, 54, 88, 48, 72, 38] as const;
+
 export function ExpenseCard() {
-  const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-  const bars = [42, 65, 54, 88, 48, 72, 38];
   return (
     <motion.div
-      className="finance-card expense-card parallax-item"
-      data-parallax="2.6"
+      className="finance-card expense-card"
       data-testid="expense-card"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -643,18 +545,18 @@ export function ExpenseCard() {
       </div>
       <div className="bar-chart-wrap">
         <div className="bar-chart" data-testid="expense-chart">
-          {bars.map((height, index) => {
+          {EXPENSE_BARS.map((height, index) => {
             const isPeak = index === 3;
             return (
               <div key={index} className={`bar-col ${isPeak ? 'is-peak' : ''}`}>
                 {isPeak && <span className="bar-peak-pill">₹1.8k</span>}
                 <motion.i
                   style={{ height: `${height}%`, transformOrigin: 'bottom' }}
-                  initial={{ scaleY: 0, opacity: 0 }}
+                  initial={{ scaleY: 0, opacity: 1 }}
                   animate={{ scaleY: 1, opacity: 1 }}
                   transition={{ duration: 0.5, ease: easeOutExpo, delay: 0.44 + index * 0.05 }}
                 />
-                <span className="bar-day-label">{days[index]}</span>
+                <span className="bar-day-label">{EXPENSE_DAYS[index]}</span>
               </div>
             );
           })}
@@ -665,89 +567,11 @@ export function ExpenseCard() {
 }
 
 export function Hero({ onUnlock, authenticating = false }: { onUnlock?: () => void; authenticating?: boolean }) {
-  const heroRef = useRef<HTMLElement | null>(null);
-  const stageRef = useRef<HTMLDivElement | null>(null);
-  const rafRef = useRef<number>(0);
-  const targetRef = useRef({ x: 0, y: 0 });
-  const currentRef = useRef({ x: 0, y: 0 });
-  const [ctaHover, setCtaHover] = useState(false);
-
-  const isTickingRef = useRef(false);
-
-  const requestTick = useCallback(() => {
-    if (isTickingRef.current) return;
-    isTickingRef.current = true;
-
-    const tick = () => {
-      const stage = stageRef.current;
-      if (!stage) {
-        isTickingRef.current = false;
-        return;
-      }
-
-      // Viewport culling: stop mouse parallax when hero has scrolled out of view
-      if (typeof window !== 'undefined' && window.scrollY > (heroRef.current?.offsetHeight || 900)) {
-        isTickingRef.current = false;
-        return;
-      }
-
-      const factor = 0.045;
-      const dx = targetRef.current.x - currentRef.current.x;
-      const dy = targetRef.current.y - currentRef.current.y;
-
-      currentRef.current.x += dx * factor;
-      currentRef.current.y += dy * factor;
-
-      stage.style.setProperty('--px', currentRef.current.x.toFixed(4));
-      stage.style.setProperty('--py', currentRef.current.y.toFixed(4));
-
-      if (Math.abs(dx) > 0.0002 || Math.abs(dy) > 0.0002) {
-        rafRef.current = requestAnimationFrame(tick);
-      } else {
-        currentRef.current.x = targetRef.current.x;
-        currentRef.current.y = targetRef.current.y;
-        stage.style.setProperty('--px', currentRef.current.x.toFixed(4));
-        stage.style.setProperty('--py', currentRef.current.y.toFixed(4));
-        isTickingRef.current = false;
-      }
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-  }, []);
-
-  const handleHeroMove = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    if (typeof window !== 'undefined' && window.scrollY > 900) return;
-    const hero = heroRef.current;
-    if (!hero) return;
-    const rect = hero.getBoundingClientRect();
-    const nx = (event.clientX - rect.left) / rect.width - 0.5;
-    const ny = (event.clientY - rect.top) / rect.height - 0.5;
-    targetRef.current = {
-      x: Math.max(-0.6, Math.min(0.6, nx)),
-      y: Math.max(-0.6, Math.min(0.6, ny))
-    };
-    requestTick();
-  }, [requestTick]);
-
-  const handleHeroLeave = useCallback(() => {
-    targetRef.current = { x: 0, y: 0 };
-    requestTick();
-  }, [requestTick]);
-
-  useEffect(() => {
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
-
   return (
     <main
       className="hero"
       id="home"
       data-testid="hero-section"
-      ref={heroRef}
-      onMouseMove={handleHeroMove}
-      onMouseLeave={handleHeroLeave}
     >
       <div className="bg-texture-sheen" aria-hidden="true" />
       <div className="hero-vignette" aria-hidden="true" />
@@ -761,30 +585,26 @@ export function Hero({ onUnlock, authenticating = false }: { onUnlock?: () => vo
       <div className="aurora-orb aurora-orb-1" aria-hidden="true" />
       <div className="aurora-orb aurora-orb-2" aria-hidden="true" />
       <div className="aurora-orb aurora-orb-3" aria-hidden="true" />
-      <motion.div className="light light-top" initial={{ opacity: 0 }} animate={{ opacity: 0.68 }} transition={{ duration: 1.2, delay: 0.05 }} />
-      <motion.div className="light light-cyan" initial={{ opacity: 0 }} animate={{ opacity: 0.58 }} transition={{ duration: 1.2, delay: 0.1 }} />
-      <motion.div className="light light-left" initial={{ opacity: 0 }} animate={{ opacity: 0.55 }} transition={{ duration: 1.2, delay: 0.15 }} />
-      <motion.div className="light light-right" initial={{ opacity: 0 }} animate={{ opacity: 0.58 }} transition={{ duration: 1.2, delay: 0.2 }} />
-      <motion.div className="light light-center" initial={{ opacity: 0 }} animate={{ opacity: 0.7 }} transition={{ duration: 1.2, delay: 0.12 }} />
-      <motion.div className="streak streak-one" initial={{ opacity: 0, scaleX: 0.7 }} animate={{ opacity: 0.5, scaleX: 1 }} transition={{ duration: 1.0, delay: 0.2 }} />
-      <motion.div className="streak streak-two" initial={{ opacity: 0, scaleX: 0.7 }} animate={{ opacity: 0.25, scaleX: 1 }} transition={{ duration: 1.0, delay: 0.28 }} />
-      <motion.div
+      <div className="light light-top" aria-hidden="true" />
+      <div className="light light-cyan" aria-hidden="true" />
+      <div className="light light-left" aria-hidden="true" />
+      <div className="light light-right" aria-hidden="true" />
+      <div className="light light-center" aria-hidden="true" />
+      <div className="streak streak-one" aria-hidden="true" />
+      <div className="streak streak-two" aria-hidden="true" />
+      <div
         className="glass-frame"
         data-testid="glass-frame"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.08 }}
+        aria-hidden="true"
       />
       <div
         className="visual-stage"
         data-testid="visual-stage"
-        ref={stageRef}
       >
         <BalanceCard />
         <WeeklyCard />
         <motion.div
-          className="finance-card mini-card parallax-item"
-          data-parallax="3.4"
+          className="finance-card mini-card"
           data-testid="mini-amount-card"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -804,21 +624,13 @@ export function Hero({ onUnlock, authenticating = false }: { onUnlock?: () => vo
         <ExpenseCard />
       </div>
       <section className="hero-copy" aria-labelledby="hero-headline">
-        <h1 id="hero-headline" data-testid="hero-headline">
-          <motion.span
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: easeOutExpo, delay: 0.12 }}
-          >
+        <h1 id="hero-headline" data-testid="hero-headline" className="hero-headline-fast">
+          <span className="hero-title-main">
             SMARTER FINANCE
-          </motion.span>
-          <motion.b
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: easeOutExpo, delay: 0.2 }}
-          >
+          </span>
+          <b className="hero-title-sub">
             MADE SIMPLE
-          </motion.b>
+          </b>
         </h1>
         <motion.p
           data-testid="hero-description"
@@ -832,7 +644,10 @@ export function Hero({ onUnlock, authenticating = false }: { onUnlock?: () => vo
           <motion.button
             className="primary-cta"
             type="button"
-            onClick={onUnlock}
+            onClick={() => {
+              posthog.capture('get_started_clicked', { source: 'hero_primary_cta' });
+              onUnlock?.();
+            }}
             disabled={authenticating}
             data-testid="hero-get-started-button"
             initial={{ opacity: 0, scale: 0.9, y: 12 }}
@@ -840,14 +655,12 @@ export function Hero({ onUnlock, authenticating = false }: { onUnlock?: () => vo
             transition={{ ...springBouncy, delay: 0.35 }}
             whileHover={{ scale: 1.03, y: -2 }}
             whileTap={{ scale: 0.97 }}
-            onHoverStart={() => setCtaHover(true)}
-            onHoverEnd={() => setCtaHover(false)}
           >
             {authenticating ? 'Connecting' : 'Get started'}
             {authenticating ? (
               <CtaSpinner />
             ) : (
-              <motion.span animate={{ x: ctaHover ? 6 : 0 }} transition={springBouncy}>→</motion.span>
+              <span className="cta-arrow" aria-hidden="true">→</span>
             )}
           </motion.button>
           <motion.button
@@ -959,53 +772,52 @@ export function LogoCloud() {
 /* ==========================================================================
    SECTION: ABOUT / HOW IT ALL COMES TOGETHER
    ========================================================================== */
+const PILL_DETAILS = {
+  spending: {
+    title: 'Smart Categorization & Cash Flow',
+    desc: 'Real-time double-entry ledger that organizes every UPI, bank, and card spend automatically with zero cloud snooping.',
+    metric1: '₹14,250',
+    label1: 'Weekly Avg',
+    metric2: '0.0ms',
+    label2: 'Cloud Latency',
+  },
+  growth: {
+    title: 'Multi-Asset Wealth & FIRE Planning',
+    desc: 'Simulate financial independence (FIRE) milestone dates, asset allocation rebalancing, and SIP compound growth.',
+    metric1: '24.8%',
+    label1: 'Portfolio CAGR',
+    metric2: '₹18.4L',
+    label2: 'Tracked Assets',
+  },
+  tax: {
+    title: 'Old vs New Tax Regime Engine',
+    desc: 'Instant comparative breakdown of 80C, 80D, HRA deductions, and capital gains (STCG/LTCG) tailored for Indian tax laws.',
+    metric1: '₹48,200',
+    label1: 'Max Tax Saved',
+    metric2: 'FY 2026-27',
+    label2: 'Rules Active',
+  },
+  invoicing: {
+    title: 'Professional GST Invoicing',
+    desc: 'Generate compliant B2B/B2C GST tax invoices, track client receivables, and export instant Profit & Loss summaries.',
+    metric1: '100%',
+    label1: 'GST Compliant',
+    metric2: '< 30 sec',
+    label2: 'Invoice Creation',
+  },
+  vault: {
+    title: 'Argon2id Encrypted Document Vault',
+    desc: 'Store PAN cards, tax filing acknowledgments, mutual fund CAS statements, and property deeds in memory-hard encrypted local vaults.',
+    metric1: 'AES-256',
+    label1: 'Cipher Standard',
+    metric2: '0 Bytes',
+    label2: 'Uploaded to Web',
+  },
+} as const;
+
 export function AboutSection() {
   const [activePill, setActivePill] = useState<'spending' | 'growth' | 'tax' | 'invoicing' | 'vault'>('spending');
-
-  const pillDetails = {
-    spending: {
-      title: 'Smart Categorization & Cash Flow',
-      desc: 'Real-time double-entry ledger that organizes every UPI, bank, and card spend automatically with zero cloud snooping.',
-      metric1: '₹14,250',
-      label1: 'Weekly Avg',
-      metric2: '0.0ms',
-      label2: 'Cloud Latency',
-    },
-    growth: {
-      title: 'Multi-Asset Wealth & FIRE Planning',
-      desc: 'Simulate financial independence (FIRE) milestone dates, asset allocation rebalancing, and SIP compound growth.',
-      metric1: '24.8%',
-      label1: 'Portfolio CAGR',
-      metric2: '₹18.4L',
-      label2: 'Tracked Assets',
-    },
-    tax: {
-      title: 'Old vs New Tax Regime Engine',
-      desc: 'Instant comparative breakdown of 80C, 80D, HRA deductions, and capital gains (STCG/LTCG) tailored for Indian tax laws.',
-      metric1: '₹48,200',
-      label1: 'Max Tax Saved',
-      metric2: 'FY 2026-27',
-      label2: 'Rules Active',
-    },
-    invoicing: {
-      title: 'Professional GST Invoicing',
-      desc: 'Generate compliant B2B/B2C GST tax invoices, track client receivables, and export instant Profit & Loss summaries.',
-      metric1: '100%',
-      label1: 'GST Compliant',
-      metric2: '< 30 sec',
-      label2: 'Invoice Creation',
-    },
-    vault: {
-      title: 'Argon2id Encrypted Document Vault',
-      desc: 'Store PAN cards, tax filing acknowledgments, mutual fund CAS statements, and property deeds in memory-hard encrypted local vaults.',
-      metric1: 'AES-256',
-      label1: 'Cipher Standard',
-      metric2: '0 Bytes',
-      label2: 'Uploaded to Web',
-    },
-  };
-
-  const activeInfo = pillDetails[activePill];
+  const activeInfo = PILL_DETAILS[activePill];
 
   return (
     <section className="about-section" id="about" data-testid="about-section">
@@ -1156,33 +968,45 @@ export function InteractiveVelocityCard({
 }) {
   const cardRef = useRef<HTMLElement | null>(null);
   const rectRef = useRef<{ left: number; top: number; width: number; height: number } | null>(null);
-  const [hovered, setHovered] = useState(false);
+  const rafRef = useRef<number>(0);
+  const tiltRef = useRef({ x: '0', y: '0' });
 
   const handleMouseEnter = useCallback(() => {
-    setHovered(true);
     const card = cardRef.current;
     if (card) {
+      card.classList.add('is-hovered');
       const rect = card.getBoundingClientRect();
       rectRef.current = { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
     }
   }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
-    const card = cardRef.current;
     const rect = rectRef.current;
-    if (!card || !rect) return;
-    const nx = (e.clientX - rect.left) / rect.width - 0.5;
-    const ny = (e.clientY - rect.top) / rect.height - 0.5;
+    if (!rect || !rect.width || !rect.height) return;
+    tiltRef.current.x = ((e.clientX - rect.left) / rect.width - 0.5).toFixed(3);
+    tiltRef.current.y = ((e.clientY - rect.top) / rect.height - 0.5).toFixed(3);
 
-    card.style.setProperty('--tilt-x', nx.toFixed(3));
-    card.style.setProperty('--tilt-y', ny.toFixed(3));
+    if (!rafRef.current) {
+      rafRef.current = requestAnimationFrame(() => {
+        const card = cardRef.current;
+        if (card) {
+          card.style.setProperty('--tilt-x', tiltRef.current.x);
+          card.style.setProperty('--tilt-y', tiltRef.current.y);
+        }
+        rafRef.current = 0;
+      });
+    }
   }, []);
 
   const handleMouseLeave = useCallback(() => {
     const card = cardRef.current;
-    setHovered(false);
     rectRef.current = null;
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = 0;
+    }
     if (!card) return;
+    card.classList.remove('is-hovered');
     card.style.setProperty('--tilt-x', '0');
     card.style.setProperty('--tilt-y', '0');
   }, []);
@@ -1190,7 +1014,7 @@ export function InteractiveVelocityCard({
   return (
     <article
       ref={cardRef}
-      className={`feature-card ${isFeatured ? 'is-featured' : ''} ${className} ${hovered ? 'is-hovered' : ''}`}
+      className={`feature-card ${isFeatured ? 'is-featured' : ''} ${className}`}
       data-testid={testId}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
@@ -1420,17 +1244,17 @@ export function FeatureCards() {
 /* ==========================================================================
    INTEGRATIONS & DIGITAL PAYMENTS SHOWCASE
    ========================================================================== */
-export function IntegrationsShowcase() {
-  const brandIcons = [
-    { name: 'Stripe', color: '#635BFF', left: '10%', top: '65%' },
-    { name: 'Plaid', color: '#000000', left: '22%', top: '30%' },
-    { name: 'Razorpay', color: '#0C2340', left: '36%', top: '10%' },
-    { name: 'Wise', color: '#9FE870', left: '50%', top: '5%' },
-    { name: 'PayPal', color: '#003087', left: '64%', top: '10%' },
-    { name: 'Apple Pay', color: '#111111', left: '78%', top: '30%' },
-    { name: 'Zerodha', color: '#387ED1', left: '90%', top: '65%' },
-  ];
+const BRAND_ICONS = [
+  { name: 'Stripe', color: '#635BFF', left: '10%', top: '65%' },
+  { name: 'Plaid', color: '#000000', left: '22%', top: '30%' },
+  { name: 'Razorpay', color: '#0C2340', left: '36%', top: '10%' },
+  { name: 'Wise', color: '#9FE870', left: '50%', top: '5%' },
+  { name: 'PayPal', color: '#003087', left: '64%', top: '10%' },
+  { name: 'Apple Pay', color: '#111111', left: '78%', top: '30%' },
+  { name: 'Zerodha', color: '#387ED1', left: '90%', top: '65%' },
+] as const;
 
+export function IntegrationsShowcase() {
   return (
     <div className="integrations-card" data-testid="integrations-card">
       <span className="integrations-badge">INTEGRATIONS</span>
@@ -1441,7 +1265,7 @@ export function IntegrationsShowcase() {
 
       <div className="integrations-stage">
         <div className="integrations-arc-wrapper">
-          {brandIcons.map((brand, idx) => (
+          {BRAND_ICONS.map((brand, idx) => (
             <motion.div
               className="arc-brand-node"
               key={brand.name}
@@ -1586,15 +1410,22 @@ const floatingGlyphs = [
 export function RevealStatement() {
   const sectionRef = useRef<HTMLDivElement | null>(null);
   const tokenRefs = useRef<Array<HTMLSpanElement | null>>([]);
+  const tokenStatesRef = useRef<Float32Array | null>(null);
   const total = revealTokens.length;
 
   const apply = useCallback((progress: number) => {
+    if (!tokenStatesRef.current) {
+      tokenStatesRef.current = new Float32Array(total).fill(-1);
+    }
+    const states = tokenStatesRef.current;
     for (let i = 0; i < total; i++) {
       const el = tokenRefs.current[i];
       if (!el) continue;
       const start = (i / total) * 0.82;
       const end = Math.min(1, start + 0.2);
       const local = Math.min(Math.max((progress - start) / (end - start || 1), 0), 1);
+      if (Math.abs(states[i] - local) < 0.005) continue;
+      states[i] = local;
       el.style.opacity = (0.14 + local * 0.86).toFixed(3);
       el.style.transform = `translateY(${((1 - local) * 10).toFixed(3)}px)`;
     }
@@ -1639,14 +1470,18 @@ export function RevealStatement() {
 }
 
 /**
- * FinanceGallerySection — Exact standalone parallax gallery environment
- * copied from http://localhost:3000/finance-gallery with dedicated dark slate (#070810) styling.
+ * FinanceGallerySection — Interactive multi-velocity parallax feature showcase
+ * of the 12 core engines powering MyFinanceOS with dedicated dark slate (#070810) styling.
  */
-export function FinanceGallerySection() {
+export function FinanceGallerySection({
+  onUnlock,
+  authenticating,
+}: {
+  onUnlock?: () => void;
+  authenticating?: boolean;
+} = {}) {
   // Pre-decode the gallery screenshots during idle time so the browser never
-  // pays the JPEG decode cost mid-scroll when the parallax grid enters the
-  // viewport (the standalone page decodes at load; the landing reaches the
-  // gallery only after scrolling, which otherwise causes an entry hitch).
+  // pays the image decode cost mid-scroll when the parallax grid enters the viewport.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const warm = () => {
@@ -1658,151 +1493,43 @@ export function FinanceGallerySection() {
         }
       }
     };
-    const w = window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number };
-    let timer: number | undefined;
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
     if (typeof w.requestIdleCallback === 'function') {
-      w.requestIdleCallback(warm, { timeout: 1500 });
+      idleId = w.requestIdleCallback(warm, { timeout: 1500 });
     } else {
-      timer = window.setTimeout(warm, 400);
+      timeoutId = setTimeout(warm, 400);
     }
-    return () => { if (timer) window.clearTimeout(timer); };
+    return () => {
+      if (idleId && typeof w.cancelIdleCallback === 'function') {
+        w.cancelIdleCallback(idleId);
+      }
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, []);
 
   return (
     <section
       id="gallery"
       data-testid="standalone-finance-gallery-section"
+      className="finance-gallery-section"
       style={{
-        background: '#070810',
         color: '#ffffff',
         fontFamily: "'Plus Jakarta Sans', sans-serif",
-        minHeight: '100vh',
-        overflowX: 'hidden',
+        overflow: 'visible',
         position: 'relative',
         width: '100%',
+        contain: 'layout style',
+        isolation: 'isolate',
       }}
     >
-      {/* Top Test Section (Scroll Entry Verification) */}
-      <div
-        style={{
-          padding: '120px 24px 80px',
-          maxWidth: 1100,
-          margin: '0 auto',
-          textAlign: 'center',
-        }}
-      >
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '6px 14px',
-            borderRadius: 999,
-            background: 'rgba(147, 51, 234, 0.15)',
-            border: '1px solid rgba(147, 51, 234, 0.3)',
-            color: '#c084fc',
-            fontSize: 13,
-            fontWeight: 700,
-            letterSpacing: '0.05em',
-            textTransform: 'uppercase',
-            marginBottom: 24,
-          }}
-        >
-          Isolated Component Lab
-        </div>
-        <h2
-          style={{
-            fontSize: 'clamp(32px, 5vw, 56px)',
-            fontWeight: 800,
-            letterSpacing: '-0.03em',
-            lineHeight: 1.1,
-            marginBottom: 20,
-            background: 'linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}
-        >
-          MyFinanceOS Skiper30 Parallax Engine
-        </h2>
-        <p
-          style={{
-            fontSize: 'clamp(16px, 2vw, 19px)',
-            color: '#94a3b8',
-            maxWidth: 680,
-            margin: '0 auto 40px',
-            lineHeight: 1.6,
-          }}
-        >
-          Dedicated isolated environment for testing multi-velocity parallax physics, Lenis interpolation, and zero-jitter GPU compositing across all scroll velocities.
-        </p>
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 12,
-            color: '#64748b',
-            fontSize: 14,
-          }}
-        >
-          <span>↓ Scroll down to enter the multi-velocity parallax grid</span>
-        </div>
-      </div>
-
       {/* ISOLATED FINANCE GALLERY COMPONENT */}
       <Skiper30 enableLenis={true} />
-
-      {/* Bottom Test Section (Scroll Exit & Reverse Scroll Verification) */}
-      <div
-        style={{
-          padding: '100px 24px 140px',
-          maxWidth: 900,
-          margin: '0 auto',
-          textAlign: 'center',
-        }}
-      >
-        <h3
-          style={{
-            fontSize: 'clamp(24px, 3.5vw, 36px)',
-            fontWeight: 700,
-            marginBottom: 16,
-            color: '#ffffff',
-          }}
-        >
-          Exit Boundary Verified
-        </h3>
-        <p
-          style={{
-            color: '#94a3b8',
-            fontSize: 16,
-            lineHeight: 1.6,
-            marginBottom: 32,
-          }}
-        >
-          Smooth entry and exit transition boundaries verified. Scroll back up to test reverse motion interpolation and momentum deceleration.
-        </p>
-        <button
-          onClick={() => {
-            if (typeof window !== 'undefined' && window.__myfinanceos_lenis__) {
-              window.__myfinanceos_lenis__.scrollTo(0);
-            } else if (typeof window !== 'undefined') {
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-          }}
-          style={{
-            padding: '12px 28px',
-            borderRadius: 10,
-            background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-            color: '#ffffff',
-            border: 'none',
-            fontSize: 14,
-            fontWeight: 700,
-            cursor: 'pointer',
-            boxShadow: '0 8px 24px rgba(124, 58, 237, 0.4)',
-          }}
-        >
-          ↑ Scroll to Top
-        </button>
-      </div>
     </section>
   );
 }
@@ -1933,23 +1660,28 @@ const statItems = [
 function StatCounter({ value, prefix, suffix }: { value: number; prefix: string; suffix: string }) {
   const ref = useRef<HTMLSpanElement | null>(null);
   const inView = useInView(ref, { once: true, amount: 0.6 });
-  const [display, setDisplay] = useState(0);
 
   useEffect(() => {
-    if (!inView) return;
+    if (!inView || !ref.current) return;
+    const el = ref.current;
+    let lastVal = -1;
     const controls = animate(0, value, {
       duration: 1.5,
       ease: easeOutExpo,
-      onUpdate: (latest) => setDisplay(Math.round(latest)),
+      onUpdate: (latest) => {
+        const rounded = Math.round(latest);
+        if (rounded !== lastVal) {
+          lastVal = rounded;
+          el.textContent = `${prefix}${rounded}${suffix}`;
+        }
+      },
     });
     return () => controls.stop();
-  }, [inView, value]);
+  }, [inView, value, prefix, suffix]);
 
   return (
     <span className="stat-value" ref={ref}>
-      {prefix}
-      {display}
-      {suffix}
+      {prefix}0{suffix}
     </span>
   );
 }
@@ -2326,181 +2058,35 @@ export function BlogSection() {
 }
 
 /* ==========================================================================
-   SECTION: CAREERS & APPLICATION MODAL
-   ========================================================================== */
-interface JobRole {
-  id: string;
-  dept: string;
-  location: string;
-  title: string;
-  desc: string;
-}
-
-const jobRoles: JobRole[] = [
-  {
-    id: 'rust-wasm',
-    dept: 'Engineering',
-    location: 'Remote · Global',
-    title: 'Staff Rust & WASM Performance Engineer',
-    desc: 'Optimize local SQLite WASM bindings, memory-hard Argon2id key derivation, and sub-millisecond financial calculation graphs.',
-  },
-  {
-    id: 'ui-motion',
-    dept: 'Design',
-    location: 'Remote',
-    title: 'Senior UI/UX Motion & 3D Designer',
-    desc: 'Craft silky Framer Motion physical physics, 3D CSS perspective cards, and delightful micro-interactions for complex financial tools.',
-  },
-  {
-    id: 'security-crypto',
-    dept: 'Security',
-    location: 'Remote',
-    title: 'Applied Cryptography & Vault Security Lead',
-    desc: 'Audit client-side AES-256-GCM pipelines, zero-knowledge export protocols, and local memory security against side-channel analysis.',
-  },
-  {
-    id: 'tax-systems',
-    dept: 'Domain Systems',
-    location: 'Remote · India',
-    title: 'Financial Intelligence & Tax Systems Specialist',
-    desc: 'Model Indian Income Tax regimes, GST rules, capital gains indexation, and retirement SIP compounding math.',
-  },
-];
-
-export function CareersSection() {
-  const [selectedJob, setSelectedJob] = useState<JobRole | null>(null);
-  const [appliedSuccess, setAppliedSuccess] = useState(false);
-
-  const handleApplySubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAppliedSuccess(true);
-    setTimeout(() => {
-      setAppliedSuccess(false);
-      setSelectedJob(null);
-    }, 2000);
-  };
-
-  return (
-    <section className="careers-section" id="careers" data-testid="careers-section">
-      <div className="about-header">
-        <span className="about-badge">JOIN THE CORE MISSION</span>
-        <h2 className="about-headline">BUILD THE SOVEREIGN WEALTH OS</h2>
-        <p className="about-sub">
-          We are crafting high-craft, offline-first software that returns privacy and control back to individuals and small businesses.
-        </p>
-      </div>
-
-      <div className="careers-grid">
-        {jobRoles.map((role) => (
-          <div className="career-card" key={role.id} data-testid={`career-card-${role.id}`}>
-            <div>
-              <div className="career-card-top">
-                <span className="career-dept-pill">{role.dept}</span>
-                <span className="career-loc-pill">{role.location}</span>
-              </div>
-              <h3>{role.title}</h3>
-              <p>{role.desc}</p>
-            </div>
-            <button
-              type="button"
-              className="career-apply-btn"
-              onClick={() => setSelectedJob(role)}
-            >
-              Apply now →
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {/* Application Modal */}
-      <AnimatePresence>
-        {selectedJob && (
-          <div
-            className="landing-modal-backdrop"
-            onClick={() => setSelectedJob(null)}
-            role="dialog"
-            aria-modal="true"
-          >
-            <motion.div
-              className="landing-modal-box"
-              onClick={(e) => e.stopPropagation()}
-              initial={{ scale: 0.94, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.94, opacity: 0 }}
-              transition={{ duration: 0.35, ease: easeOutExpo }}
-            >
-              <div className="landing-modal-head">
-                <div>
-                  <span className="career-dept-pill" style={{ marginBottom: 6, display: 'inline-block' }}>{selectedJob.dept}</span>
-                  <h3>Apply: {selectedJob.title}</h3>
-                </div>
-                <button
-                  type="button"
-                  className="landing-modal-close"
-                  onClick={() => setSelectedJob(null)}
-                  aria-label="Close application"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="landing-modal-body">
-                {appliedSuccess ? (
-                  <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                    <div style={{ fontSize: 44, marginBottom: 16 }}>🎉</div>
-                    <h4 style={{ fontSize: 22, color: '#10b981', margin: '0 0 8px' }}>Application Transmitted</h4>
-                    <p>Thank you for reaching out. We review candidate repositories and design portfolios promptly.</p>
-                  </div>
-                ) : (
-                  <form onSubmit={handleApplySubmit} className="contact-form-console">
-                    <div className="form-group">
-                      <label htmlFor="app-name">Full Name</label>
-                      <input id="app-name" type="text" className="form-input" placeholder="e.g. Priya Sharma" required />
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="app-email">Email Address</label>
-                      <input id="app-email" type="email" className="form-input" placeholder="priya@example.com" required />
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="app-url">GitHub, Portfolio or LinkedIn URL</label>
-                      <input id="app-url" type="url" className="form-input" placeholder="https://github.com/..." required />
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="app-note">Why are you passionate about offline sovereign software?</label>
-                      <textarea id="app-note" className="form-textarea" placeholder="Tell us about a project or system you loved building..." required />
-                    </div>
-                    <button type="submit" className="form-submit-btn">
-                      Submit Application
-                    </button>
-                  </form>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </section>
-  );
-}
-
-/* ==========================================================================
    SECTION: CONTACT CONSOLE
    ========================================================================== */
 export function ContactSection() {
   const [submitted, setSubmitted] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
   const pgpKey = '4A8F 9C21 7B03 E19D B654 39A0 82FE 601D';
+  const submitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 4000);
+    if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
+    submitTimerRef.current = setTimeout(() => setSubmitted(false), 4000);
   };
 
   const handleCopyKey = () => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(pgpKey);
       setCopiedKey(true);
-      setTimeout(() => setCopiedKey(false), 2500);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopiedKey(false), 2500);
     }
   };
 
@@ -2593,135 +2179,312 @@ export function ContactSection() {
 }
 
 /* ==========================================================================
-   SECTION: 404 ERROR 3D PLAYGROUND ("CANNOT BE FOUNDED")
+   SECTION: METHODOLOGY & ARCHITECTURE (FIVE PHASES. NO MYSTERY.)
    ========================================================================== */
-export function Error404Section() {
-  const boxRef = useRef<HTMLDivElement | null>(null);
+function PhaseShieldIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="phases-guarantee-icon">
+      <path
+        d="M8 1.5L2.5 3.5V7.5C2.5 11 5 14 8 15C11 14 13.5 11 13.5 7.5V3.5L8 1.5Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6 7.5L7.5 9L10.5 6"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const box = boxRef.current;
-    if (!box) return;
-    const rect = box.getBoundingClientRect();
-    const nx = (e.clientX - rect.left) / rect.width - 0.5;
-    const ny = (e.clientY - rect.top) / rect.height - 0.5;
-    box.style.transform = `rotateX(${-ny * 35}deg) rotateY(${nx * 45}deg)`;
-  };
+export interface PhaseStep {
+  number: string;
+  title: string;
+  description: string;
+  tags: string[];
+  guarantee: string;
+}
 
-  const handleMouseLeave = () => {
-    const box = boxRef.current;
-    if (!box) return;
-    box.style.transform = `rotateX(16deg) rotateY(-18deg)`;
-  };
+export const FIVE_PHASES: PhaseStep[] = [
+  {
+    number: '01',
+    title: 'Capture',
+    description:
+      'Zero-leakage ingestion and reconciliation. We parse bank statements, broker CAS logs, and multi-currency CSVs locally, reconciling every transaction into a strict double-entry ledger before a single byte touches persistent storage.',
+    tags: ['Bank & Broker Parsers', 'Double-Entry Ledger', 'Local SQLite WASM', 'Zero-Knowledge Vault'],
+    guarantee: 'Verified • 100% Client-Side WASM Zero-Knowledge Execution',
+  },
+  {
+    number: '02',
+    title: 'Dissect',
+    description:
+      'Real-time cash flow diagnostics and categorical clarity. We map income streams, variable expenditures, and recurring liabilities into interactive Sankey flows, exposing phantom subscriptions and burn-rate anomalies instantly.',
+    tags: ['Sankey Flow Engine', 'Burn Rate Analytics', 'Subscription Radar', 'Amortization Matrix'],
+    guarantee: 'Live • Real-Time Dynamic Sankey Cashflow Graph',
+  },
+  {
+    number: '03',
+    title: 'Optimize',
+    description:
+      'Algorithmic tax intelligence and regulatory precision. Side-by-side Old vs New Regime simulation, Section 80C/80D deduction harvesting, capital gains tax-loss computation, and compliant B2B GST invoicing engineered for Indian jurisprudence.',
+    tags: ['Dual-Regime Modeler', 'Capital Gains Engine', 'GST Invoicing Suite', 'Deduction Optimizer'],
+    guarantee: 'Engineered • FY 2026-27 Dual-Regime Precision Engine',
+  },
+  {
+    number: '04',
+    title: 'Compound',
+    description:
+      'Mathematical wealth modeling and FIRE trajectory architecture. We simulate SIP compounding, asset allocation drift, inflation-adjusted corpus longevity, and milestone horizons across equities, debt, gold, and liquid reserves.',
+    tags: ['FIRE Target Engine', 'SIP Compound Modeler', 'Asset Allocation Drift', 'Monte Carlo Stress Test'],
+    guarantee: 'Projected • Multi-Horizon Inflation-Adjusted Model',
+  },
+  {
+    number: '05',
+    title: 'Govern',
+    description:
+      'Private autonomous intelligence and sovereign execution. An offline, local AI copilot audits your financial health, executes conditional trigger automations, and seals confidential assets in an Argon2id-encrypted document vault.',
+    tags: ['Local AI Copilot', 'Conditional Triggers', 'Argon2id Vault', 'Audit-Proof Exports'],
+    guarantee: 'Guaranteed • Zero Third-Party Telemetry & Argon2id Vault',
+  },
+];
+
+export function FivePhasesSection() {
+  const [activePhase, setActivePhase] = useState<number>(0);
+  const timelineRef = useRef<HTMLDivElement | null>(null);
+  const trackLineRef = useRef<HTMLDivElement | null>(null);
+  const trackGlowRef = useRef<HTMLDivElement | null>(null);
+  const trackBeadRef = useRef<HTMLDivElement | null>(null);
+
+  const totalDistRef = useRef<number>(1725);
+  const currentProgressRef = useRef<number>(0);
+  const targetProgressRef = useRef<number>(0);
+  const rafIdRef = useRef<number | null>(null);
+  const lastTimeRef = useRef<number>(0);
+
+  const applyTransforms = useCallback((p: number) => {
+    const totalDist = totalDistRef.current || 1725;
+    if (trackGlowRef.current) {
+      trackGlowRef.current.style.transform = `scaleY(${p.toFixed(5)})`;
+    }
+    if (trackBeadRef.current) {
+      // 4.5px offset centers the 9px bead directly on the leading tip of the light
+      trackBeadRef.current.style.transform = `translate3d(-50%, ${(p * totalDist - 4.5).toFixed(2)}px, 0)`;
+    }
+  }, []);
+
+  const startRafLoop = useCallback(() => {
+    if (rafIdRef.current !== null) return;
+    lastTimeRef.current = performance.now();
+
+    const tick = (now: number) => {
+      const dt = Math.min((now - lastTimeRef.current) / 1000, 0.064);
+      lastTimeRef.current = now;
+
+      const target = targetProgressRef.current;
+      const current = currentProgressRef.current;
+      const diff = target - current;
+
+      if (Math.abs(diff) < 0.0002) {
+        currentProgressRef.current = target;
+        applyTransforms(target);
+        rafIdRef.current = null;
+        return;
+      }
+
+      // Ultra-smooth liquid inertia physics (decay rate 7.5s^-1):
+      // Smooths out all mouse wheel notchiness into an effortless, buttery fluid stream
+      const decay = 1 - Math.exp(-7.5 * dt);
+      const next = current + diff * decay;
+      currentProgressRef.current = next;
+
+      applyTransforms(next);
+
+      const phaseIdx = Math.min(4, Math.max(0, Math.round(next * 4)));
+      setActivePhase((prev) => (prev !== phaseIdx ? phaseIdx : prev));
+
+      rafIdRef.current = requestAnimationFrame(tick);
+    };
+
+    rafIdRef.current = requestAnimationFrame(tick);
+  }, [applyTransforms]);
+
+  const onScrollTick = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    const itemEls = document.querySelectorAll<HTMLElement>('.phases-item');
+    if (!itemEls.length) return;
+
+    const firstBadge = itemEls[0]?.querySelector<HTMLElement>('.phases-badge');
+    const lastBadge = itemEls[itemEls.length - 1]?.querySelector<HTMLElement>('.phases-badge');
+    if (!firstBadge || !lastBadge) return;
+
+    const b0Rect = firstBadge.getBoundingClientRect();
+    const bLastRect = lastBadge.getBoundingClientRect();
+
+    const b0Y = b0Rect.top + b0Rect.height / 2;
+    const bLastY = bLastRect.top + bLastRect.height / 2;
+    const totalDist = bLastY - b0Y;
+
+    if (totalDist > 0) {
+      totalDistRef.current = totalDist;
+      if (trackLineRef.current) {
+        trackLineRef.current.style.height = `${totalDist}px`;
+      }
+    }
+
+    const focalY = window.innerHeight * 0.42;
+
+    let rawProgress = 0;
+    if (totalDist > 0) {
+      rawProgress = (focalY - b0Y) / totalDist;
+    }
+    const targetProgress = Math.min(1, Math.max(0, rawProgress));
+    targetProgressRef.current = targetProgress;
+
+    startRafLoop();
+  }, [startRafLoop]);
+
+  // Hook into Lenis smooth-scroller singleton RAF loop
+  useLenisScroll(true, onScrollTick);
+
+  // Hook into native window scroll & resize events
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    onScrollTick();
+
+    window.addEventListener('scroll', onScrollTick, { passive: true });
+    window.addEventListener('resize', onScrollTick, { passive: true });
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      document.fonts.ready.then(onScrollTick);
+    }
+
+    return () => {
+      window.removeEventListener('scroll', onScrollTick);
+      window.removeEventListener('resize', onScrollTick);
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+    };
+  }, [onScrollTick]);
 
   return (
-    <section className="error-404-section" id="error-404" data-testid="error-404-section">
-      <div className="error-404-card" onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
-        <div className="error-404-stage">
-          <div className="isometric-404-box" ref={boxRef}>
-            <span className="isometric-404-text">404</span>
+    <section
+      className="phases-section changelog-section"
+      id="how-we-work"
+      data-testid="phases-section"
+      data-test-changelog="true"
+    >
+      <span
+        id="changelog"
+        style={{ position: 'absolute', top: '-100px', left: 0, width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+        aria-hidden="true"
+      />
+      <div className="phases-container" data-testid="changelog-section">
+        {/* Sticky Left Column */}
+        <motion.div
+          className="phases-sticky-col"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-60px' }}
+          transition={{ duration: 0.6, ease: easeOutExpo }}
+        >
+          <div className="phases-eyebrow">
+            <span className="phases-eyebrow-dash" aria-hidden="true">—</span>
+            <span>HOW WE OPERATE</span>
+            <span className="phases-live-pulse" aria-hidden="true" title="Real-time methodology pipeline">
+              <span className="phases-live-pulse-ring" />
+              <span className="phases-live-pulse-core" />
+            </span>
+          </div>
+          <h2 className="phases-headline">
+            Five phases.<br />
+            No mystery.
+          </h2>
+          <p className="phases-description">
+            The same arc runs through every financial cycle, whether reconciling yesterday&apos;s transactions or modeling thirty-year wealth independence. Each phase has named, deterministic outputs, so you always know what your money is doing and why.
+          </p>
+        </motion.div>
+
+        {/* Timeline Right Column */}
+        <div className="phases-timeline-col" ref={timelineRef}>
+          <div className="phases-timeline changelog-timeline">
+            {/* Glowing vertical connector line */}
+            <div className="phases-track-line" ref={trackLineRef} aria-hidden="true">
+              <div
+                ref={trackGlowRef}
+                className="phases-track-glow"
+              />
+              <div
+                ref={trackBeadRef}
+                className="phases-track-bead"
+              >
+                <span className="phases-track-bead-core" />
+              </div>
+            </div>
+
+            {/* Sequence of Phases */}
+            {FIVE_PHASES.map((phase, idx) => {
+              const isActive = activePhase === idx;
+              return (
+                <motion.div
+                  key={phase.number}
+                  className={`phases-item changelog-entry ${isActive ? 'is-active-card' : ''}`}
+                  data-phase-index={idx}
+                  initial={{ opacity: 0, y: 28 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-40px' }}
+                  transition={{ duration: 0.55, delay: idx * 0.08, ease: easeOutExpo }}
+                  onMouseEnter={() => setActivePhase(idx)}
+                  onMouseMove={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                    e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+                  }}
+                >
+                  <div className="phases-badge-wrapper">
+                    <div
+                      className={`phases-badge changelog-dot ${isActive ? 'is-active' : ''}`}
+                      aria-label={`Phase ${phase.number}`}
+                    >
+                      {phase.number}
+                    </div>
+                    <div className={`phases-badge-halo ${isActive ? 'is-pulsing' : ''}`} aria-hidden="true" />
+                  </div>
+
+                  <div className="phases-content changelog-card">
+                    <h3 className="phases-title">{phase.title}</h3>
+                    <p className="phases-summary">{phase.description}</p>
+                    <div className="phases-tags">
+                      {phase.tags.map((tag) => (
+                        <span key={tag} className="phases-pill changelog-item-tag">
+                          <span className="phases-pill-dot" aria-hidden="true" />
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="phases-guarantee">
+                      <PhaseShieldIcon />
+                      <span>{phase.guarantee}</span>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
-
-        <h3 className="error-cannot-founded">CANNOT BE FOUNDED.</h3>
-        <p className="error-404-desc">
-          The requested coordinate drifted outside your sovereign ledger matrix. Don&apos;t worry—your financial assets and local encrypted vaults remain 100% secure.
-        </p>
-
-        <button
-          type="button"
-          className="error-return-btn"
-          onClick={(e) => {
-            e.preventDefault();
-            const home = document.querySelector('#home');
-            if (home) {
-              smoothScrollTo(home as HTMLElement);
-            } else {
-              smoothScrollTo(0);
-            }
-          }}
-          data-testid="error-return-home-btn"
-        >
-          <span>← Return to Safe Harbor</span>
-        </button>
       </div>
     </section>
   );
 }
 
-/* ==========================================================================
-   SECTION: CHANGELOG TIMELINE
-   ========================================================================== */
-export function ChangelogSection() {
-  const releases = [
-    {
-      version: 'v2.4.0',
-      tag: 'Latest Release',
-      date: 'August 2026',
-      title: 'Multi-Regime Tax Engine 2026-27 & Sankey Cash Flows',
-      items: [
-        { type: 'Feature', text: 'Side-by-side Old vs New Tax Regime interactive deduction modeler.' },
-        { type: 'Feature', text: 'Real-time Sankey cash flow visualization across income streams.' },
-        { type: 'Security', text: 'Upgraded vault key derivation to memory-hard Argon2id with zero-trust validation.' },
-      ],
-    },
-    {
-      version: 'v2.3.2',
-      tag: 'Maintenance',
-      date: 'July 2026',
-      title: 'GST Invoicing Suite & Automated PDF Dispatch',
-      items: [
-        { type: 'Feature', text: 'Compliant B2B GST tax invoice generation with HSN/SAC code lookup.' },
-        { type: 'Perf', text: 'Reduced WASM database startup latency by 45%.' },
-        { type: 'Fix', text: 'Resolved multi-currency decimal rounding in forex ledger entries.' },
-      ],
-    },
-    {
-      version: 'v2.2.0',
-      tag: 'Major',
-      date: 'May 2026',
-      title: 'Local AI Financial Copilot Integration',
-      items: [
-        { type: 'Feature', text: 'Offline Ollama / WebLLM integration for private natural language financial insights.' },
-        { type: 'Feature', text: 'SIP compound interest & FIRE retirement target timeline simulator.' },
-      ],
-    },
-  ];
-
-  return (
-    <section className="changelog-section" id="changelog" data-testid="changelog-section">
-      <div className="about-header">
-        <span className="about-badge">CONTINUOUS EVOLUTION</span>
-        <h2 className="about-headline">PRODUCT CHANGELOG</h2>
-        <p className="about-sub">
-          Track updates, security enhancements, and new financial modules released to the sovereign core.
-        </p>
-      </div>
-
-      <div className="changelog-timeline">
-        {releases.map((rel) => (
-          <div className="changelog-entry" key={rel.version}>
-            <div className="changelog-dot" />
-            <div className="changelog-card">
-              <div className="changelog-card-top">
-                <span className="changelog-ver-badge">{rel.version} ({rel.tag})</span>
-                <span className="changelog-date">{rel.date}</span>
-              </div>
-              <h4>{rel.title}</h4>
-              <ul className="changelog-items-list">
-                {rel.items.map((it, idx) => (
-                  <li key={idx}>
-                    <span className="changelog-item-tag">{it.type}</span>
-                    <span>{it.text}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
+export const ChangelogSection = FivePhasesSection;
 
 /* ==========================================================================
    SECTION: LEGAL (TERMS OF SERVICE & PRIVACY POLICY EMBEDDED PANELS)
@@ -2929,7 +2692,7 @@ const faqItems: { question: string; answer: React.ReactNode }[] = [
   },
 ];
 
-function FaqRow({
+const FaqRow = memo(function FaqRow({
   item,
   index,
   isOpen,
@@ -2986,7 +2749,7 @@ function FaqRow({
       </AnimatePresence>
     </motion.div>
   );
-}
+});
 
 export function Faq({ onUnlock }: { onUnlock?: () => void }) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
@@ -3122,6 +2885,17 @@ const megaDrifts: Array<[string, string]> = [
   ['-13%', '4%'],
 ];
 
+const MEGA_DRIFTS_NUM = [
+  [-7, 5],
+  [9, -8],
+  [-13, 4],
+] as const;
+
+const PROGRESS_ANCHORS = [0, 0.5, 1] as const;
+const HALO_SCALE_YS = [0.82, 1.12, 0.9] as const;
+const HALO_OPACITY_YS = [0.35, 0.9, 0.4] as const;
+const PHONE_SCALE_YS = [0.9, 1, 0.94] as const;
+
 export function MegaCta({ onUnlock, authenticating = false }: { onUnlock?: () => void; authenticating?: boolean }) {
   const sectionRef = useRef<HTMLElement | null>(null);
   const haloRef = useRef<HTMLSpanElement | null>(null);
@@ -3131,21 +2905,20 @@ export function MegaCta({ onUnlock, authenticating = false }: { onUnlock?: () =>
   const apply = useCallback((p: number) => {
     const halo = haloRef.current;
     if (halo) {
-      halo.style.transform = `scale(${piecewiseMap(p, [0, 0.5, 1], [0.82, 1.12, 0.9]).toFixed(4)})`;
-      halo.style.opacity = piecewiseMap(p, [0, 0.5, 1], [0.35, 0.9, 0.4]).toFixed(3);
+      halo.style.transform = `scale(${piecewiseMap(p, PROGRESS_ANCHORS, HALO_SCALE_YS).toFixed(4)})`;
+      halo.style.opacity = piecewiseMap(p, PROGRESS_ANCHORS, HALO_OPACITY_YS).toFixed(3);
     }
 
-    for (let i = 0; i < megaDrifts.length; i++) {
+    for (let i = 0; i < MEGA_DRIFTS_NUM.length; i++) {
       const el = wordRefs.current[i];
       if (!el) continue;
-      const from = parseFloat(megaDrifts[i][0]);
-      const to = parseFloat(megaDrifts[i][1]);
+      const [from, to] = MEGA_DRIFTS_NUM[i];
       el.style.transform = `translateX(${(from + (to - from) * p).toFixed(3)}%)`;
     }
 
     const phone = phoneRef.current;
     if (phone) {
-      phone.style.transform = `translateY(${(86 - 172 * p).toFixed(2)}px) scale(${piecewiseMap(p, [0, 0.5, 1], [0.9, 1, 0.94]).toFixed(4)})`;
+      phone.style.transform = `translateY(${(86 - 172 * p).toFixed(2)}px) scale(${piecewiseMap(p, PROGRESS_ANCHORS, PHONE_SCALE_YS).toFixed(4)})`;
     }
   }, []);
 
@@ -3319,7 +3092,6 @@ const footerNavColumns: FooterLink[][] = [
   [
     { label: 'Pricing', href: '#pricing' },
     { label: 'Blog', href: '#blog' },
-    { label: 'Careers', href: '#careers' },
   ],
 ];
 
@@ -3327,12 +3099,12 @@ const footerLegalColumns: FooterLink[][] = [
   [
     { label: 'Contact', href: '#contact' },
     { label: 'FAQs', href: '#faqs' },
-    { label: '404 Error', href: '#error-404' },
+    { label: 'Changelog', href: '/changelog' },
   ],
   [
-    { label: 'Changelog', href: '#changelog' },
-    { label: 'Terms of Service', href: '#terms' },
-    { label: 'Privacy Policy', href: '#privacy' },
+    { label: 'Methodology', href: '#how-we-work' },
+    { label: 'Terms of Service', href: '/terms' },
+    { label: 'Privacy Policy', href: '/privacy' },
   ],
 ];
 
@@ -3395,10 +3167,7 @@ function FooterColumn({ links, offset }: { links: FooterLink[]; offset: number }
 
 export function SiteFooter() {
   const scrollToTop = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const reduced =
-      typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+    smoothScrollTo(0);
   }, []);
 
   return (
@@ -3475,6 +3244,24 @@ export function SiteFooter() {
           </div>
         </div>
 
+        {/* Release & Changelog Shelf */}
+        <div className="footer-changelog-shelf" data-testid="footer-changelog">
+          <div className="footer-changelog-meta">
+            <div className="footer-version-tag" data-testid="footer-version-tag">
+              <span className="footer-version-dot" aria-hidden="true" />
+              <span>MyFinanceOS v{CURRENT_VERSION}</span>
+            </div>
+            <div className="footer-changelog-summary" data-testid="footer-changelog-summary">
+              <span className="footer-summary-prefix">Latest:</span>
+              <span className="footer-summary-text">{LATEST_CHANGELOG_ENTRY.summary}</span>
+            </div>
+          </div>
+          <Link href="/changelog" className="footer-changelog-link" data-testid="footer-changelog-link">
+            <span>View Changelog</span>
+            <span aria-hidden="true" className="footer-link-arrow">→</span>
+          </Link>
+        </div>
+
         {/* Bottom Frosted Pill / Ribbon Shelf */}
         <div className="footer-frosted-shelf">
           <div className="footer-shelf-content">
@@ -3513,9 +3300,7 @@ export function Outro({ onUnlock, authenticating = false }: { onUnlock?: () => v
       <AboutSection />
       <PricingSection onUnlock={onUnlock} />
       <BlogSection />
-      <CareersSection />
       <ContactSection />
-      <Error404Section />
       <ChangelogSection />
       <LegalSection />
       <CapabilityMarquee />
@@ -3534,7 +3319,7 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock, authenticating }) =>
   // page. Skiper30 then joins this already-running one-RAF engine for its
   // parallax transforms, exactly as it does in the isolated component lab.
   useLenisScroll(true);
-  useOffscreenAnimationPause();
+  useHeroScrollObserver();
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.localStorage) return;
@@ -3580,21 +3365,23 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock, authenticating }) =>
   );
   if (isBare) {
     return (
-      <main style={{ background: '#070810', minHeight: '100vh' }} data-testid="bare-landing">
-        <FinanceGallerySection />
+      <main className="finance-gallery-section" style={{ minHeight: '100vh' }} data-testid="bare-landing">
+        <FinanceGallerySection onUnlock={onUnlock} authenticating={authenticating} />
       </main>
     );
   }
 
   return (
-    <div className={`app-shell ${dark ? 'dark' : ''}`} data-testid="app-shell">
-      <ScrollProgress />
-      <Header dark={dark} onToggleTheme={handleToggleTheme} onUnlock={onUnlock} authenticating={authenticating} />
-      <Hero onUnlock={onUnlock} authenticating={authenticating} />
-      <FinanceGallerySection />
-      <Showcase />
-      <Outro onUnlock={onUnlock} authenticating={authenticating} />
-    </div>
+    <MotionConfig reducedMotion="never">
+      <div className={`app-shell ${dark ? 'dark' : ''}`} data-testid="app-shell">
+        <ScrollProgress />
+        <Header dark={dark} onToggleTheme={handleToggleTheme} onUnlock={onUnlock} authenticating={authenticating} />
+        <Hero onUnlock={onUnlock} authenticating={authenticating} />
+        <FinanceGallerySection onUnlock={onUnlock} authenticating={authenticating} />
+        <Showcase />
+        <Outro onUnlock={onUnlock} authenticating={authenticating} />
+      </div>
+    </MotionConfig>
   );
 };
 

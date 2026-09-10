@@ -523,6 +523,7 @@ export const TermsView: React.FC<TermsViewProps> = ({ onBack, showNav = true }) 
           <div>© 2026 MyFinanceOS. Premium Local-First Financial Operating System.</div>
           <div style={{ display: 'flex', gap: '1.5rem' }}>
             <Link href="/" style={{ color: 'var(--text-secondary, #94a3b8)', textDecoration: 'none' }}>Home</Link>
+            <Link href="/changelog" style={{ color: 'var(--text-secondary, #94a3b8)', textDecoration: 'none' }}>Changelog</Link>
             <Link href="/privacy" style={{ color: 'var(--text-secondary, #94a3b8)', textDecoration: 'none' }}>Privacy Policy</Link>
             <a href="#license" style={{ color: 'var(--accent-1, #38bdf8)', textDecoration: 'none' }}>Top ↑</a>
           </div>

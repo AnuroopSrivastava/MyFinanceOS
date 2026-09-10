@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { getPostHogClient } from '../../../src/lib/posthog-server'
 
 // The OAuth code-exchange callback runs server-side on the hosted deployment.
 export const dynamic = 'force-dynamic'
@@ -43,6 +44,16 @@ export async function GET(request: Request) {
     )
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      const ph = getPostHogClient();
+      if (ph) {
+        // Use a stable anonymous ID since the user session is not yet hydrated client-side
+        ph.capture({
+          distinctId: 'anonymous_oauth',
+          event: 'auth_callback_completed',
+          properties: { provider: 'google', next }
+        });
+        await ph.flush();
+      }
       return response
     }
     console.error('Auth code exchange error:', error)

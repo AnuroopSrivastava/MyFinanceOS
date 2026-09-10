@@ -777,9 +777,10 @@ class DatabaseService {
   }
 
   // Bank Accounts
-  public getAccounts(): BankAccount[] {
+  public getAccounts(profileId?: string): BankAccount[] {
     if (!this.db) throw new Error('Database is locked');
-    if (this.activeProfileId) return this.db.accounts.filter(a => a.profileId === this.activeProfileId);
+    const targetPid = profileId || this.activeProfileId;
+    if (targetPid) return this.db.accounts.filter(a => a.profileId === targetPid);
     return this.db.accounts;
   }
 
@@ -791,6 +792,7 @@ class DatabaseService {
     const newAccount: BankAccount = { ...account, id: 'a_' + generateSalt(6) };
     this.db.accounts.push(newAccount);
     await this.save();
+    this.notifySubscribers();
     return newAccount;
   }
 
@@ -802,6 +804,7 @@ class DatabaseService {
     }
     this.db.accounts = this.db.accounts.map(a => a.id === id ? { ...a, ...updates } : a);
     await this.save();
+    this.notifySubscribers();
   }
 
   public async deleteAccount(id: string): Promise<void> {
@@ -813,6 +816,7 @@ class DatabaseService {
     this.db.accounts = this.db.accounts.filter(a => a.id !== id);
     this.db.transactions = this.db.transactions.filter(t => t.accountId !== id);
     await this.save();
+    this.notifySubscribers();
   }
 
   // Transactions Ledger
@@ -865,7 +869,66 @@ class DatabaseService {
     }
 
     await this.save();
+    this.notifySubscribers();
     return newTx;
+  }
+
+  /**
+   * Atomic batch transaction insertion.
+   * Evaluates automation rules, updates account balances in a single pass,
+   * and triggers a single save and subscriber notification.
+   */
+  public async addTransactions(txs: Omit<Transaction, 'id'>[]): Promise<Transaction[]> {
+    if (!this.db) throw new Error('Database is locked');
+    if (!txs || txs.length === 0) return [];
+
+    const newTxs: Transaction[] = [];
+    const activeRules = (this.db.automationRules || []).filter(r => r.isActive);
+
+    for (const tx of txs) {
+      let category = tx.category;
+      let tag = tx.tag;
+      const rules = activeRules.filter(r => r.profileId === tx.profileId);
+      for (const r of rules) {
+        if (r.triggerType === 'DescriptionContains' && tx.description.toLowerCase().includes(r.matchPattern.toLowerCase())) {
+          category = r.targetCategory;
+          if (r.targetTag) tag = r.targetTag;
+          break;
+        } else if (r.triggerType === 'AmountOver' && tx.amount >= parseFloat(r.matchPattern)) {
+          category = r.targetCategory;
+          if (r.targetTag) tag = r.targetTag;
+          break;
+        } else if (r.triggerType === 'CategoryMatch' && tx.category.toLowerCase() === r.matchPattern.toLowerCase()) {
+          category = r.targetCategory;
+          if (r.targetTag) tag = r.targetTag;
+          break;
+        }
+      }
+
+      const newTx: Transaction = { ...tx, category, tag, id: 't_' + generateSalt(6) };
+      newTxs.push(newTx);
+      this.db.transactions.push(newTx);
+
+      // Update bank balance
+      const account = this.db.accounts.find(a => a.id === tx.accountId);
+      if (account) {
+        if (tx.type === 'Income') account.balance += tx.amount;
+        else if (tx.type === 'Expense') account.balance -= tx.amount;
+        else if (tx.type === 'Transfer') {
+          account.balance -= tx.amount;
+        }
+      }
+
+      // For transfers to other bank accounts
+      if (tx.type === 'Transfer' && tx.refAccountId) {
+        const refAccount = this.db.accounts.find(a => a.id === tx.refAccountId);
+        if (refAccount) refAccount.balance += tx.amount;
+      }
+    }
+
+    await this.save();
+    this.notifySubscribers();
+    return newTxs;
   }
 
   public async updateTransaction(id: string, updates: Partial<Transaction>): Promise<void> {
@@ -901,6 +964,7 @@ class DatabaseService {
     }
 
     await this.save();
+    this.notifySubscribers();
   }
 
   public async deleteTransaction(id: string): Promise<void> {
@@ -922,13 +986,15 @@ class DatabaseService {
       }
       this.db.transactions = this.db.transactions.filter(t => t.id !== id);
       await this.save();
+      this.notifySubscribers();
     }
   }
 
   // Budgets
-  public getBudgets(): Budget[] {
+  public getBudgets(profileId?: string): Budget[] {
     if (!this.db) throw new Error('Database is locked');
-    return (this.activeProfileId ? this.db.budgets.filter(x => x.profileId === this.activeProfileId) : this.db.budgets);
+    const targetPid = profileId || this.activeProfileId;
+    return (targetPid ? this.db.budgets.filter(x => x.profileId === targetPid) : this.db.budgets);
   }
 
   public async addBudget(budget: Omit<Budget, 'id'>): Promise<Budget> {
@@ -936,6 +1002,7 @@ class DatabaseService {
     const newBudget: Budget = { ...budget, id: 'b_' + generateSalt(6) };
     this.db.budgets.push(newBudget);
     await this.save();
+    this.notifySubscribers();
     return newBudget;
   }
 
@@ -943,12 +1010,14 @@ class DatabaseService {
     if (!this.db) throw new Error('Database is locked');
     this.db.budgets = this.db.budgets.map(b => b.id === id ? { ...b, ...updates } : b);
     await this.save();
+    this.notifySubscribers();
   }
 
   public async deleteBudget(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
     this.db.budgets = this.db.budgets.filter(b => b.id !== id);
     await this.save();
+    this.notifySubscribers();
   }
 
   // Encrypted Documents (Document Vault)
@@ -964,6 +1033,7 @@ class DatabaseService {
     if (!this.db.encryptedDocuments) this.db.encryptedDocuments = [];
     this.db.encryptedDocuments.push(doc);
     await this.save();
+    this.notifySubscribers();
     return doc;
   }
 
@@ -972,13 +1042,15 @@ class DatabaseService {
     if (this.db.encryptedDocuments) {
       this.db.encryptedDocuments = this.db.encryptedDocuments.filter(d => d.id !== id);
       await this.save();
+      this.notifySubscribers();
     }
   }
 
   // FDs
-  public getFDs(): FixedDeposit[] {
+  public getFDs(profileId?: string): FixedDeposit[] {
     if (!this.db) throw new Error('Database is locked');
-    return (this.activeProfileId ? this.db.fds.filter(x => x.profileId === this.activeProfileId) : this.db.fds);
+    const targetPid = profileId || this.activeProfileId;
+    return (targetPid ? this.db.fds.filter(x => x.profileId === targetPid) : this.db.fds);
   }
 
   public async addFD(fd: Omit<FixedDeposit, 'id'>): Promise<FixedDeposit> {
@@ -986,6 +1058,7 @@ class DatabaseService {
     const newFD: FixedDeposit = { ...fd, id: 'fd_' + generateSalt(6) };
     this.db.fds.push(newFD);
     await this.save();
+    this.notifySubscribers();
     return newFD;
   }
 
@@ -993,24 +1066,28 @@ class DatabaseService {
     if (!this.db) throw new Error('Database is locked');
     this.db.fds = this.db.fds.map(f => f.id === id ? { ...f, ...updates } : f);
     await this.save();
+    this.notifySubscribers();
   }
 
   public async deleteFD(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
     this.db.fds = this.db.fds.filter(f => f.id !== id);
     await this.save();
+    this.notifySubscribers();
   }
 
   // Stocks
-  public getStocks(): StockHolding[] {
+  public getStocks(profileId?: string): StockHolding[] {
     if (!this.db) throw new Error('Database is locked');
-    return (this.activeProfileId ? this.db.stocks.filter(x => x.profileId === this.activeProfileId) : this.db.stocks);
+    const targetPid = profileId || this.activeProfileId;
+    return (targetPid ? this.db.stocks.filter(x => x.profileId === targetPid) : this.db.stocks);
   }
 
   public async updateStock(id: string, updates: Partial<StockHolding>): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
     this.db.stocks = this.db.stocks.map(s => s.id === id ? { ...s, ...updates } : s);
     await this.save();
+    this.notifySubscribers();
   }
 
   public async addStock(stock: Omit<StockHolding, 'id'>): Promise<StockHolding> {
@@ -1018,6 +1095,7 @@ class DatabaseService {
     const newStock: StockHolding = { ...stock, id: 'stk_' + generateSalt(6) };
     this.db.stocks.push(newStock);
     await this.save();
+    this.notifySubscribers();
     return newStock;
   }
 
@@ -1025,12 +1103,14 @@ class DatabaseService {
     if (!this.db) throw new Error('Database is locked');
     this.db.stocks = this.db.stocks.filter(s => s.id !== id);
     await this.save();
+    this.notifySubscribers();
   }
 
   // Mutual Funds
-  public getMutualFunds(): MutualFundHolding[] {
+  public getMutualFunds(profileId?: string): MutualFundHolding[] {
     if (!this.db) throw new Error('Database is locked');
-    return (this.activeProfileId ? this.db.mutualfunds.filter(x => x.profileId === this.activeProfileId) : this.db.mutualfunds);
+    const targetPid = profileId || this.activeProfileId;
+    return (targetPid ? this.db.mutualfunds.filter(x => x.profileId === targetPid) : this.db.mutualfunds);
   }
 
   public async addMutualFund(mf: Omit<MutualFundHolding, 'id'>): Promise<MutualFundHolding> {
@@ -1038,6 +1118,7 @@ class DatabaseService {
     const newMF: MutualFundHolding = { ...mf, id: 'mf_' + generateSalt(6) };
     this.db.mutualfunds.push(newMF);
     await this.save();
+    this.notifySubscribers();
     return newMF;
   }
 
@@ -1045,18 +1126,21 @@ class DatabaseService {
     if (!this.db) throw new Error('Database is locked');
     this.db.mutualfunds = this.db.mutualfunds.map(m => m.id === id ? { ...m, ...updates } : m);
     await this.save();
+    this.notifySubscribers();
   }
 
   public async deleteMutualFund(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
     this.db.mutualfunds = this.db.mutualfunds.filter(m => m.id !== id);
     await this.save();
+    this.notifySubscribers();
   }
 
   // Gold Holdings
-  public getGold(): GoldHolding[] {
+  public getGold(profileId?: string): GoldHolding[] {
     if (!this.db) throw new Error('Database is locked');
-    return (this.activeProfileId ? this.db.gold.filter(x => x.profileId === this.activeProfileId) : this.db.gold);
+    const targetPid = profileId || this.activeProfileId;
+    return (targetPid ? this.db.gold.filter(x => x.profileId === targetPid) : this.db.gold);
   }
 
   public async addGold(gold: Omit<GoldHolding, 'id'>): Promise<GoldHolding> {
@@ -1064,6 +1148,7 @@ class DatabaseService {
     const newGold: GoldHolding = { ...gold, id: 'gld_' + generateSalt(6) };
     this.db.gold.push(newGold);
     await this.save();
+    this.notifySubscribers();
     return newGold;
   }
 
@@ -1071,18 +1156,21 @@ class DatabaseService {
     if (!this.db) throw new Error('Database is locked');
     this.db.gold = this.db.gold.map(g => g.id === id ? { ...g, ...updates } : g);
     await this.save();
+    this.notifySubscribers();
   }
 
   public async deleteGold(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
     this.db.gold = this.db.gold.filter(g => g.id !== id);
     await this.save();
+    this.notifySubscribers();
   }
 
   // NPS
-  public getNPS(): NPSHolding[] {
+  public getNPS(profileId?: string): NPSHolding[] {
     if (!this.db) throw new Error('Database is locked');
-    return (this.activeProfileId ? this.db.nps.filter(x => x.profileId === this.activeProfileId) : this.db.nps);
+    const targetPid = profileId || this.activeProfileId;
+    return (targetPid ? this.db.nps.filter(x => x.profileId === targetPid) : this.db.nps);
   }
 
   public async addNPS(nps: Omit<NPSHolding, 'id'>): Promise<NPSHolding> {
@@ -1090,6 +1178,7 @@ class DatabaseService {
     const newNPS: NPSHolding = { ...nps, id: 'nps_' + generateSalt(6) };
     this.db.nps.push(newNPS);
     await this.save();
+    this.notifySubscribers();
     return newNPS;
   }
 
@@ -1097,18 +1186,21 @@ class DatabaseService {
     if (!this.db) throw new Error('Database is locked');
     this.db.nps = this.db.nps.map(n => n.id === id ? { ...n, ...updates } : n);
     await this.save();
+    this.notifySubscribers();
   }
 
   public async deleteNPS(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
     this.db.nps = this.db.nps.filter(n => n.id !== id);
     await this.save();
+    this.notifySubscribers();
   }
 
   // Provident Fund (EPF/PPF)
-  public getPF(): ProvidentFundHolding[] {
+  public getPF(profileId?: string): ProvidentFundHolding[] {
     if (!this.db) throw new Error('Database is locked');
-    return (this.activeProfileId ? this.db.pf.filter(x => x.profileId === this.activeProfileId) : this.db.pf);
+    const targetPid = profileId || this.activeProfileId;
+    return (targetPid ? this.db.pf.filter(x => x.profileId === targetPid) : this.db.pf);
   }
 
   public async addPF(pf: Omit<ProvidentFundHolding, 'id'>): Promise<ProvidentFundHolding> {
@@ -1116,6 +1208,7 @@ class DatabaseService {
     const newPF: ProvidentFundHolding = { ...pf, id: 'pf_' + generateSalt(6) };
     this.db.pf.push(newPF);
     await this.save();
+    this.notifySubscribers();
     return newPF;
   }
 
@@ -1123,18 +1216,21 @@ class DatabaseService {
     if (!this.db) throw new Error('Database is locked');
     this.db.pf = this.db.pf.map(p => p.id === id ? { ...p, ...updates } : p);
     await this.save();
+    this.notifySubscribers();
   }
 
   public async deletePF(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
     this.db.pf = this.db.pf.filter(p => p.id !== id);
     await this.save();
+    this.notifySubscribers();
   }
 
   // Business: Contacts
-  public getContacts(): VendorCustomer[] {
+  public getContacts(profileId?: string): VendorCustomer[] {
     if (!this.db) throw new Error('Database is locked');
-    return (this.activeProfileId ? this.db.contacts.filter(x => x.profileId === this.activeProfileId) : this.db.contacts);
+    const targetPid = profileId || this.activeProfileId;
+    return (targetPid ? this.db.contacts.filter(x => x.profileId === targetPid) : this.db.contacts);
   }
 
   public async addContact(contact: Omit<VendorCustomer, 'id'>): Promise<VendorCustomer> {
@@ -1142,6 +1238,7 @@ class DatabaseService {
     const newContact: VendorCustomer = { ...contact, id: 'c_' + generateSalt(6) };
     this.db.contacts.push(newContact);
     await this.save();
+    this.notifySubscribers();
     return newContact;
   }
 
@@ -1149,18 +1246,21 @@ class DatabaseService {
     if (!this.db) throw new Error('Database is locked');
     this.db.contacts = this.db.contacts.map(c => c.id === id ? { ...c, ...updates } : c);
     await this.save();
+    this.notifySubscribers();
   }
 
   public async deleteContact(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
     this.db.contacts = this.db.contacts.filter(c => c.id !== id);
     await this.save();
+    this.notifySubscribers();
   }
 
   // Business: Inventory
-  public getInventory(): InventoryItem[] {
+  public getInventory(profileId?: string): InventoryItem[] {
     if (!this.db) throw new Error('Database is locked');
-    return (this.activeProfileId ? this.db.inventory.filter(x => x.profileId === this.activeProfileId) : this.db.inventory);
+    const targetPid = profileId || this.activeProfileId;
+    return (targetPid ? this.db.inventory.filter(x => x.profileId === targetPid) : this.db.inventory);
   }
 
   public async addInventoryItem(item: Omit<InventoryItem, 'id'>): Promise<InventoryItem> {
@@ -1168,6 +1268,7 @@ class DatabaseService {
     const newItem: InventoryItem = { ...item, id: 'i_' + generateSalt(6) };
     this.db.inventory.push(newItem);
     await this.save();
+    this.notifySubscribers();
     return newItem;
   }
 
@@ -1175,12 +1276,14 @@ class DatabaseService {
     if (!this.db) throw new Error('Database is locked');
     this.db.inventory = this.db.inventory.map(i => i.id === id ? { ...i, ...updates } : i);
     await this.save();
+    this.notifySubscribers();
   }
 
   public async deleteInventoryItem(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
     this.db.inventory = this.db.inventory.filter(i => i.id !== id);
     await this.save();
+    this.notifySubscribers();
   }
 
   public async updateInventoryQty(id: string, qtyChange: number): Promise<void> {
@@ -1192,12 +1295,14 @@ class DatabaseService {
       return i;
     });
     await this.save();
+    this.notifySubscribers();
   }
 
   // Business: Invoices
-  public getInvoices(): BusinessInvoice[] {
+  public getInvoices(profileId?: string): BusinessInvoice[] {
     if (!this.db) throw new Error('Database is locked');
-    return (this.activeProfileId ? this.db.invoices.filter(x => x.profileId === this.activeProfileId) : this.db.invoices);
+    const targetPid = profileId || this.activeProfileId;
+    return (targetPid ? this.db.invoices.filter(x => x.profileId === targetPid) : this.db.invoices);
   }
 
   public async addInvoice(invoice: Omit<BusinessInvoice, 'id'>): Promise<BusinessInvoice> {
@@ -1227,6 +1332,7 @@ class DatabaseService {
     }
 
     await this.save();
+    this.notifySubscribers();
     return newInvoice;
   }
 
@@ -1234,6 +1340,7 @@ class DatabaseService {
     if (!this.db) throw new Error('Database is locked');
     this.db.invoices = this.db.invoices.map(i => i.id === id ? { ...i, status } : i);
     await this.save();
+    this.notifySubscribers();
   }
 
   public async deleteInvoice(id: string): Promise<void> {
@@ -1253,12 +1360,14 @@ class DatabaseService {
     this.db.invoices = this.db.invoices.filter(i => i.id !== id);
 
     await this.save();
+    this.notifySubscribers();
   }
 
   // Business: Purchase/Sales Register
-  public getRegister(): BusinessRegisterEntry[] {
+  public getRegister(profileId?: string): BusinessRegisterEntry[] {
     if (!this.db) throw new Error('Database is locked');
-    return (this.activeProfileId ? this.db.register.filter(x => x.profileId === this.activeProfileId) : [...this.db.register]).sort((a, b) => b.date.localeCompare(a.date));
+    const targetPid = profileId || this.activeProfileId;
+    return (targetPid ? this.db.register.filter(x => x.profileId === targetPid) : [...this.db.register]).sort((a, b) => b.date.localeCompare(a.date));
   }
 
   public async addRegisterEntry(entry: Omit<BusinessRegisterEntry, 'id'>): Promise<BusinessRegisterEntry> {
@@ -1266,6 +1375,7 @@ class DatabaseService {
     const newEntry: BusinessRegisterEntry = { ...entry, id: 'reg_' + generateSalt(6) };
     this.db.register.push(newEntry);
     await this.save();
+    this.notifySubscribers();
     return newEntry;
   }
 
@@ -1273,19 +1383,22 @@ class DatabaseService {
     if (!this.db) throw new Error('DB not initialized');
     this.db.register = this.db.register.map(r => r.id === id ? { ...r, ...updates } : r);
     await this.save();
+    this.notifySubscribers();
   }
 
   public async deleteRegisterEntry(id: string): Promise<void> {
     if (!this.db) throw new Error('DB not initialized');
     this.db.register = this.db.register.filter(r => r.id !== id);
     await this.save();
+    this.notifySubscribers();
   }
 
   // TDS Records
-  public getTDSRecords(): TDSSummary[] {
+  public getTDSRecords(profileId?: string): TDSSummary[] {
     if (!this.db) return [];
     if (!this.db.tdsRecords) this.db.tdsRecords = [];
-    return this.db.tdsRecords;
+    const targetPid = profileId || this.activeProfileId;
+    return targetPid ? this.db.tdsRecords.filter(x => x.profileId === targetPid) : this.db.tdsRecords;
   }
 
   public async addTDSRecord(record: Omit<TDSSummary, 'id'>): Promise<TDSSummary> {
@@ -1294,6 +1407,7 @@ class DatabaseService {
     const newRecord: TDSSummary = { ...record, id: 'tds_' + generateSalt(6) };
     this.db.tdsRecords.push(newRecord);
     await this.save();
+    this.notifySubscribers();
     return newRecord;
   }
 
@@ -1302,6 +1416,7 @@ class DatabaseService {
     if (!this.db.tdsRecords) this.db.tdsRecords = [];
     this.db.tdsRecords = this.db.tdsRecords.map(r => r.id === id ? { ...r, ...updates } : r);
     await this.save();
+    this.notifySubscribers();
   }
 
   public async deleteTDSRecord(id: string): Promise<void> {
@@ -1309,6 +1424,7 @@ class DatabaseService {
     if (!this.db.tdsRecords) return;
     this.db.tdsRecords = this.db.tdsRecords.filter(r => r.id !== id);
     await this.save();
+    this.notifySubscribers();
   }
 
   // Audit Logs
@@ -1353,10 +1469,16 @@ class DatabaseService {
           if (!t.id || !accountIds.has(t.accountId)) return false;
         }
 
-        // Create pre-import snapshot backup
+        // Create pre-import snapshot backup (retaining encryption if vault is PIN-protected)
         if (typeof window !== 'undefined' && this.db) {
           try {
-            localStorage.setItem(`pre_import_snapshot_${Date.now()}`, JSON.stringify(this.db));
+            const pin = authSession.getSessionPin() || undefined;
+            let snapshotPayload = this.lastSavedPayload;
+            if (!snapshotPayload) {
+              const plain = JSON.stringify(this.db);
+              snapshotPayload = pin ? await encryptData(plain, pin) : plain;
+            }
+            localStorage.setItem(`pre_import_snapshot_${Date.now()}`, snapshotPayload);
           } catch (e) {
             console.error('Pre-import snapshot failed', e);
             return false;
@@ -1368,6 +1490,7 @@ class DatabaseService {
         if (!db.auditLogs) db.auditLogs = [];
         this.db = db;
         await this.save();
+        this.notifySubscribers();
         this.logAction('BACKUP_IMPORT', 'Database imported and overwritten from backup');
         return true;
       }
@@ -1378,11 +1501,12 @@ class DatabaseService {
   }
 
   // Recurring Transactions
-  public getRecurringTransactions(): RecurringTransaction[] {
+  public getRecurringTransactions(profileId?: string): RecurringTransaction[] {
     const db = this.db;
     if (!db) throw new Error('Database is locked');
     if (!db.recurringTransactions) db.recurringTransactions = [];
-    return db.recurringTransactions;
+    const targetPid = profileId || this.activeProfileId;
+    return targetPid ? db.recurringTransactions.filter(r => r.profileId === targetPid) : db.recurringTransactions;
   }
 
   public async addRecurringTransaction(rt: Omit<RecurringTransaction, 'id'>): Promise<RecurringTransaction> {
@@ -1395,6 +1519,7 @@ class DatabaseService {
 
     // Immediately process in case it is already due
     await this.processRecurringTransactions();
+    this.notifySubscribers();
     return newRt;
   }
 
@@ -1404,6 +1529,7 @@ class DatabaseService {
     if (!db.recurringTransactions) db.recurringTransactions = [];
     db.recurringTransactions = db.recurringTransactions.filter(r => r.id !== id);
     await this.save();
+    this.notifySubscribers();
   }
 
   // Investment Plans
@@ -1424,6 +1550,7 @@ class DatabaseService {
     const newPlan: InvestmentPlan = { ...plan, id: 'ip_' + generateSalt(6) };
     db.investmentPlans.push(newPlan);
     await this.save();
+    this.notifySubscribers();
     return newPlan;
   }
 
@@ -1433,6 +1560,7 @@ class DatabaseService {
     if (!db.investmentPlans) db.investmentPlans = [];
     db.investmentPlans = db.investmentPlans.map(p => p.id === id ? { ...p, ...updates } : p);
     await this.save();
+    this.notifySubscribers();
   }
 
 
@@ -1453,6 +1581,7 @@ class DatabaseService {
     db.goals.push(newGoal);
     this.logAction('GOAL_ADD', `Added savings goal: ${goal.name}`);
     await this.save();
+    this.notifySubscribers();
     return newGoal;
   }
 
@@ -1462,6 +1591,7 @@ class DatabaseService {
     if (!db.goals) db.goals = [];
     db.goals = db.goals.map(g => g.id === id ? { ...g, ...updates } : g);
     await this.save();
+    this.notifySubscribers();
   }
 
   public async deleteGoal(id: string): Promise<void> {
@@ -1471,6 +1601,7 @@ class DatabaseService {
     db.goals = db.goals.filter(g => g.id !== id);
     this.logAction('GOAL_DELETE', `Deleted savings goal ID: ${id}`);
     await this.save();
+    this.notifySubscribers();
   }
 
   // Automation Rules
@@ -1490,6 +1621,7 @@ class DatabaseService {
     db.automationRules.push(newRule);
     this.logAction('AUTOMATION_RULE_ADD', `Added automation rule: ${rule.name}`);
     await this.save();
+    this.notifySubscribers();
     return newRule;
   }
 
@@ -1499,6 +1631,7 @@ class DatabaseService {
     if (!db.automationRules) db.automationRules = [];
     db.automationRules = db.automationRules.map(r => r.id === id ? { ...r, ...updates } : r);
     await this.save();
+    this.notifySubscribers();
   }
 
   public async deleteAutomationRule(id: string): Promise<void> {
@@ -1508,6 +1641,7 @@ class DatabaseService {
     db.automationRules = db.automationRules.filter(r => r.id !== id);
     this.logAction('AUTOMATION_RULE_DELETE', `Deleted automation rule ID: ${id}`);
     await this.save();
+    this.notifySubscribers();
   }
 
   // Helper to calculate stepped-up amount based on anniversaries
@@ -1681,6 +1815,7 @@ class DatabaseService {
 
     if (changed || dividendChanged) {
       await this.save();
+      this.notifySubscribers();
     }
   }
 

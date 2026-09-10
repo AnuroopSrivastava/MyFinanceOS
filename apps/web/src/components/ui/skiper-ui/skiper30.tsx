@@ -1,26 +1,109 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { motion, useScroll, useTransform, type MotionValue } from "framer-motion";
 import { cx } from "@financeos/ui";
-import { useLenisScroll } from "@/hooks/useLenisScroll";
 
-export const DEFAULT_IMAGES = [
-  "/images/parallax/01-dashboard-overview.webp",
-  "/images/parallax/02-smart-expenses.webp",
-  "/images/parallax/03-tax-planning.webp",
-  "/images/parallax/04-gst-invoicing.webp",
-  "/images/parallax/05-wealth-tracking.webp",
-  "/images/parallax/06-fire-planning.webp",
-  "/images/parallax/07-sankey-cashflow.webp",
-  "/images/parallax/08-emi-calculator.webp",
-  "/images/parallax/09-document-vault.webp",
-  "/images/parallax/10-local-ai.webp",
-  "/images/parallax/11-automation-rules.webp",
-  "/images/parallax/12-offline-security.webp",
+export interface GalleryItem {
+  src: string;
+  id: string;
+  tag: string;
+  title: string;
+  alt: string;
+}
+
+export const DEFAULT_GALLERY_ITEMS: GalleryItem[] = [
+  {
+    src: "/images/parallax/01-dashboard-overview.webp",
+    id: "01",
+    tag: "Net Worth",
+    title: "Mission Control",
+    alt: "MyFinanceOS Mission Control — Real-time consolidated net worth and multi-asset allocation dashboard",
+  },
+  {
+    src: "/images/parallax/02-smart-expenses.webp",
+    id: "02",
+    tag: "Double-Entry",
+    title: "Smart Expenses",
+    alt: "MyFinanceOS Smart Expenses — Sub-millisecond double-entry banking ledger and cashflow outflow tracking",
+  },
+  {
+    src: "/images/parallax/03-tax-planning.webp",
+    id: "03",
+    tag: "Old vs New",
+    title: "Tax Optimization",
+    alt: "MyFinanceOS Tax Suite — Indian income tax regime analyzer, deductions, and tax optimization recommendations",
+  },
+  {
+    src: "/images/parallax/04-gst-invoicing.webp",
+    id: "04",
+    tag: "B2B & GST",
+    title: "GST Invoicing",
+    alt: "MyFinanceOS GST Invoicing — Compliant B2B invoicing, GST credit reconciliation, and export ready records",
+  },
+  {
+    src: "/images/parallax/05-wealth-tracking.webp",
+    id: "05",
+    tag: "Multi-Asset",
+    title: "Wealth Portfolio",
+    alt: "MyFinanceOS Wealth Tracking — Stocks, SGB 24K Gold, Mutual Funds, and Fixed Deposit portfolio tracking with alpha analytics",
+  },
+  {
+    src: "/images/parallax/06-fire-planning.webp",
+    id: "06",
+    tag: "Financial Independence",
+    title: "FIRE Planner",
+    alt: "MyFinanceOS FIRE Planner — Early retirement milestone simulator, safe withdrawal rate, and SIP accelerator",
+  },
+  {
+    src: "/images/parallax/07-sankey-cashflow.webp",
+    id: "07",
+    tag: "Physics Flow",
+    title: "Sankey Cashflow",
+    alt: "MyFinanceOS Sankey Cashflow — Deterministic flow diagrams mapping income streams to savings and allocations",
+  },
+  {
+    src: "/images/parallax/08-emi-calculator.webp",
+    id: "08",
+    tag: "Prepayment Engine",
+    title: "EMI Accelerator",
+    alt: "MyFinanceOS EMI Calculator — Loan prepayment schedules, interest saved calculations, and tenure slash forecasting",
+  },
+  {
+    src: "/images/parallax/09-document-vault.webp",
+    id: "09",
+    tag: "AES-256 OPFS",
+    title: "Encrypted Vault",
+    alt: "MyFinanceOS Encrypted Vault — Air-gapped AES-256 private document storage utilizing browser Origin Private File System",
+  },
+  {
+    src: "/images/parallax/10-local-ai.webp",
+    id: "10",
+    tag: "Local WASM",
+    title: "Private AI Advisor",
+    alt: "MyFinanceOS Local AI — 100% on-device WebAssembly intelligence with zero network packet leakage",
+  },
+  {
+    src: "/images/parallax/11-automation-rules.webp",
+    id: "11",
+    tag: "Event Driven",
+    title: "Automation Rules",
+    alt: "MyFinanceOS Automation — Configurable triggers and auto-split rules for incoming salaries and investments",
+  },
+  {
+    src: "/images/parallax/12-offline-security.webp",
+    id: "12",
+    tag: "Offline-First",
+    title: "Zero Leakage Core",
+    alt: "MyFinanceOS Security — Local SQLite database architecture with client-side biometric/PIN encryption",
+  },
 ];
+
+export const DEFAULT_IMAGES = DEFAULT_GALLERY_ITEMS.map((item) => item.src);
 
 export interface Skiper30Props {
   images?: string[];
+  items?: GalleryItem[];
   standalone?: boolean;
   className?: string;
   enableLenis?: boolean;
@@ -29,214 +112,143 @@ export interface Skiper30Props {
 
 const Skiper30 = ({
   images = DEFAULT_IMAGES,
+  items,
   standalone = false,
   className = "",
-  enableLenis = true,
   showIndicators = true,
 }: Skiper30Props) => {
   const gallery = useRef<HTMLDivElement>(null);
-  const col1Ref = useRef<HTMLDivElement>(null);
-  const col2Ref = useRef<HTMLDivElement>(null);
-  const col3Ref = useRef<HTMLDivElement>(null);
-  const col4Ref = useRef<HTMLDivElement>(null);
-
-  // Cached layout metrics measured strictly on mount/resize to prevent synchronous layout thrashing
-  const docTopRef = useRef(0);
-  const docHeightRef = useRef(0);
-  const winHeightRef = useRef(typeof window !== "undefined" ? window.innerHeight : 900);
-
-  // Viewport intersection culling: 0 CPU/GPU cost when off-screen
-  const isInViewRef = useRef(false);
-
-  // High-precision scroll tracking without artificial secondary lag
-  const lastScrollRef = useRef<number>(-1);
-  const initializedRef = useRef(false);
-
-  const measure = useCallback(() => {
-    const galleryEl = gallery.current;
-    if (!galleryEl || typeof window === "undefined") return;
-
-    // Walk offsetParent tree for absolute, immutable document Y coordinate.
-    // getBoundingClientRect().top + scroll fluctuates during motion because of
-    // compositor/DOM async frame differences; offsetTop is 100% constant and jitter-free.
-    let top = 0;
-    let curr: HTMLElement | null = galleryEl;
-    while (curr) {
-      top += curr.offsetTop;
-      curr = curr.offsetParent as HTMLElement | null;
-    }
-
-    docTopRef.current = top;
-    docHeightRef.current = galleryEl.offsetHeight;
-    winHeightRef.current = window.innerHeight;
-  }, []);
+  const [dimension, setDimension] = useState(() => ({
+    width: typeof window !== "undefined" ? window.innerWidth : 1200,
+    height: typeof window !== "undefined" ? window.innerHeight : 900,
+  }));
 
   /**
-   * Pure Synchronous Lockstep Parallax Engine.
-   *
-   * Lenis ALREADY computes an exquisitely smooth exponential scroll position (lerp: 0.1)
-   * in each requestAnimationFrame tick.
-   *
-   * By mapping progress directly to column transforms in the exact same RAF tick:
-   * 1. Columns move in 100% mathematical synchrony with page scroll (0 frames latency).
-   * 2. Eliminates secondary damping lag that was causing rubber-banding and drift.
-   * 3. Eliminates resting threshold snaps that were causing columns to jump on deceleration.
-   * 4. Eliminates subpixel dirty-checking deadbands that were dropping frames during slow scroll.
-   * 5. Uses immutable offsetTop reference so transforms never fluctuate mid-motion.
+   * Reference implementation from tutorial:
+   * useScroll tracks the gallery section across ['start end', 'end start']
    */
-  const updateTransforms = useCallback((e?: { scroll: number; velocity: number }) => {
-    const windowHeight = winHeightRef.current || (typeof window !== "undefined" ? window.innerHeight : 900);
-    const totalDistance = (docHeightRef.current || (windowHeight * 1.75)) + windowHeight;
-    if (totalDistance <= 0) return;
+  const { scrollYProgress } = useScroll({
+    target: gallery,
+    offset: ["start end", "end start"],
+  });
 
-    let currentScroll: number;
-    if (e && typeof e.scroll === "number") {
-      currentScroll = e.scroll;
-    } else if (typeof window !== "undefined") {
-      const lenis = (window as unknown as { __myfinanceos_lenis__?: { scroll: number } }).__myfinanceos_lenis__;
-      currentScroll = lenis?.scroll ?? window.scrollY;
-    } else {
-      currentScroll = 0;
-    }
+  const { height, width } = dimension;
+  const isMobile = width > 0 && width < 768;
 
-    // Viewport culling: skip DOM writes if gallery is completely outside the viewport
-    if (!isInViewRef.current && initializedRef.current) {
-      return;
-    }
-
-    // Idle culling: skip style updates if scroll position hasn't changed at all
-    if (initializedRef.current && Math.abs(currentScroll - lastScrollRef.current) < 0.001) {
-      return;
-    }
-    lastScrollRef.current = currentScroll;
-    initializedRef.current = true;
-
-    const currentTop = docTopRef.current - currentScroll;
-    const currentDistance = windowHeight - currentTop;
-    const rawProgress = currentDistance / totalDistance;
-    const progress = Math.min(Math.max(rawProgress, 0), 1);
-
-    const h = windowHeight;
-    const y1 = progress * h * 2;
-    const y2 = progress * h * 3.3;
-    const y3 = progress * h * 1.25;
-    const y4 = progress * h * 3;
-
-    if (col1Ref.current) col1Ref.current.style.transform = `translate3d(0px, ${y1}px, 0px)`;
-    if (col2Ref.current) col2Ref.current.style.transform = `translate3d(0px, ${y2}px, 0px)`;
-    if (col3Ref.current) col3Ref.current.style.transform = `translate3d(0px, ${y3}px, 0px)`;
-    if (col4Ref.current) col4Ref.current.style.transform = `translate3d(0px, ${y4}px, 0px)`;
-  }, []);
-
-  /**
-   * Subscribe directly to the singleton Lenis loop.
-   */
-  useLenisScroll(enableLenis, updateTransforms);
-
-  /**
-   * IntersectionObserver for zero-cost viewport culling (activates 350px before entering view).
-   */
-  useEffect(() => {
-    const galleryEl = gallery.current;
-    if (!galleryEl || typeof IntersectionObserver === "undefined") {
-      isInViewRef.current = true;
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        isInViewRef.current = entry.isIntersecting;
-        if (entry.isIntersecting) {
-          measure();
-          updateTransforms();
-        }
-      },
-      { rootMargin: "350px 0px 350px 0px" }
-    );
-
-    observer.observe(galleryEl);
-    return () => observer.disconnect();
-  }, [measure, updateTransforms]);
+  // Parallax velocity multipliers
+  const y1 = useTransform(scrollYProgress, [0, 1], [0, height * (isMobile ? 1.6 : 2)]);
+  const y2 = useTransform(scrollYProgress, [0, 1], [0, height * (isMobile ? 2.6 : 3.3)]);
+  const y3 = useTransform(scrollYProgress, [0, 1], [0, height * 1.25]);
+  const y4 = useTransform(scrollYProgress, [0, 1], [0, height * (isMobile ? 1.75 : 2.2)]);
 
   useEffect(() => {
-    measure();
-    updateTransforms();
-
-    const handleResize = () => {
-      measure();
-      updateTransforms();
+    const resize = () => {
+      setDimension({ width: window.innerWidth, height: window.innerHeight });
     };
-
-    window.addEventListener("resize", handleResize, { passive: true });
-    window.addEventListener("load", handleResize, { passive: true });
-    if (typeof document !== "undefined" && document.fonts?.ready) {
-      document.fonts.ready.then(handleResize);
-    }
-    const timer = setTimeout(handleResize, 150);
-
+    window.addEventListener("resize", resize);
+    resize();
     return () => {
-      window.removeEventListener("resize", handleResize);
-      window.removeEventListener("load", handleResize);
-      clearTimeout(timer);
+      window.removeEventListener("resize", resize);
     };
-  }, [measure, updateTransforms]);
+  }, []);
 
-  const col1 = images.slice(0, 3);
-  const col2 = images.slice(3, 6);
-  const col3 = images.slice(6, 9);
-  const col4 = images.slice(9, 12);
+  // Normalized item list
+  const resolvedItems = useMemo<GalleryItem[]>(() => {
+    if (items && items.length > 0) return items;
+    return images.map((src, idx) => {
+      const found = DEFAULT_GALLERY_ITEMS.find((d) => d.src === src);
+      if (found) return found;
+      const num = String(idx + 1).padStart(2, "0");
+      return {
+        src,
+        id: num,
+        tag: "Engine",
+        title: `Module ${num}`,
+        alt: `MyFinanceOS Platform Feature Preview ${num}`,
+      };
+    });
+  }, [images, items]);
+
+  // Desktop 4-column distribution vs Mobile 2-column alternating distribution
+  const desktopCol1 = useMemo(() => resolvedItems.slice(0, 3), [resolvedItems]);
+  const desktopCol2 = useMemo(() => resolvedItems.slice(3, 6), [resolvedItems]);
+  const desktopCol3 = useMemo(() => resolvedItems.slice(6, 9), [resolvedItems]);
+  const desktopCol4 = useMemo(() => resolvedItems.slice(9, 12), [resolvedItems]);
+
+  const mobileCol1 = useMemo(() => resolvedItems.filter((_, i) => i % 2 === 0), [resolvedItems]);
+  const mobileCol2 = useMemo(() => resolvedItems.filter((_, i) => i % 2 !== 0), [resolvedItems]);
 
   const galleryContent = (
     <div
       ref={gallery}
       data-testid="parallax-gallery-section"
-      aria-label="MyFinanceOS Skiper30 Parallax Showcase"
+      aria-label="MyFinanceOS Interactive Feature Showcase"
+      role="region"
       className={cx(
-        "box-border flex h-[175vh] w-full gap-[2vw] overflow-hidden p-[2vw]",
+        "box-border w-full overflow-hidden",
         standalone ? "bg-white" : "bg-transparent",
         className
       )}
       style={{
         position: "relative",
-        boxSizing: "border-box",
-        display: "flex",
         width: "100%",
         height: "175vh",
-        gap: "clamp(16px, 2vw, 32px)",
         overflow: "hidden",
-        padding: "clamp(16px, 2vw, 32px)",
-        // Composite the clip itself: the four parallax column layers then glide
-        // inside one composited clip surface instead of being re-clipped against
-        // a paint-layer every frame. contain isolates paint/layout of the grid.
-        transform: "translateZ(0)",
-        contain: "layout paint style",
       }}
     >
-      <Column ref={col1Ref} images={col1} topOffset="-45%" />
-      <Column ref={col2Ref} images={col2} topOffset="-95%" />
-      <Column ref={col3Ref} images={col3} topOffset="-45%" />
-      <Column ref={col4Ref} images={col4} topOffset="-75%" />
+      {/* 
+        Reference architecture (.galleryWrapper):
+        position: relative, top: -12.5vh, height: 200vh
+        Gives 25vh vertical margin so translated columns have smooth seamless overlap
+      */}
+      <div
+        className="gallery-wrapper"
+        style={{
+          position: "relative",
+          top: "-12.5vh",
+          height: "200vh",
+          display: "flex",
+          width: "100%",
+          boxSizing: "border-box",
+          gap: isMobile ? "clamp(12px, 2.5vw, 20px)" : "clamp(16px, 2vw, 32px)",
+          padding: isMobile ? "12px" : "clamp(16px, 2vw, 32px)",
+        }}
+      >
+        {isMobile ? (
+          <>
+            <Column items={mobileCol1} y={y1} topOffset="-20%" />
+            <Column items={mobileCol2} y={y2} topOffset="-45%" />
+          </>
+        ) : (
+          <>
+            <Column items={desktopCol1} y={y1} topOffset="-45%" />
+            <Column items={desktopCol2} y={y2} topOffset="-95%" />
+            <Column items={desktopCol3} y={y3} topOffset="-45%" />
+            <Column items={desktopCol4} y={y4} topOffset="-75%" />
+          </>
+        )}
+      </div>
     </div>
   );
 
   // Standalone original full-page demo mode
   if (standalone) {
     return (
-      <main className="w-full bg-[#eee] text-black">
-        <div className="font-geist flex h-screen items-center justify-center gap-2">
-          <div className="absolute left-1/2 top-[10%] grid -translate-x-1/2 content-start justify-items-center gap-6 text-center text-black">
-            <span className="relative max-w-[12ch] text-xs uppercase leading-tight opacity-40 after:absolute after:left-1/2 after:top-full after:h-16 after:w-px after:bg-gradient-to-b after:from-white after:to-black after:content-['']">
-              scroll down to see
+      <main className="w-full bg-[#070810] text-white">
+        <div className="flex h-screen items-center justify-center gap-2">
+          <div className="absolute left-1/2 top-[10%] grid -translate-x-1/2 content-start justify-items-center gap-6 text-center text-white">
+            <span className="relative max-w-[14ch] text-xs uppercase tracking-widest opacity-60">
+              Scroll down to explore
             </span>
           </div>
         </div>
 
         {galleryContent}
 
-        <div className="font-geist relative flex h-screen items-center justify-center gap-2">
-          <div className="absolute left-1/2 top-[10%] grid -translate-x-1/2 content-start justify-items-center gap-6 text-center text-black">
-            <span className="relative max-w-[12ch] text-xs uppercase leading-tight opacity-40 after:absolute after:left-1/2 after:top-full after:h-16 after:w-px after:bg-gradient-to-b after:from-white after:to-black after:content-['']">
-              scroll Up to see
+        <div className="relative flex h-screen items-center justify-center gap-2">
+          <div className="absolute left-1/2 top-[10%] grid -translate-x-1/2 content-start justify-items-center gap-6 text-center text-white">
+            <span className="relative max-w-[14ch] text-xs uppercase tracking-widest opacity-60">
+              Scroll up to review
             </span>
           </div>
         </div>
@@ -244,7 +256,7 @@ const Skiper30 = ({
     );
   }
 
-  // Option 2: Embedded dark-luxury transition bridge with signature Skiper30 typographic indicators
+  // Embedded dark-luxury transition bridge with typographic indicators
   return (
     <div
       style={{
@@ -266,8 +278,8 @@ const Skiper30 = ({
             alignItems: "center",
             justifyContent: "center",
             width: "100%",
-            paddingTop: "52px",
-            paddingBottom: "32px",
+            paddingTop: "24px",
+            paddingBottom: "24px",
             textAlign: "center",
             userSelect: "none",
           }}
@@ -278,24 +290,25 @@ const Skiper30 = ({
               display: "inline-flex",
               flexDirection: "column",
               alignItems: "center",
-              fontSize: "11px",
+              fontSize: "10px",
               fontWeight: 600,
               letterSpacing: "0.26em",
               textTransform: "uppercase",
-              color: "rgba(255, 255, 255, 0.45)",
+              color: "rgba(255, 255, 255, 0.82)",
               fontFamily: "var(--font-jetbrains-mono, monospace)",
+              textShadow: "0 1px 10px rgba(60, 20, 120, 0.45)",
             }}
           >
-            scroll down to see
+            Scroll to explore architecture
             <span
               style={{
                 display: "block",
                 width: "1.5px",
-                height: "44px",
-                marginTop: "12px",
+                height: "36px",
+                marginTop: "10px",
                 borderRadius: "9999px",
                 background:
-                  "linear-gradient(to bottom, rgba(168, 85, 247, 0.85), rgba(255, 255, 255, 0.35), transparent)",
+                  "linear-gradient(to bottom, rgba(255, 255, 255, 0.7), transparent)",
               }}
             />
           </span>
@@ -314,8 +327,8 @@ const Skiper30 = ({
             alignItems: "center",
             justifyContent: "center",
             width: "100%",
-            paddingTop: "32px",
-            paddingBottom: "52px",
+            paddingTop: "24px",
+            paddingBottom: "32px",
             textAlign: "center",
             userSelect: "none",
           }}
@@ -326,7 +339,7 @@ const Skiper30 = ({
               display: "inline-flex",
               flexDirection: "column",
               alignItems: "center",
-              fontSize: "11px",
+              fontSize: "10px",
               fontWeight: 600,
               letterSpacing: "0.26em",
               textTransform: "uppercase",
@@ -338,14 +351,14 @@ const Skiper30 = ({
               style={{
                 display: "block",
                 width: "1.5px",
-                height: "44px",
-                marginBottom: "12px",
+                height: "36px",
+                marginBottom: "10px",
                 borderRadius: "9999px",
                 background:
-                  "linear-gradient(to top, rgba(168, 85, 247, 0.85), rgba(255, 255, 255, 0.35), transparent)",
+                  "linear-gradient(to top, rgba(255, 255, 255, 0.35), transparent)",
               }}
             />
-            scroll Up to see
+            Continuous parallax loop
           </span>
         </div>
       )}
@@ -354,16 +367,33 @@ const Skiper30 = ({
 };
 
 type ColumnProps = {
-  images: string[];
+  items?: GalleryItem[];
+  images?: string[];
   topOffset: string;
+  y: MotionValue<number>;
 };
 
-const Column = React.forwardRef<HTMLDivElement, ColumnProps>(({ images, topOffset }, ref) => {
+const Column = React.memo(({ items, images, topOffset, y }: ColumnProps) => {
+  // Normalization to support either items or legacy images prop
+  const cardItems = useMemo<GalleryItem[]>(() => {
+    if (items && items.length > 0) return items;
+    if (images && images.length > 0) {
+      return images.map((src, i) => ({
+        src,
+        id: String(i + 1).padStart(2, "0"),
+        tag: "Module",
+        title: "Feature",
+        alt: "MyFinanceOS Gallery Feature Preview",
+      }));
+    }
+    return [];
+  }, [items, images]);
+
   return (
-    <div
-      ref={ref}
-      className="relative flex h-full w-1/4 min-w-[240px] flex-1 flex-col gap-[2vw]"
+    <motion.div
+      className="gallery-column relative flex h-full flex-1 flex-col"
       style={{
+        y,
         top: topOffset,
         position: "relative",
         display: "flex",
@@ -371,42 +401,29 @@ const Column = React.forwardRef<HTMLDivElement, ColumnProps>(({ images, topOffse
         flex: "1 1 0%",
         minWidth: 0,
         height: "100%",
-        gap: "clamp(16px, 2vw, 32px)",
-        willChange: "transform",
-        transform: "translate3d(0px, 0px, 0px)",
-        WebkitBackfaceVisibility: "hidden",
-        backfaceVisibility: "hidden",
+        gap: "clamp(14px, 1.8vw, 28px)",
       }}
     >
-      {images.map((src, i) => (
+      {cardItems.map((item, i) => (
         <div
-          key={`${src}-${i}`}
-          className="relative h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-[#0d0e1b]"
+          key={`${item.src}-${i}`}
+          className="gallery-card-tile relative w-full overflow-hidden rounded-2xl border border-white/10 bg-[#0d0e1b]"
           style={{
             position: "relative",
             width: "100%",
-            height: "100%",
-            flex: "1 1 0%",
-            minHeight: "360px",
+            aspectRatio: "1080 / 1485",
+            minHeight: 0,
+            flex: "0 0 auto",
             overflow: "hidden",
-            borderRadius: "clamp(14px, 1.2vw, 20px)",
-            // boxShadow is deliberately omitted: presented-frame tracing (CDP
-            // screencast) measured the 36px translucent shadows on these moving
-            // layers as the dominant per-frame GPU fill-rate cost on the landing
-            // page (presented p99 81ms -> 26ms when removed, equal to the
-            // standalone page). On the #070810 section background a black shadow
-            // is imperceptible, so this is a zero-visual-delta removal.
-            // NOTE: deliberately NOT layer-promoted. Each image tile bakes into
-            // its column's single composited texture (radius + shadow included)
-            // when the column rasterizes, so the four column layers are the ONLY
-            // GPU layers this grid creates. Per-image translateZ(0)/mask/isolation
-            // used to spawn 12 extra masked sublayers that re-composited over the
-            // moving columns every frame — the source of the image scroll lag.
+            borderRadius: "clamp(12px, 1.2vw, 20px)",
+            boxShadow: "none",
           }}
         >
           <img
-            src={src}
-            alt="MyFinanceOS Gallery Feature Preview"
+            src={item.src}
+            alt={item.alt}
+            width={1080}
+            height={1485}
             loading="eager"
             decoding="async"
             fetchPriority="high"
@@ -414,15 +431,58 @@ const Column = React.forwardRef<HTMLDivElement, ColumnProps>(({ images, topOffse
             style={{
               width: "100%",
               height: "100%",
+              aspectRatio: "1080 / 1485",
               objectFit: "cover",
               pointerEvents: "none",
               userSelect: "none",
               display: "block",
             }}
           />
+
+          {/* Feature Recognition Micro-Badge */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: "clamp(8px, 1vw, 14px)",
+              left: "clamp(8px, 1vw, 14px)",
+              zIndex: 2,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "3px 9px",
+              borderRadius: "999px",
+              background: "rgba(13, 14, 27, 0.94)",
+              border: "1px solid rgba(255, 255, 255, 0.14)",
+              boxShadow: "none",
+              pointerEvents: "none",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "10px",
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                color: "#c084fc",
+                fontFamily: "var(--font-jetbrains-mono, monospace)",
+              }}
+            >
+              {item.id}
+            </span>
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: 600,
+                letterSpacing: "0.01em",
+                color: "rgba(255, 255, 255, 0.92)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {item.title}
+            </span>
+          </div>
         </div>
       ))}
-    </div>
+    </motion.div>
   );
 });
 Column.displayName = "Column";

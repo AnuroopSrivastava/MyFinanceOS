@@ -1,0 +1,46 @@
+[
+  {
+    "version": "1.1.0",
+    "date": "2026-09-10",
+    "releaseType": "minor",
+    "summary": "Enhanced AI financial advisor capabilities and user experience; Enhanced Business invoice and register workflows capabilities and user experience.",
+    "changes": [
+      {
+        "category": "Features",
+        "items": [
+          "Enhanced AI financial advisor capabilities and user experience",
+          "Enhanced Business invoice and register workflows capabilities and user experience",
+          "Enhanced Mission Control dashboard capabilities and user experience",
+          "Enhanced Portfolio & investment analytics capabilities and user experience",
+          "Enhanced Banking & Ledger transactions capabilities and user experience"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "date": "2026-09-10",
+    "releaseType": "major",
+    "summary": "Initial baseline release of MyFinanceOS: Sovereign local-first wealth operating system for India.",
+    "changes": [
+      {
+        "category": "Features",
+        "items": [
+          "Encrypted offline-first ledger and double-entry accounting engine",
+          "Multi-profile net worth consolidation and portfolio tracking",
+          "Indian taxation suite with automatic Old vs New Regime comparisons and Advance Tax scheduler",
+          "Interactive Mission Control dashboard with real-time financial health metrics",
+          "Bank statement parsing and transaction categorization"
+        ]
+      },
+      {
+        "category": "Security",
+        "items": [
+          "AES-256 encrypted SQLite vault running purely in browser memory",
+          "Zero telemetry of financial records and DPDP Act 2023 compliance",
+          "Optional PIN encryption and profile-level security locks"
+        ]
+      }
+    ]
+  }
+]

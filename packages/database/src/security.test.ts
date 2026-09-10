@@ -208,4 +208,92 @@ describe('Security Remediation Tests', () => {
       await expect(dbService.addAccount({ name: 'Hacked', bankName: 'B', accountNumber: '1', ifscCode: 'I', accountType: 'Savings', balance: 0, profileId: 'profile2' })).rejects.toThrow('Authentication failed');
     });
   });
+
+  describe('SEC-01: Encrypted Pre-Import Snapshot', () => {
+    it('stores encrypted snapshot during import when session PIN is present', async () => {
+      mockAuthSession.getSessionPin.mockReturnValue('userSecretPin');
+      await dbService.initializeNewDb('Test User');
+
+      const setItemSpy = vi.spyOn(globalThis.localStorage, 'setItem');
+      const validDbJson = dbService.getRawDb();
+
+      const success = await dbService.importRawDb(validDbJson);
+      expect(success).toBe(true);
+
+      const snapshotCall = setItemSpy.mock.calls.find(call => typeof call[0] === 'string' && call[0].startsWith('pre_import_snapshot_'));
+      expect(snapshotCall).toBeDefined();
+      // Verify the payload is encrypted ciphertext and not raw JSON containing cleartext profile info
+      const storedPayload = snapshotCall![1];
+      expect(storedPayload).toContain(':');
+      expect(storedPayload.startsWith('{')).toBe(false);
+    });
+  });
+
+  describe('PERF-01: Batch Transaction Insertion (addTransactions)', () => {
+    it('atomically adds multiple transactions, updates balances, applies rules, and notifies subscribers once', async () => {
+      await dbService.initializeNewDb('Test User');
+      const primaryAcc = await dbService.addAccount({
+        name: 'HDFC Savings',
+        bankName: 'HDFC Bank',
+        accountNumber: '1234567890',
+        ifscCode: 'HDFC0001234',
+        accountType: 'Savings',
+        balance: 10000,
+        profileId: 'p1'
+      });
+      const initialBalance = primaryAcc.balance;
+
+      // Add automation rule
+      await dbService.addAutomationRule({
+        profileId: primaryAcc.profileId,
+        name: 'Auto Groceries',
+        triggerType: 'DescriptionContains',
+        matchPattern: 'Supermarket',
+        targetCategory: 'Groceries',
+        targetTag: 'Food',
+        isActive: true
+      });
+
+      const subscriberFn = vi.fn();
+      const unsubscribe = dbService.subscribe(subscriberFn);
+      subscriberFn.mockClear();
+
+      const batchToInsert = [
+        {
+          accountId: primaryAcc.id,
+          profileId: primaryAcc.profileId,
+          date: '2026-03-01',
+          description: 'Supermarket shopping',
+          amount: 500,
+          type: 'Expense' as const,
+          category: 'Shopping'
+        },
+        {
+          accountId: primaryAcc.id,
+          profileId: primaryAcc.profileId,
+          date: '2026-03-02',
+          description: 'Client payment',
+          amount: 2000,
+          type: 'Income' as const,
+          category: 'Salary'
+        }
+      ];
+
+      const inserted = await dbService.addTransactions(batchToInsert);
+      expect(inserted).toHaveLength(2);
+      expect(inserted[0].category).toBe('Groceries'); // Rule matched
+      expect(inserted[0].tag).toBe('Food');
+      expect(inserted[1].category).toBe('Salary');
+
+      // Balance check: initial - 500 + 2000 = initial + 1500
+      const updatedAccounts = dbService.getAccounts();
+      const updatedAcc = updatedAccounts.find(a => a.id === primaryAcc.id)!;
+      expect(updatedAcc.balance).toBe(initialBalance - 500 + 2000);
+
+      // Subscriber notified
+      expect(subscriberFn).toHaveBeenCalledTimes(1);
+      unsubscribe();
+    });
+  });
 });
+

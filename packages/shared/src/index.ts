@@ -505,5 +505,8 @@ export * from './crypto.js';
 export * from './currency.js';
 export * from './financialCalculations.js';
 export * from './utils.js';
+export * from './version.js';
+export * from './changelog.js';
+export * from './manifest.js';
 
 

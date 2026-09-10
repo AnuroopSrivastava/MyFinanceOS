@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Button, CurrencyInput, Badge, SectionHeader, Modal, ConfirmModal, useConfirmModal, SearchFilterBar, IconButton, PanelHeader, EmptyState, InfoCallout, FileDropzone, FormRow, FormField, FormActions, ActionRow, chartTooltipStyle, chartTooltipItemStyle, useReducedMotion } from '@financeos/ui';
 import { motion } from 'framer-motion';
+import posthog from 'posthog-js';
 import { dbService } from '@financeos/database';
 import { useDbSyncCallback } from '../hooks/useDbSync.js';
 import { BankAccount, Transaction, AccountType, RecurringTransaction, formatRupee, downloadBlob, todayStamp, parseRupeeToNumber, GlobalDateRange, filterByDateRange } from '@financeos/shared';
@@ -13,160 +14,8 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip
 } from 'recharts';
 import { exportToCSV } from '../utils/exportCsv.js';
+import { parseStatementText, type ParsedTx } from '../utils/statementParser.js';
 
-interface ParsedTx {
-  id: string;
-  date: string;
-  description: string;
-  amount: number;
-  type: 'Income' | 'Expense' | 'Transfer';
-  category: string;
-  selected: boolean;
-}
-
-const parseStatementText = (text: string): ParsedTx[] => {
-  const lines = text.split('\n');
-  const results: ParsedTx[] = [];
-  const dateRegex = /(\d{4}-\d{2}-\d{2})|(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})|(\d{1,2}[/-][A-Za-z]{3}[/-]\d{2,4})/;
-
-  const getCategory = (desc: string): string => {
-    const d = desc.toLowerCase();
-    if (d.includes('swiggy') || d.includes('zomato') || d.includes('restaurant') || d.includes('starbucks') || d.includes('food') || d.includes('dining')) {
-      return 'Food & Dining';
-    }
-    if (d.includes('salary') || d.includes('google') || d.includes('credit') || d.includes('payout')) {
-      return 'Salary';
-    }
-    if (d.includes('sip') || d.includes('mutual fund') || d.includes('zerodha') || d.includes('nifty') || d.includes('groww') || d.includes('investment')) {
-      return 'Investments';
-    }
-    if (d.includes('airtel') || d.includes('broadband') || d.includes('power') || d.includes('electricity') || d.includes('bill') || d.includes('recharge') || d.includes('mobile')) {
-      return 'Utilities';
-    }
-    if (d.includes('uber') || d.includes('ola') || d.includes('taxi') || d.includes('cab') || d.includes('transportation') || d.includes('metro') || d.includes('fuel')) {
-      return 'Transportation';
-    }
-    if (d.includes('cred') || d.includes('cc payment') || d.includes('credit card bill')) {
-      return 'CreditCard Dues';
-    }
-    if (d.includes('rent') || d.includes('landlord')) {
-      return 'Rent';
-    }
-    if (d.includes('gst') || d.includes('business') || d.includes('sales')) {
-      return 'Business Sales';
-    }
-    return 'Miscellaneous';
-  };
-
-  const cleanDescription = (desc: string): string => {
-    let clean = desc.trim();
-    if (clean.includes('UPI/')) {
-      const parts = clean.split('/');
-      const merchantPart = parts.find(p => p.trim().length > 3 && !/^\d+$/.test(p) && !p.toLowerCase().includes('upi') && !p.toLowerCase().includes('hdfc') && !p.toLowerCase().includes('icici') && !p.toLowerCase().includes('sbi'));
-      if (merchantPart) clean = merchantPart.trim();
-    } else if (clean.startsWith('UPI-')) {
-      const parts = clean.split('-');
-      const merchantPart = parts.find(p => p.trim().length > 3 && !p.toLowerCase().includes('upi') && !p.toLowerCase().includes('icici') && !p.toLowerCase().includes('sbi'));
-      if (merchantPart) clean = merchantPart.trim();
-    }
-    return clean.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.substring(1).toLowerCase());
-  };
-
-  lines.forEach((line, idx) => {
-    const trimmed = line.trim();
-    if (!trimmed) return;
-
-    const dateMatch = trimmed.match(dateRegex);
-    if (!dateMatch) return;
-
-    const rawDate = dateMatch[0];
-    let normalizedDate = new Date().toISOString().split('T')[0];
-    try {
-      if (/[A-Za-z]{3}/.test(rawDate)) {
-        const parts = rawDate.split(/[/-]/);
-        const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-        const day = parseInt(parts[0]);
-        const monthIdx = months.indexOf(parts[1].toLowerCase().slice(0, 3));
-        let year = parseInt(parts[2]);
-        if (year < 100) year += 2000;
-        if (monthIdx !== -1) {
-          normalizedDate = new Date(year, monthIdx, day + 1).toISOString().split('T')[0];
-        }
-      } else {
-        const parts = rawDate.split(/[/-]/);
-        if (parts[0].length === 4) {
-          normalizedDate = rawDate;
-        } else {
-          const day = parseInt(parts[0]);
-          const month = parseInt(parts[1]) - 1;
-          let year = parseInt(parts[2]);
-          if (year < 100) year += 2000;
-          normalizedDate = new Date(year, month, day + 1).toISOString().split('T')[0];
-        }
-      }
-    } catch (e) {
-      normalizedDate = rawDate;
-    }
-
-    const cleanLine = trimmed.replace(rawDate, '');
-    const tokens = cleanLine.split(/[\t,|]/).map(t => t.trim()).filter(Boolean);
-
-    const amounts: number[] = [];
-    let desc = '';
-
-    tokens.forEach(t => {
-      const numClean = t.replace(/,/g, '');
-      const numMatch = numClean.match(/^[-+]?\d+(\.\d+)?$/);
-      if (numMatch) {
-        amounts.push(parseFloat(numClean));
-      } else if (t.length > 2 && !t.match(/^\d+$/)) {
-        desc += ' ' + t;
-      }
-    });
-
-    if (amounts.length > 0) {
-      let finalAmt = amounts[0];
-      let type: 'Income' | 'Expense' | 'Transfer' = 'Expense';
-
-      if (amounts.length >= 2) {
-        const withdrawal = amounts[0];
-        const deposit = amounts[1];
-        if (withdrawal > 0 && deposit === 0) {
-          finalAmt = withdrawal;
-          type = 'Expense';
-        } else if (deposit > 0 && withdrawal === 0) {
-          finalAmt = deposit;
-          type = 'Income';
-        }
-      } else {
-        if (finalAmt < 0) {
-          finalAmt = Math.abs(finalAmt);
-          type = 'Expense';
-        } else {
-          type = 'Income';
-        }
-      }
-
-      const lowercaseDesc = desc.toLowerCase();
-      if (lowercaseDesc.includes('cred') || lowercaseDesc.includes('cc bill') || lowercaseDesc.includes('transfer') || lowercaseDesc.includes('sip')) {
-        type = 'Transfer';
-      }
-
-      const finalDesc = cleanDescription(desc);
-      results.push({
-        id: `parsed_${idx}_${Date.now()}`,
-        date: normalizedDate,
-        description: finalDesc,
-        amount: finalAmt,
-        type,
-        category: getCategory(finalDesc),
-        selected: true
-      });
-    }
-  });
-
-  return results;
-};
 
 interface LedgerViewProps {
   dateRange: GlobalDateRange;
@@ -420,6 +269,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
         nomineeName: newAccNominee.trim() || undefined
       });
 
+      posthog.capture('bank_account_added', { account_type: newAccType });
       // Reset Form
       setNewAccName('');
       setNewAccBank('');
@@ -498,6 +348,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
       refAccountId: newTxType === 'Transfer' ? newTxRefAcc : undefined
     });
 
+    posthog.capture('transaction_added', { transaction_type: newTxType, category: newTxCategory });
     // Reset Form
     setNewTxDesc('');
     setNewTxAmount('');
@@ -555,7 +406,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
     const selected = parsedReviewTxs.filter(t => t.selected);
     if (selected.length === 0 || !statementAccount) return;
 
-    let importedCount = 0;
+    const toImport: Omit<Transaction, 'id'>[] = [];
     for (const tx of selected) {
       // Duplicate detection checks (same date, amount, description in past logs)
       const isDup = transactions.some(t =>
@@ -565,7 +416,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
       );
       if (isDup) continue;
 
-      await dbService.addTransaction({
+      toImport.push({
         accountId: statementAccount,
         profileId: activeProfileId,
         date: tx.date,
@@ -574,9 +425,14 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
         type: tx.type,
         category: tx.category
       });
-      importedCount++;
     }
 
+    if (toImport.length > 0) {
+      await dbService.addTransactions(toImport);
+    }
+    const importedCount = toImport.length;
+
+    posthog.capture('statement_imported', { transaction_count: importedCount });
     setImportStatus(`Successfully parsed and imported ${importedCount} transactions.`);
     setParsedReviewTxs([]);
     refreshData();

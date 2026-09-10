@@ -78,16 +78,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
   }, [budgets, rawTransactions, currentMonthStr]);
 
   // Monthly flows (Income vs Expense in current active month)
-  const monthlyIncome = useMemo(() => {
-    return transactions
-      .filter(t => t.type === 'Income' && t.date.startsWith(currentMonthStr))
-      .reduce((sum, t) => sum + t.amount, 0);
-  }, [transactions, currentMonthStr]);
-
-  const monthlyExpense = useMemo(() => {
-    return transactions
-      .filter(t => t.type === 'Expense' && t.date.startsWith(currentMonthStr))
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const { monthlyIncome, monthlyExpense } = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const t of transactions) {
+      if (t.date.startsWith(currentMonthStr)) {
+        if (t.type === 'Income') income += t.amount;
+        else if (t.type === 'Expense') expense += Math.abs(t.amount);
+      }
+    }
+    return { monthlyIncome: income, monthlyExpense: expense };
   }, [transactions, currentMonthStr]);
 
   const savingsRate = useMemo(() => {

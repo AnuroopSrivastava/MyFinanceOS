@@ -4,6 +4,7 @@ import { dbService } from '@financeos/database';
 import { useDbVersion } from '../hooks/useDbSync.js';
 import { Send, Sparkles, User, ShieldCheck, Cloud, Settings, Compass, Trash2 } from 'lucide-react';
 import { aiService, AIMode } from '../utils/aiService.js';
+import posthog from 'posthog-js';
 
 interface ChatMessage {
   id: string;
@@ -68,16 +69,18 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
 
   // DB Data access to answer queries
   const dbVersion = useDbVersion();
-  const accounts = useMemo(() => dbService.getAccounts().filter(a => a.profileId === activeProfileId), [activeProfileId, dbVersion]);
-  const transactions = useMemo(() => dbService.getTransactions().filter(t => t.profileId === activeProfileId), [activeProfileId, dbVersion]);
-  const stocks = useMemo(() => dbService.getStocks().filter(s => s.profileId === activeProfileId), [activeProfileId, dbVersion]);
-  const mfs = useMemo(() => dbService.getMutualFunds().filter(m => m.profileId === activeProfileId), [activeProfileId, dbVersion]);
-  const fds = useMemo(() => dbService.getFDs().filter(f => f.profileId === activeProfileId), [activeProfileId, dbVersion]);
-  const gold = useMemo(() => dbService.getGold().filter(g => g.profileId === activeProfileId), [activeProfileId, dbVersion]);
-  const nps = useMemo(() => dbService.getNPS().filter(n => n.profileId === activeProfileId), [activeProfileId, dbVersion]);
-  const pf = useMemo(() => dbService.getPF().filter(p => p.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const accounts = useMemo(() => dbService.getAccounts(activeProfileId), [activeProfileId, dbVersion]);
+  const transactions = useMemo(() => dbService.getTransactions(activeProfileId), [activeProfileId, dbVersion]);
+  const stocks = useMemo(() => dbService.getStocks(activeProfileId), [activeProfileId, dbVersion]);
+  const mfs = useMemo(() => dbService.getMutualFunds(activeProfileId), [activeProfileId, dbVersion]);
+  const fds = useMemo(() => dbService.getFDs(activeProfileId), [activeProfileId, dbVersion]);
+  const gold = useMemo(() => dbService.getGold(activeProfileId), [activeProfileId, dbVersion]);
+  const nps = useMemo(() => dbService.getNPS(activeProfileId), [activeProfileId, dbVersion]);
+  const pf = useMemo(() => dbService.getPF(activeProfileId), [activeProfileId, dbVersion]);
+  const tdsRecords = useMemo(() => dbService.getTDSRecords(activeProfileId), [activeProfileId, dbVersion]);
+  const taxInputs = useMemo(() => dbService.getTaxInputs(activeProfileId) || ({} as any), [activeProfileId, dbVersion]);
 
-  const aiContext = useMemo(() => ({ accounts, transactions, stocks, mfs, fds, gold, nps, pf, tdsRecords: [], taxInputs: {} as any }), [accounts, transactions, stocks, mfs, fds, gold, nps, pf]);
+  const aiContext = useMemo(() => ({ accounts, transactions, stocks, mfs, fds, gold, nps, pf, tdsRecords, taxInputs }), [accounts, transactions, stocks, mfs, fds, gold, nps, pf, tdsRecords, taxInputs]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -98,6 +101,8 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ activeProfileId }) => {
 
   const processQueryText = async (textToSend: string) => {
     if (!textToSend.trim() || isProcessing) return;
+
+    posthog.capture('ai_query_sent', { ai_mode: mode });
 
     const userMsg: ChatMessage = {
       id: 'm_' + Date.now(),

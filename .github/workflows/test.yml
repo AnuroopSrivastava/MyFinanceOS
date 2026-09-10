@@ -26,6 +26,9 @@ jobs:
 
     - name: Build Shared Packages
       run: npm run build:libs
+
+    - name: Verify Versioning & Changelog Synchronization
+      run: npm run release:check
       
     - name: Run Unit & Integration Tests (with Coverage)
       run: npm run test:coverage

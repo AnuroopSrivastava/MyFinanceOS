@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Button, CurrencyInput, Modal, ConfirmModal, useConfirmModal, Tabs, IconButton, StatRow, EmptyState, PanelHeader, FormField, FormActions, SummaryMetricGrid, FormRow, InfoCallout, Slider, chartTooltipStyle, chartTooltipItemStyle } from '@financeos/ui';
 import { dbService } from '@financeos/database';
+import posthog from 'posthog-js';
 import { useDbSyncCallback } from '../hooks/useDbSync.js';
 import {
   TrendingUp, BarChart2,
@@ -275,6 +276,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
       await dbService.updateStock(editStockId, stockData);
     } else {
       await dbService.addStock(stockData);
+      posthog.capture('investment_added', { asset_type: 'stock' });
     }
 
     setStkSymbol(''); setStkName(''); setStkQty(''); setStkAvgPrice(''); setStkCurrentPrice(''); setStkNominee('');
@@ -317,6 +319,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
     } else {
       const newMF = await dbService.addMutualFund(mfData);
       savedId = newMF.id;
+      posthog.capture('investment_added', { asset_type: 'mutual_fund' });
     }
 
     if (mfAutoSIP && mfSIPAmount && savedId) {
@@ -382,6 +385,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
       await dbService.updateFD(editFDId, fdData);
     } else {
       await dbService.addFD(fdData);
+      posthog.capture('investment_added', { asset_type: 'fixed_deposit' });
     }
 
     setFdBankName(''); setFdPrincipal(''); setFdInterestRate(''); setFdMaturityAmount(''); setFdNominee('');
@@ -422,6 +426,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
       await dbService.updateGold(editGoldId, goldData);
     } else {
       await dbService.addGold(goldData);
+      posthog.capture('investment_added', { asset_type: 'gold' });
     }
 
     setGldQty(''); setGldBuyPrice(''); setGldCurrentPrice(''); setGldNominee('');
@@ -467,6 +472,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
       await dbService.updateNPS(editNPSId, npsData);
     } else {
       await dbService.addNPS(npsData);
+      posthog.capture('investment_added', { asset_type: 'nps' });
     }
 
     setNpsPran(''); setNpsBalance(''); setNpsNominee('');
@@ -506,6 +512,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
       await dbService.updatePF(editPFId, pfData);
     } else {
       await dbService.addPF(pfData);
+      posthog.capture('investment_added', { asset_type: 'provident_fund' });
     }
 
     setPfAccNum(''); setPfBalance(''); setPfContrib(''); setPfNominee('');
