@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { SiteFooter } from './Landing';
 import { CURRENT_VERSION, LATEST_CHANGELOG_ENTRY } from '@financeos/shared';
 
@@ -32,5 +32,14 @@ describe('SiteFooter Changelog & Version Integration', () => {
     const changelogLink = screen.getByTestId('footer-changelog-link');
     expect(changelogLink).toBeDefined();
     expect(changelogLink.getAttribute('href')).toBe('/changelog');
+  });
+
+  it('does not throw when a path-based footer link is clicked', () => {
+    render(<SiteFooter />);
+    // Path hrefs are not valid CSS selectors, so the smooth-scroll handler
+    // must skip document.querySelector for them and let navigation proceed.
+    for (const label of ['Changelog', 'Terms of Service', 'Privacy Policy']) {
+      expect(() => fireEvent.click(screen.getByText(label))).not.toThrow();
+    }
   });
 });

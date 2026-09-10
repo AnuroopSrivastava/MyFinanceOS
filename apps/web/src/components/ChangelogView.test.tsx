@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { ChangelogView } from './ChangelogView';
 import { CURRENT_VERSION } from '@financeos/shared';
 
@@ -28,10 +28,11 @@ describe('ChangelogView Component', () => {
     expect(baselineCard.textContent).toContain('v1.0.0');
     expect(baselineCard.textContent).toContain('Initial baseline release');
 
-    // Expand older release details if collapsed
-    const expandButtons = screen.queryAllByRole('button', { name: /expand changelog details/i });
-    if (expandButtons.length > 0) {
-      fireEvent.click(expandButtons[0]);
+    // Only the latest release is expanded by default, so expand this card's
+    // own details before asserting its categorized changes.
+    const expandButton = within(baselineCard).queryByRole('button', { name: /expand changelog details/i });
+    if (expandButton) {
+      fireEvent.click(expandButton);
     }
 
     expect(baselineCard.textContent).toContain('Features');
