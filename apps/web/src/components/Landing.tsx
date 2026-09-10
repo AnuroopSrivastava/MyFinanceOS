@@ -3150,6 +3150,7 @@ function FooterColumn({ links, offset }: { links: FooterLink[]; offset: number }
           <a
             href={link.href}
             onClick={(e) => {
+              if (!link.href.startsWith('#')) return;
               const target = document.querySelector(link.href);
               if (target) {
                 e.preventDefault();
