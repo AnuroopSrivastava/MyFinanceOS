@@ -28,3 +28,21 @@ When performing whole-project tasks (styling, theme audits, refactoring, transla
      - **CLI Fallback**:
        - `node scripts/screenshot.mjs http://localhost:3000 preview.png`
   3. Inspect or embed the screenshot to confirm UI rendering before presenting changes.
+
+## Release Intelligence & "Push to GitHub" Protocol
+When the user asks to **"Push to GitHub"** (or says "push", "ship it", "release and push"):
+- Execute: `npm run release:ship` (or `node scripts/release.mjs --ship`).
+- This autonomously runs the full release intelligence pipeline:
+  1. Inspects repository state & auto-stages project code changes.
+  2. Resolves release boundary against latest git tag (`v*.*.*`).
+  3. Fuses Multi-Signal evidence (Signals A–G: diffs, paths, commits, breaking changes).
+  4. Computes semantic version progression (SemVer: PATCH, MINOR, MAJOR, or NONE).
+  5. Synthesizes human-facing categorized changelog & product summary via the quality gate.
+  6. Updates structured machine-readable `release-manifest.json` (`schemaVersion: 1`).
+  7. Synchronizes canonical version across all workspace `package.json` files and shared metadata.
+  8. Runs pre-commit validation checks (`release:check`).
+  9. Creates atomic release commit: `chore(release): vX.Y.Z [skip-release-hook]`.
+  10. Creates annotated git tag: `vX.Y.Z`.
+  11. Pushes release commit and git tag to GitHub `origin`.
+  12. Verifies remote branch and tag status.
+  13. Enforces idempotency: repeated executions without changes do not create duplicate releases.
