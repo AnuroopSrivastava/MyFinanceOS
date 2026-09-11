@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useScroll, useTransform, type MotionValue } from "framer-motion";
 import { cx } from "@financeos/ui";
 
@@ -216,12 +216,12 @@ const Skiper30 = ({
       >
         {isMobile ? (
           <>
-            <Column items={mobileCol1} y={y1} topOffset="-20%" />
+            <Column items={mobileCol1} y={y1} topOffset="-20%" priority />
             <Column items={mobileCol2} y={y2} topOffset="-45%" />
           </>
         ) : (
           <>
-            <Column items={desktopCol1} y={y1} topOffset="-45%" />
+            <Column items={desktopCol1} y={y1} topOffset="-45%" priority />
             <Column items={desktopCol2} y={y2} topOffset="-95%" />
             <Column items={desktopCol3} y={y3} topOffset="-45%" />
             <Column items={desktopCol4} y={y4} topOffset="-75%" />
@@ -366,14 +366,112 @@ const Skiper30 = ({
   );
 };
 
+// Each `.webp` screenshot ships with a `.jpg` twin in the same folder. When a
+// webp request drops, the browser cannot recover it through a `<picture>`
+// source: source selection is by format support, not by load success, and webp
+// is supported everywhere here. So the jpg fallback runs through `onError`
+// instead, which also covers a dropped jpg with a neutral placeholder.
+const toJpgSrc = (src: string) => src.replace(/\.webp(\?.*)?$/i, ".jpg$1");
+
+// Try the webp first, then its jpg twin, then a neutral placeholder. The
+// placeholder means a dropped asset never shows the browser's broken-image
+// icon plus the long alt text inside the card.
+const GalleryImage = ({ item, eager }: { item: GalleryItem; eager: boolean }) => {
+  const sources = useMemo(() => [item.src, toJpgSrc(item.src)], [item.src]);
+  const [sourceIndex, setSourceIndex] = useState(0);
+  const failedSrc = useRef<string | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const failed = sourceIndex >= sources.length;
+  const currentSrc = failed ? null : sources[sourceIndex];
+
+  // Advance once per source. A dropped source can report through both the
+  // native error event and the mount-time completeness check below, so the
+  // ref guards against skipping a fallback on a double report.
+  const advance = useCallback((src: string) => {
+    if (failedSrc.current === src) return;
+    failedSrc.current = src;
+    setSourceIndex((index) => index + 1);
+  }, []);
+
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!img || !currentSrc) return;
+    // An eager image can fail before hydration attaches the handler, so the
+    // error event never reaches React. Detect that already-failed state here.
+    if (img.complete && img.naturalWidth === 0) {
+      advance(currentSrc);
+      return;
+    }
+    const onError = () => advance(currentSrc);
+    img.addEventListener("error", onError);
+    return () => img.removeEventListener("error", onError);
+  }, [currentSrc, advance]);
+
+  const imgStyle: React.CSSProperties = {
+    width: "100%",
+    height: "100%",
+    aspectRatio: "1080 / 1485",
+    objectFit: "cover",
+    pointerEvents: "none",
+    userSelect: "none",
+    display: "block",
+  };
+
+  if (failed) {
+    return (
+      <div
+        role="img"
+        aria-label={item.alt}
+        style={{
+          ...imgStyle,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "linear-gradient(135deg, #14152a 0%, #0d0e1b 100%)",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "12px",
+            fontWeight: 600,
+            letterSpacing: "0.04em",
+            color: "rgba(255, 255, 255, 0.55)",
+            padding: "0 12px",
+            textAlign: "center",
+          }}
+        >
+          {item.title}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      ref={imgRef}
+      key={currentSrc ?? undefined}
+      src={currentSrc ?? undefined}
+      alt={item.alt}
+      width={1080}
+      height={1485}
+      loading={eager ? "eager" : "lazy"}
+      decoding="async"
+      fetchPriority={eager ? "high" : "auto"}
+      className="pointer-events-none h-full w-full object-cover select-none"
+      style={imgStyle}
+    />
+  );
+};
+
 type ColumnProps = {
   items?: GalleryItem[];
   images?: string[];
   topOffset: string;
   y: MotionValue<number>;
+  priority?: boolean;
 };
 
-const Column = React.memo(({ items, images, topOffset, y }: ColumnProps) => {
+const Column = React.memo(({ items, images, topOffset, y, priority = false }: ColumnProps) => {
   // Normalization to support either items or legacy images prop
   const cardItems = useMemo<GalleryItem[]>(() => {
     if (items && items.length > 0) return items;
@@ -419,25 +517,7 @@ const Column = React.memo(({ items, images, topOffset, y }: ColumnProps) => {
             boxShadow: "none",
           }}
         >
-          <img
-            src={item.src}
-            alt={item.alt}
-            width={1080}
-            height={1485}
-            loading="eager"
-            decoding="async"
-            fetchPriority="high"
-            className="pointer-events-none h-full w-full object-cover select-none"
-            style={{
-              width: "100%",
-              height: "100%",
-              aspectRatio: "1080 / 1485",
-              objectFit: "cover",
-              pointerEvents: "none",
-              userSelect: "none",
-              display: "block",
-            }}
-          />
+          <GalleryImage item={item} eager={priority && i === 0} />
 
           {/* Feature Recognition Micro-Badge */}
           <div
