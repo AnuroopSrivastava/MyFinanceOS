@@ -73,12 +73,25 @@ export { CopyableField } from './CopyableField.js';
 export type { CopyableFieldProps } from './CopyableField.js';
 export { FormRow } from './FormRow.js';
 export type { FormRowProps, FormRowColumns } from './FormRow.js';
+export { FilterPillGroup } from './FilterPillGroup.js';
+export type { FilterPillGroupProps, FilterPillOption } from './FilterPillGroup.js';
+export { ReleaseBadge, ReleaseLegend, RELEASE_LEGEND_ITEMS } from './ReleaseBadge.js';
+export type { ReleaseBadgeProps, ReleaseLevel, ReleaseLegendProps, ReleaseLegendItem } from './ReleaseBadge.js';
+export { CategoryIcon } from './CategoryIcon.js';
+export type { CategoryIconProps } from './CategoryIcon.js';
+export { CopyLinkButton } from './CopyLinkButton.js';
+export type { CopyLinkButtonProps } from './CopyLinkButton.js';
+export { ReleaseCard } from './ReleaseCard.js';
+export type { ReleaseCardProps } from './ReleaseCard.js';
 export {
   chartTooltipStyle,
   chartTooltipItemStyle,
   chartTooltipLabelStyle,
   chartAxisStyle,
   chartLegendStyle,
+  tickLakh,
+  tickThousand,
+  tickRupeeLakh,
 } from './chartStyles.js';
 
 export type AppTheme = 'dark' | 'light' | 'glass-cyan' | 'glass-emerald' | 'glass-gold';

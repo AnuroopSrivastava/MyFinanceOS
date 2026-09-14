@@ -45,6 +45,8 @@ typography:
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     fontWeight: 500
     fontSize: "0.85rem"
+  mono:
+    fontFamily: "'JetBrains Mono', 'Fira Code', monospace"
 rounded:
   sm: "10px"
   md: "18px"
@@ -244,7 +246,7 @@ Shared UI ships from `packages/ui` (aliased `@financeos/ui`). Rules: components 
 - **GoalTracker palette:** `GOAL_COLORS` maps to the `--color-asset-*` tokens plus `--warning`/`--error` so savings goals read as portfolio assets and stay theme-parity. Existing goals storing legacy hexes still render (CSS accepts both).
 - **Shared storage/logic keys:** `STORAGE_KEYS` (`dbCache`, `lastSyncedAt`, `theme`) and date/download helpers (`todayStamp`, `downloadBlob`) live in `@financeos/shared` — the single source for the string literals that used to be duplicated across `packages/database`, `packages/ui`, and views.
 - **Save worker:** `packages/database/src/saveWorker.ts` is a real module (imports `encryptData` from `@financeos/shared`); `getSaveWorker` instantiates it via `new Worker(new URL('./saveWorker.ts', import.meta.url), { type: 'module' })` so webpack bundles it (the `database` package ships raw TS via `main: ./src/index.ts`).
-- **Marketing / public pages (Landing, PrivacyView, TermsView):** these are standalone render targets (SSR/static) and intentionally use inline styles **with CSS-variable fallbacks** (e.g. `var(--badge-cyan-bg, rgba(6,182,212,0.15))`) so they degrade gracefully without the full theme stylesheet. Keep the fallback convention when editing them; do not convert them to bare tokens.
+- **Marketing / public pages (Landing, PrivacyView, TermsView, ChangelogView):** these are standalone render targets (SSR/static) and intentionally use inline styles **with CSS-variable fallbacks** (e.g. `var(--badge-cyan-bg, rgba(6,182,212,0.15))`) so they degrade gracefully without the full theme stylesheet. Keep the fallback convention when editing them; do not convert them to bare tokens.
 - **Migration sweep:** the deterministic token sweep (`fontSize`/`fontWeight`/spacing/radius/`rgba` scrims) is applied to `apps/web/src` component files. Restored/corrupt files must be re-swept after any text-level repair to normalize string contents back to token form.
 
 ## Rules & Directives

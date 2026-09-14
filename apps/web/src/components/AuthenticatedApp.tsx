@@ -450,7 +450,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ onLock }) =>
             </div>
             {isMobileMenuOpen && (
               <button
-                onPointerDown={() => setIsMobileMenuOpen(false)}
+                onClick={() => setIsMobileMenuOpen(false)}
                 aria-label="Close menu"
                 style={{
                   background: 'hsl(222, 10%, 14%)',
@@ -518,7 +518,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ onLock }) =>
                   return (
                     <button
                       key={page.id}
-                      onPointerDown={() => {
+                      onClick={() => {
                         if (hasUnsavedChanges && activePage !== page.id) {
                           const confirmLeave = window.confirm('You have unsaved changes currently synchronizing with your vault. Do you want to leave this section anyway?');
                           if (!confirmLeave) return;
@@ -652,7 +652,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ onLock }) =>
                   boxShadow: 'var(--neo-raised-sm)',
                   transition: 'all 0.15s ease'
                 }}
-                onPointerDown={handleLock}
+                onClick={handleLock}
                 title="Lock database in memory"
               >
                 <Lock size={14} />
@@ -676,7 +676,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ onLock }) =>
                   boxShadow: 'var(--neo-raised-sm)',
                   transition: 'all 0.15s ease'
                 }}
-                onPointerDown={async () => {
+                onClick={async () => {
                   posthog.capture('user_signed_out');
                   posthog.reset();
                   await authSession.logout();
@@ -703,7 +703,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ onLock }) =>
               <Button
                 variant="secondary"
                 className="mobile-menu-btn"
-                onPointerDown={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 style={{ padding: '0.35rem 0.5rem', border: '1px solid var(--border-color)' }}
               >
                 <Menu size={16} />
@@ -757,7 +757,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ onLock }) =>
                 {saveError ? (
                   <button
                     className="btn animate-fade-in"
-                    onPointerDown={() => setShowSavePopup(true)}
+                    onClick={() => setShowSavePopup(true)}
                     title="Click to view error and retry"
                     style={{
                       padding: '0.35rem 0.75rem',
@@ -779,7 +779,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ onLock }) =>
                 ) : hasUnsavedChanges ? (
                   <button
                     className="btn animate-fade-in"
-                    onPointerDown={() => {
+                    onClick={() => {
                       dbService.syncToCloud().then(() => toast.success('Auto-Save', 'State saved to cloud'));
                     }}
                     title="Saving changes in background..."
@@ -858,7 +858,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ onLock }) =>
           <nav className="mobile-bottom-nav" aria-label="Quick navigation">
             <button
               className={`mobile-nav-item ${activePage === 'dashboard' ? 'active' : ''}`}
-              onPointerDown={() => { setActivePage('dashboard'); setIsMobileMenuOpen(false); }}
+              onClick={() => { setActivePage('dashboard'); setIsMobileMenuOpen(false); }}
               aria-current={activePage === 'dashboard' ? 'page' : undefined}
             >
               <LayoutDashboard size={18} />
@@ -866,7 +866,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ onLock }) =>
             </button>
             <button
               className={`mobile-nav-item ${activePage === 'ledger' ? 'active' : ''}`}
-              onPointerDown={() => { setActivePage('ledger'); setIsMobileMenuOpen(false); }}
+              onClick={() => { setActivePage('ledger'); setIsMobileMenuOpen(false); }}
               aria-current={activePage === 'ledger' ? 'page' : undefined}
             >
               <Landmark size={18} />
@@ -874,7 +874,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ onLock }) =>
             </button>
             <button
               className={`mobile-nav-item ${activePage === 'investments' ? 'active' : ''}`}
-              onPointerDown={() => { setActivePage('investments'); setIsMobileMenuOpen(false); }}
+              onClick={() => { setActivePage('investments'); setIsMobileMenuOpen(false); }}
               aria-current={activePage === 'investments' ? 'page' : undefined}
             >
               <TrendingUp size={18} />
@@ -882,7 +882,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ onLock }) =>
             </button>
             <button
               className={`mobile-nav-item ${activePage === 'tax' ? 'active' : ''}`}
-              onPointerDown={() => { setActivePage('tax'); setIsMobileMenuOpen(false); }}
+              onClick={() => { setActivePage('tax'); setIsMobileMenuOpen(false); }}
               aria-current={activePage === 'tax' ? 'page' : undefined}
             >
               <Percent size={18} />
@@ -890,7 +890,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ onLock }) =>
             </button>
             <button
               className={`mobile-nav-item ${activePage === 'ai' ? 'active' : ''}`}
-              onPointerDown={() => { setActivePage('ai'); setIsMobileMenuOpen(false); }}
+              onClick={() => { setActivePage('ai'); setIsMobileMenuOpen(false); }}
               aria-current={activePage === 'ai' ? 'page' : undefined}
             >
               <Sparkles size={18} />
@@ -898,7 +898,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ onLock }) =>
             </button>
             <button
               className={`mobile-nav-item ${isMobileMenuOpen ? 'active' : ''}`}
-              onPointerDown={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               <Menu size={18} />
               <span>More</span>

@@ -42,8 +42,7 @@ dist-ssr/
 **/dist-ssr/
 build/
 **/build/
-release/
-**/release/
+/release/
 out/
 **/out/
 .output/
@@ -353,11 +352,14 @@ $RECYCLE.BIN/
 *.sln.docstates
 *.user
 *.userosv
-*.vcxproj.user
-Debug/
-Release/
-x64/
-x86/
+/Debug/
+/Release/
+/x64/
+/x86/
+bin/Debug/
+bin/Release/
+obj/Debug/
+obj/Release/
 
 # Vim / Neovim / Emacs / Sublime
 *.sw?
@@ -414,6 +416,12 @@ test_scratch.*
 /brain/
 /.agent/
 /.agents/local/
+/.mimosa/
+/.emergent/
+/.zcode/
+.mimosa/
+.emergent/
+.zcode/
 
 # Agent Session Dumps, Rules & Chat Histories
 /.aider.*.history*
@@ -917,7 +925,12 @@ preview-hero.png
 !graphify-out/manifest.json
 !graphify-out/wiki/**
 
+# Release Pipeline, Scripts & Automation Tooling
+!scripts/
+!scripts/**
+
 # Release Engine Lock & Traces
 .release.lock
 trace.json.gz
 *.trace.json.gz
+

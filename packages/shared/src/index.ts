@@ -504,6 +504,7 @@ export const filterByDateRange = <T>(
 export * from './crypto.js';
 export * from './currency.js';
 export * from './financialCalculations.js';
+export * from './taxConstants.js';
 export * from './utils.js';
 export * from './version.js';
 export * from './changelog.js';

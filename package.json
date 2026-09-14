@@ -1,6 +1,6 @@
 {
   "name": "financeos-india",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "private": true,
   "workspaces": [
     "apps/*",
@@ -21,12 +21,12 @@
     "release:ship": "node scripts/release.mjs --ship",
     "push": "node scripts/release.mjs --ship",
     "release:preview": "node scripts/release.mjs --preview",
-    "release:auto": "node scripts/release.mjs --auto",
     "release:patch": "node scripts/release.mjs --patch",
     "release:minor": "node scripts/release.mjs --minor",
     "release:major": "node scripts/release.mjs --major",
     "release:none": "node scripts/release.mjs --none",
     "release:check": "node scripts/release.mjs --check",
+    "release:test-scoring": "node scripts/test-release-scoring.mjs",
     "version:check": "node scripts/release.mjs --check-version",
     "changelog:check": "node scripts/release.mjs --check-changelog",
     "hooks:install": "node scripts/install-hooks.mjs"

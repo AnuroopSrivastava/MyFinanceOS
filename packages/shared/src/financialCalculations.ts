@@ -164,9 +164,14 @@ export function calculateNPV(rate: number, cashFlows: CashFlow[]): number {
 }
 
 /**
- * Cryptographically robust XIRR Bisection Solver
+ * XIRR Bisection Solver.
+ *
+ * Returns null when the bracket [-0.99, 2.0] does not contain a sign change
+ * (NPV at both ends has the same sign) or when bisection fails to converge —
+ * previously the last midpoint was returned as a plausible-looking but wrong
+ * rate. Callers must handle null by displaying "not computable".
  */
-export function solveXIRR(cashFlows: CashFlow[]): number {
+export function solveXIRR(cashFlows: CashFlow[]): number | null {
   if (cashFlows.length < 2) return 0;
 
   const sorted = [...cashFlows].sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -174,6 +179,13 @@ export function solveXIRR(cashFlows: CashFlow[]): number {
   let low = -0.99;
   let high = 2.0;
   let mid = 0;
+
+  // A root exists in [low, high] only if NPV changes sign across the bracket.
+  const npvAtLow = calculateNPV(low, sorted);
+  const npvAtHigh = calculateNPV(high, sorted);
+  if (npvAtLow === 0) return low;
+  if (npvAtHigh === 0) return high;
+  if ((npvAtLow > 0) === (npvAtHigh > 0)) return null;
 
   for (let i = 0; i < 100; i++) {
     mid = (low + high) / 2;
@@ -188,7 +200,7 @@ export function solveXIRR(cashFlows: CashFlow[]): number {
       else low = mid;
     }
   }
-  return mid;
+  return null; // no convergence within tolerance
 }
 
 /**

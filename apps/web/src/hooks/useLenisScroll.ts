@@ -80,7 +80,7 @@ export function useLenisScroll(
           wheelMultiplier: SKIPER30_SCROLL_PHYSICS.wheelMultiplier,
           touchMultiplier: SKIPER30_SCROLL_PHYSICS.touchMultiplier,
           infinite: SKIPER30_SCROLL_PHYSICS.infinite,
-          respectReducedMotion: false,
+          respectReducedMotion: SKIPER30_SCROLL_PHYSICS.respectReducedMotion,
         });
 
         window.__myfinanceos_lenis__ = lenis;
@@ -194,4 +194,52 @@ export function useLenisScrollZone(
   }, [targetRef]);
 }
 
+/**
+ * Smoothly scrolls to a numeric pixel coordinate, CSS selector string, or HTMLElement.
+ * Utilizes the global Lenis RAF engine if active, otherwise falls back to window.scrollTo.
+ */
+export function smoothScrollTo(
+  target: string | number | HTMLElement,
+  offset: number = 0
+) {
+  if (typeof window === 'undefined') return;
+  try {
+    const isJsdom =
+      typeof navigator !== 'undefined' &&
+      navigator.userAgent &&
+      navigator.userAgent.includes('jsdom');
+    if (isJsdom && !window.__myfinanceos_lenis__) return;
+
+    if (window.__myfinanceos_lenis__) {
+      if (typeof target === 'number') {
+        window.__myfinanceos_lenis__.scrollTo(target, { offset });
+      } else if (typeof target === 'string') {
+        const el = document.querySelector(target);
+        if (el) {
+          window.__myfinanceos_lenis__.scrollTo(el as HTMLElement, { offset });
+        }
+      } else if (target instanceof HTMLElement) {
+        window.__myfinanceos_lenis__.scrollTo(target, { offset });
+      }
+      return;
+    }
+
+    if (typeof target === 'number') {
+      window.scrollTo({ top: target, behavior: 'smooth' });
+    } else if (typeof target === 'string') {
+      const el = document.querySelector(target);
+      if (el) {
+        const top = el.getBoundingClientRect().top + window.scrollY + offset;
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
+    } else if (target instanceof HTMLElement) {
+      const top = target.getBoundingClientRect().top + window.scrollY + offset;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+  } catch (err) {
+    // Graceful fallback for test environments or legacy browsers
+  }
+}
+
 export default useLenisScroll;
+

@@ -304,6 +304,33 @@ sequenceDiagram
 | **Forward Secrecy** | Fresh salt + IV for every encryption operation |
 | **Brute-Force Resistance** | 100,000 PBKDF2 iterations + Argon2id for PIN hashing |
 
+### Password Recovery Security
+
+The unauthenticated password endpoints (`/api/auth/forgot-password`, `/api/auth/login`) are the most abused surfaces in any web app, so they are guarded by three independent layers — an attacker must defeat all of them:
+
+| Layer | Control | Scope |
+|:---|:---|:---|
+| **1. Edge (Vercel Firewall)** | Per-IP rate limit: 20 req/min on `/api/auth/*` | Stops single-IP floods cheaply, before requests reach the app |
+| **2. App (`src/lib/rate-limit.ts`)** | Per-IP 5/hour (forgot) + 30/15min (login); per-email 3/24h (forgot) + 10/15min (login) | Stops email bombing of a specific victim and slows distributed credential stuffing |
+| **3. Provider (Supabase)** | Managed recovery tokens, single-use links, send-frequency limits | Reset tokens are never generated or stored by this codebase |
+
+Additional guarantees:
+
+- **Anti-enumeration** — the forgot-password endpoint returns an identical response (status, body, timing to first byte) whether or not the email exists. Attackers cannot harvest valid addresses.
+- **No user data in telemetry** — PostHog security events (`password_reset_requested`, `password_reset_rate_limited`, `password_login_failed`, `password_login_rate_limited`, `password_reset_completed`, `password_login_succeeded`) carry a truncated SHA-256 of the email, never the raw address or IP.
+- **Session invalidation on reset** — setting a new password signs out every active session (`signOut({ scope: 'global' })`), so a stolen recovery link also evicts an attacker holding an older session.
+- **Redirect hardening** — `/auth/callback` sanitizes its `next` parameter against a strict allowlist (`/`, `/reset-password`, `/settings`); the recovery flow lands on `/auth/callback?next=/reset-password`.
+- **CAPTCHA escalation path** — no CAPTCHA is enabled today. If scripted abuse appears, add Cloudflare Turnstile to the forgot-password form and verify the token server-side before the limiter checks (hook documented in `apps/web/app/api/auth/forgot-password/route.ts`).
+
+**Operational checklist (Supabase dashboard, one-time):**
+
+1. **Auth → URL Configuration** — add Site URL and redirect URLs: `https://<your-domain>/auth/callback**` and `http://localhost:3000/auth/callback**` (the `**` wildcard covers the `?next=` query).
+2. **Auth → Email Templates → Reset Password** — review the template copy; the link target must remain `/auth/callback?next=/reset-password` (configured in code, not the dashboard).
+3. **Auth → Rate Limits** — set the reset-email send frequency to ≤ 3/hour/email as a third-layer backstop.
+4. **Email delivery** — the free-tier built-in SMTP caps at ~2 emails/hour and is fine for testing, but configure a custom SMTP sender (Resend, SES, Postmark) before production, or reset emails will be silently dropped.
+5. **Vercel Firewall** — confirm the `auth-api-flood-guard` rule in `vercel.json` is active after the next deploy (Firewall → Rules). If the `rateLimit` action is unavailable on your plan tier, the in-app limiter (layer 2) still protects the endpoints; the edge rule adds cheap byte-level rejection.
+6. **PostHog alerting** — create an insight/monitor on `password_reset_rate_limited` and `password_login_failed` volume spikes (e.g., >10/minute) so a 3 AM flood pages someone instead of being found in the logs the next morning.
+
 > ⚠️ **Important:** If you ever committed secrets to Git, rotate them immediately in their respective dashboards. Git history retains all data.
 
 ---
@@ -340,6 +367,10 @@ cp apps/web/.env.example apps/web/.env
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | For cloud sync |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (RLS-scoped) | For cloud sync |
 | `NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY` | Contact form integration | For hosted web |
+| `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` | PostHog analytics token | For hosted web |
+| `NEXT_PUBLIC_POSTHOG_HOST` | PostHog ingest host | For hosted web |
+
+> See `apps/web/.env.example` for the full template.
 
 > **Note:** The app runs fully in **local-only mode** without any environment variables. Cloud features are gracefully disabled.
 

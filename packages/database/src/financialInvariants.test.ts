@@ -228,10 +228,14 @@ describe('DatabaseService — Financial Invariants', () => {
         currentAmount: 0, deadline: '2028-01-01', icon: '🚗', color: '#FF5733'
       });
 
+      // Create profile B's goal from profile B's session (cross-profile
+      // mutation from p1's session now throws — ownership guard).
+      dbService.setSessionProfile(profile2.id);
       await dbService.addGoal({
         profileId: profile2.id, name: 'Vacation', targetAmount: 100000,
         currentAmount: 0, deadline: '2027-01-01', icon: '✈️', color: '#3498DB'
       });
+      dbService.setSessionProfile('p1');
 
       const profile1Goals = dbService.getGoals('p1');
       const profile2Goals = dbService.getGoals(profile2.id);
@@ -269,12 +273,16 @@ describe('DatabaseService — Financial Invariants', () => {
       await dbService.addEncryptedDocument({
         id: 'doc1', profileId: 'p1', title: 'Aadhaar.pdf', category: 'ID',
         fileType: 'application/pdf', sizeBytes: 1024, encryptedData: 'data1', iv: 'iv1', uploadedAt: new Date().toISOString()
-      });
+      } as any);
 
+      // Create profile B's document from profile B's session (cross-profile
+      // mutation from p1's session now throws — ownership guard).
+      dbService.setSessionProfile(profile2.id);
       await dbService.addEncryptedDocument({
         id: 'doc2', profileId: profile2.id, title: 'PAN.pdf', category: 'ID',
         fileType: 'application/pdf', sizeBytes: 2048, encryptedData: 'data2', iv: 'iv2', uploadedAt: new Date().toISOString()
-      });
+      } as any);
+      dbService.setSessionProfile('p1');
 
       expect(dbService.getEncryptedDocuments('p1')).toHaveLength(1);
       expect(dbService.getEncryptedDocuments(profile2.id)).toHaveLength(1);

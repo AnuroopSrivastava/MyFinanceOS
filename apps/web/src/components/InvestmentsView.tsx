@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Button, CurrencyInput, Modal, ConfirmModal, useConfirmModal, Tabs, IconButton, StatRow, EmptyState, PanelHeader, FormField, FormActions, SummaryMetricGrid, FormRow, InfoCallout, Slider, chartTooltipStyle, chartTooltipItemStyle } from '@financeos/ui';
+import { Button, CurrencyInput, Modal, ConfirmModal, useConfirmModal, Tabs, IconButton, StatRow, EmptyState, PanelHeader, FormField, FormActions, SummaryMetricGrid, FormRow, InfoCallout, Slider, chartTooltipStyle, chartTooltipItemStyle, useToast } from '@financeos/ui';
 import { dbService } from '@financeos/database';
 import posthog from 'posthog-js';
 import { useDbSyncCallback } from '../hooks/useDbSync.js';
@@ -29,6 +29,20 @@ interface MonteCarloPoint {
 
 export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileId }) => {
   const { modal: confirmModal, openConfirm, closeConfirm } = useConfirmModal();
+  // Shared toast infra: surfaced only on failures (previously silent)
+  const { toast, Toaster } = useToast();
+
+  /** Runs a DB mutation; on failure shows a toast and preserves the form. */
+  const runMutation = async (action: () => Promise<void>, failMsg: string) => {
+    try {
+      await action();
+      return true;
+    } catch (e) {
+      console.error(failMsg, e);
+      toast.error(`${failMsg}. Your input was kept — nothing was saved.`);
+      return false;
+    }
+  };
   const [activeTab, setActiveTab] = useState<'holdings' | 'rebalance' | 'sim'>('holdings');
 
   // Dynamic DB States as React State
@@ -161,7 +175,10 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   const calculatedXIRR = useMemo(() => {
     if (investedCost === 0 || totalPortfolioVal === 0) return 0;
 
-    // Aggregate authentic cash outflows by holding start/creation dates
+    // Aggregate cash outflows by holding. FDs have a real startDate; other
+    // holding types carry no purchase-date field in the persisted schema, so
+    // their cost is conservatively dated one year ago (documented assumption,
+    // not a fabricated per-holding timestamp).
     const flows: CashFlow[] = [];
     const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
 
@@ -174,7 +191,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
     stocks.forEach(s => {
       const cost = s.quantity * s.averagePrice;
       if (cost > 0) {
-        flows.push({ date: new Date((s as any).createdAt || oneYearAgo), amount: -cost });
+        flows.push({ date: oneYearAgo, amount: -cost });
       }
     });
 
@@ -182,7 +199,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
     mfs.forEach(m => {
       const cost = m.units * m.averageNav;
       if (cost > 0) {
-        flows.push({ date: new Date((m as any).createdAt || oneYearAgo), amount: -cost });
+        flows.push({ date: oneYearAgo, amount: -cost });
       }
     });
 
@@ -190,21 +207,21 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
     gold.forEach(g => {
       const cost = g.quantityGrams * g.purchasePrice;
       if (cost > 0) {
-        flows.push({ date: new Date((g as any).createdAt || oneYearAgo), amount: -cost });
+        flows.push({ date: oneYearAgo, amount: -cost });
       }
     });
 
     // Add NPS balance
     nps.forEach(n => {
       if (n.balance > 0) {
-        flows.push({ date: new Date((n as any).createdAt || oneYearAgo), amount: -n.balance });
+        flows.push({ date: oneYearAgo, amount: -n.balance });
       }
     });
 
     // Add PF balance
     pf.forEach(p => {
       if (p.balance > 0) {
-        flows.push({ date: new Date((p as any).createdAt || oneYearAgo), amount: -p.balance });
+        flows.push({ date: oneYearAgo, amount: -p.balance });
       }
     });
 
@@ -216,7 +233,8 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
     // Terminal value today
     flows.push({ date: new Date(), amount: totalPortfolioVal });
 
-    return solveXIRR(flows) * 100;
+    const rate = solveXIRR(flows);
+    return rate === null ? null : rate * 100;
   }, [fds, stocks, mfs, gold, nps, pf, investedCost, totalPortfolioVal]);
 
   const closeAllModals = () => {
@@ -272,12 +290,15 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
       nomineeName: stkNominee || undefined
     };
 
-    if (editStockId) {
-      await dbService.updateStock(editStockId, stockData);
-    } else {
-      await dbService.addStock(stockData);
-      posthog.capture('investment_added', { asset_type: 'stock' });
-    }
+    const ok = await runMutation(async () => {
+      if (editStockId) {
+        await dbService.updateStock(editStockId, stockData);
+      } else {
+        await dbService.addStock(stockData);
+        posthog.capture('investment_added', { asset_type: 'stock' });
+      }
+    }, 'Failed to save stock holding');
+    if (!ok) return;
 
     setStkSymbol(''); setStkName(''); setStkQty(''); setStkAvgPrice(''); setStkCurrentPrice(''); setStkNominee('');
     setEditStockId(null);
@@ -285,7 +306,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   };
 
   const handleDeleteStock = async (id: string) => {
-    openConfirm({ title: 'Delete Stock Holding', message: 'Permanently remove this stock holding from your portfolio? Portfolio valuation and returns will be recalculated.', confirmLabel: 'Delete Holding', isDanger: true, onConfirm: async () => { await dbService.deleteStock(id); refreshData(); } });
+    openConfirm({ title: 'Delete Stock Holding', message: 'Permanently remove this stock holding from your portfolio? Portfolio valuation and returns will be recalculated.', confirmLabel: 'Delete Holding', isDanger: true, onConfirm: () => runMutation(async () => { await dbService.deleteStock(id); refreshData(); }, 'Failed to delete stock holding') });
   };
 
   const handleEditStock = (s: StockHolding) => {
@@ -313,34 +334,37 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
       nomineeName: mfNominee || undefined
     };
 
-    let savedId = editMFId;
-    if (editMFId) {
-      await dbService.updateMutualFund(editMFId, mfData);
-    } else {
-      const newMF = await dbService.addMutualFund(mfData);
-      savedId = newMF.id;
-      posthog.capture('investment_added', { asset_type: 'mutual_fund' });
-    }
-
-    if (mfAutoSIP && mfSIPAmount && savedId) {
-      const accId = mfSIPAccount || accounts[0]?.id;
-      if (accId) {
-        await dbService.addRecurringTransaction({
-          profileId: activeProfileId,
-          description: mfSchemeName + ' SIP',
-          amount: parseFloat(mfSIPAmount),
-          type: 'Transfer',
-          category: 'Investments',
-          accountId: accId,
-          frequency: 'Monthly',
-          nextDueDate: mfSIPStartDate,
-          startDate: mfSIPStartDate,
-          stepUpPct: parseFloat(mfSIPStepUp) || undefined,
-          targetAssetId: savedId,
-          isActive: true
-        });
+    const ok = await runMutation(async () => {
+      let savedId = editMFId;
+      if (editMFId) {
+        await dbService.updateMutualFund(editMFId, mfData);
+      } else {
+        const newMF = await dbService.addMutualFund(mfData);
+        savedId = newMF.id;
+        posthog.capture('investment_added', { asset_type: 'mutual_fund' });
       }
-    }
+
+      if (mfAutoSIP && mfSIPAmount && savedId) {
+        const accId = mfSIPAccount || accounts[0]?.id;
+        if (accId) {
+          await dbService.addRecurringTransaction({
+            profileId: activeProfileId,
+            description: mfSchemeName + ' SIP',
+            amount: parseFloat(mfSIPAmount),
+            type: 'Transfer',
+            category: 'Investments',
+            accountId: accId,
+            frequency: 'Monthly',
+            nextDueDate: mfSIPStartDate,
+            startDate: mfSIPStartDate,
+            stepUpPct: parseFloat(mfSIPStepUp) || undefined,
+            targetAssetId: savedId,
+            isActive: true
+          });
+        }
+      }
+    }, 'Failed to save mutual fund holding');
+    if (!ok) return;
 
     setMfSchemeName(''); setMfUnits(''); setMfAvgNav(''); setMfCurrentNav(''); setMfNominee('');
     setMfAutoSIP(false); setMfSIPAmount(''); setMfSIPAccount(''); setMfSIPStepUp(''); setMfSIPStartDate(new Date().toISOString().split('T')[0]);
@@ -349,7 +373,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   };
 
   const handleDeleteMF = async (id: string) => {
-    openConfirm({ title: 'Delete Mutual Fund Holding', message: 'Permanently remove this mutual fund holding from your portfolio? Portfolio returns and XIRR will be updated.', confirmLabel: 'Delete Fund', isDanger: true, onConfirm: async () => { await dbService.deleteMutualFund(id); refreshData(); } });
+    openConfirm({ title: 'Delete Mutual Fund Holding', message: 'Permanently remove this mutual fund holding from your portfolio? Portfolio returns and XIRR will be updated.', confirmLabel: 'Delete Fund', isDanger: true, onConfirm: () => runMutation(async () => { await dbService.deleteMutualFund(id); refreshData(); }, 'Failed to delete mutual fund') });
   };
 
   const handleEditMF = (m: MutualFundHolding) => {
@@ -381,12 +405,15 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
       isMatured: false
     };
 
-    if (editFDId) {
-      await dbService.updateFD(editFDId, fdData);
-    } else {
-      await dbService.addFD(fdData);
-      posthog.capture('investment_added', { asset_type: 'fixed_deposit' });
-    }
+    const ok = await runMutation(async () => {
+      if (editFDId) {
+        await dbService.updateFD(editFDId, fdData);
+      } else {
+        await dbService.addFD(fdData);
+        posthog.capture('investment_added', { asset_type: 'fixed_deposit' });
+      }
+    }, 'Failed to save fixed deposit');
+    if (!ok) return;
 
     setFdBankName(''); setFdPrincipal(''); setFdInterestRate(''); setFdMaturityAmount(''); setFdNominee('');
     setEditFDId(null);
@@ -394,7 +421,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   };
 
   const handleDeleteFD = async (id: string) => {
-    openConfirm({ title: 'Delete Fixed Deposit', message: 'Permanently remove this fixed deposit from your records? Interest accruals and maturity reminders will be removed.', confirmLabel: 'Delete Deposit', isDanger: true, onConfirm: async () => { await dbService.deleteFD(id); refreshData(); } });
+    openConfirm({ title: 'Delete Fixed Deposit', message: 'Permanently remove this fixed deposit from your records? Interest accruals and maturity reminders will be removed.', confirmLabel: 'Delete Deposit', isDanger: true, onConfirm: () => runMutation(async () => { await dbService.deleteFD(id); refreshData(); }, 'Failed to delete fixed deposit') });
   };
 
   const handleEditFD = (f: FixedDeposit) => {
@@ -422,12 +449,15 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
       nomineeName: gldNominee || undefined
     };
 
-    if (editGoldId) {
-      await dbService.updateGold(editGoldId, goldData);
-    } else {
-      await dbService.addGold(goldData);
-      posthog.capture('investment_added', { asset_type: 'gold' });
-    }
+    const ok = await runMutation(async () => {
+      if (editGoldId) {
+        await dbService.updateGold(editGoldId, goldData);
+      } else {
+        await dbService.addGold(goldData);
+        posthog.capture('investment_added', { asset_type: 'gold' });
+      }
+    }, 'Failed to save gold holding');
+    if (!ok) return;
 
     setGldQty(''); setGldBuyPrice(''); setGldCurrentPrice(''); setGldNominee('');
     setEditGoldId(null);
@@ -435,7 +465,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   };
 
   const handleDeleteGold = async (id: string) => {
-    openConfirm({ title: 'Delete Gold Asset', message: 'Permanently remove this gold holding from your portfolio valuation?', confirmLabel: 'Delete Asset', isDanger: true, onConfirm: async () => { await dbService.deleteGold(id); refreshData(); } });
+    openConfirm({ title: 'Delete Gold Asset', message: 'Permanently remove this gold holding from your portfolio valuation?', confirmLabel: 'Delete Asset', isDanger: true, onConfirm: () => runMutation(async () => { await dbService.deleteGold(id); refreshData(); }, 'Failed to delete gold asset') });
   };
 
   const handleEditGold = (g: GoldHolding) => {
@@ -468,12 +498,15 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
       nomineeName: npsNominee || undefined
     };
 
-    if (editNPSId) {
-      await dbService.updateNPS(editNPSId, npsData);
-    } else {
-      await dbService.addNPS(npsData);
-      posthog.capture('investment_added', { asset_type: 'nps' });
-    }
+    const ok = await runMutation(async () => {
+      if (editNPSId) {
+        await dbService.updateNPS(editNPSId, npsData);
+      } else {
+        await dbService.addNPS(npsData);
+        posthog.capture('investment_added', { asset_type: 'nps' });
+      }
+    }, 'Failed to save NPS account');
+    if (!ok) return;
 
     setNpsPran(''); setNpsBalance(''); setNpsNominee('');
     setEditNPSId(null);
@@ -481,7 +514,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   };
 
   const handleDeleteNPS = async (id: string) => {
-    openConfirm({ title: 'Delete NPS Account', message: 'Permanently remove this National Pension System (NPS) record from your portfolio?', confirmLabel: 'Delete Account', isDanger: true, onConfirm: async () => { await dbService.deleteNPS(id); refreshData(); } });
+    openConfirm({ title: 'Delete NPS Account', message: 'Permanently remove this National Pension System (NPS) record from your portfolio?', confirmLabel: 'Delete Account', isDanger: true, onConfirm: () => runMutation(async () => { await dbService.deleteNPS(id); refreshData(); }, 'Failed to delete NPS account') });
   };
 
   const handleEditNPS = (n: NPSHolding) => {
@@ -508,12 +541,15 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
       nomineeName: pfNominee || undefined
     };
 
-    if (editPFId) {
-      await dbService.updatePF(editPFId, pfData);
-    } else {
-      await dbService.addPF(pfData);
-      posthog.capture('investment_added', { asset_type: 'provident_fund' });
-    }
+    const ok = await runMutation(async () => {
+      if (editPFId) {
+        await dbService.updatePF(editPFId, pfData);
+      } else {
+        await dbService.addPF(pfData);
+        posthog.capture('investment_added', { asset_type: 'provident_fund' });
+      }
+    }, 'Failed to save PF account');
+    if (!ok) return;
 
     setPfAccNum(''); setPfBalance(''); setPfContrib(''); setPfNominee('');
     setEditPFId(null);
@@ -521,7 +557,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
   };
 
   const handleDeletePF = async (id: string) => {
-    openConfirm({ title: 'Delete Provident Fund Account', message: 'Permanently remove this Provident Fund (EPF/PPF) record from your retirement portfolio?', confirmLabel: 'Delete Account', isDanger: true, onConfirm: async () => { await dbService.deletePF(id); refreshData(); } });
+    openConfirm({ title: 'Delete Provident Fund Account', message: 'Permanently remove this Provident Fund (EPF/PPF) record from your retirement portfolio?', confirmLabel: 'Delete Account', isDanger: true, onConfirm: () => runMutation(async () => { await dbService.deletePF(id); refreshData(); }, 'Failed to delete PF account') });
   };
 
   const handleEditPF = (p: ProvidentFundHolding) => {
@@ -618,10 +654,10 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
             </div>
             <div>
               <span className="uppercase-label" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-025)', color: 'var(--text-secondary)', fontWeight: 'var(--fw-bold)' }}>
-                XIRR (Annualized) <span title="Internal Rate of Return computed via Bisection method."><HelpCircle size={12} color="var(--text-muted)" /></span>
+                XIRR (Annualized) <span title="Internal Rate of Return computed via bisection. Shown as — when the cash-flow pattern has no computable rate in the [-99%, 200%] range."><HelpCircle size={12} color="var(--text-muted)" /></span>
               </span>
               <h3 className="type-metric-sm tabular-nums" style={{ color: 'var(--accent-2)', marginTop: 'var(--spacing-025)', fontWeight: 'var(--fw-black)' }}>
-                {calculatedXIRR.toFixed(2)}%
+                {calculatedXIRR === null ? '—' : `${calculatedXIRR.toFixed(2)}%`}
               </h3>
             </div>
           </SummaryMetricGrid>
@@ -1353,6 +1389,7 @@ export const InvestmentsView: React.FC<InvestmentsViewProps> = ({ activeProfileI
         </Modal>
 
       </div>
+      <Toaster />
     </>
   );
 };

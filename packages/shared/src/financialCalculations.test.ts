@@ -396,13 +396,36 @@ describe('Financial Calculations — XIRR Solver Engine', () => {
       { date: new Date('2025-01-01'), amount: 180000 }
     ];
     const xirr = solveXIRR(cashFlows);
-    expect(xirr).toBeGreaterThan(0.08); // > 8%
-    expect(xirr).toBeLessThan(0.20); // < 20%
+    expect(xirr).not.toBeNull();
+    if (xirr !== null) {
+      expect(xirr).toBeGreaterThan(0.08); // > 8%
+      expect(xirr).toBeLessThan(0.20); // < 20%
+    }
   });
 
   it('returns 0 for single cash flow or empty array', () => {
     expect(solveXIRR([])).toBe(0);
     expect(solveXIRR([{ date: new Date(), amount: 100 }])).toBe(0);
+  });
+
+  it('returns null when the bracket [-0.99, 2.0] contains no sign change (all-outflow patterns)', () => {
+    const flows = [
+      { date: new Date('2020-01-01'), amount: -100 },
+      { date: new Date('2021-01-01'), amount: 10000 },
+      { date: new Date('2022-01-01'), amount: -10000 },
+      { date: new Date('2023-01-01'), amount: 10000 },
+    ];
+    // Pathological ordering: no root in range — previously returned a wrong
+    // plausible-looking mid value, now null (alignment: XIRR honesty).
+    expect(solveXIRR(flows)).toBeNull();
+  });
+
+  it('returns null when every flow is an outflow and NPV never crosses zero', () => {
+    const flows = [
+      { date: new Date('2020-01-01'), amount: -1000 },
+      { date: new Date('2021-01-01'), amount: -1000 },
+    ];
+    expect(solveXIRR(flows)).toBeNull();
   });
 });
 

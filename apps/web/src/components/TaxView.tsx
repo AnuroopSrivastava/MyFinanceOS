@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { useDbVersion } from '../hooks/useDbSync.js';
 import { Calculator, Percent, FileText, AlertCircle, Edit2, Trash2, Plus, Download, Calendar, Clock, Target, TrendingUp, Shield, Wallet } from 'lucide-react';
-import { TDSSummary, formatRupee, calculateTaxOldRegime, calculateTaxNewRegime } from '@financeos/shared';
+import { TDSSummary, formatRupee, calculateTaxOldRegime, calculateTaxNewRegime, TAX_DEDUCTION_LIMITS } from '@financeos/shared';
 import { exportToCSV } from '../utils/exportCsv.js';
 import {
   Button,
@@ -153,13 +153,12 @@ export const TaxView: React.FC<TaxViewProps> = ({ activeProfileId }) => {
 
   // --- Regimes Calculator Logic (FY 2026-27 Slabs) ---
   const taxCalculations = useMemo(() => {
-    const stdDeductionOld = 50000;
-    const stdDeductionNew = 75000;
+    const { stdDeductionOld, stdDeductionNew } = TAX_DEDUCTION_LIMITS;
 
-    const totalDeductionsOld = Math.min(150000, ded80C) +
-      Math.min(50000, ded80D) +
-      Math.min(50000, dedNps) +
-      Math.min(200000, dedHomeLoan) +
+    const totalDeductionsOld = Math.min(TAX_DEDUCTION_LIMITS.ded80C, ded80C) +
+      Math.min(TAX_DEDUCTION_LIMITS.ded80D, ded80D) +
+      Math.min(TAX_DEDUCTION_LIMITS.dedNps, dedNps) +
+      Math.min(TAX_DEDUCTION_LIMITS.dedHomeLoan, dedHomeLoan) +
       hraExempt +
       stdDeductionOld;
 

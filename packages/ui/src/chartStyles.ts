@@ -35,3 +35,12 @@ export const chartLegendStyle = {
   color: 'var(--text-secondary)',
   fontSize: 'var(--font-sm)',
 } as const;
+
+/** Axis tick in lakhs, e.g. 2.5L — shared so every chart abbreviates identically. */
+export const tickLakh = (v: number): string => `${(v / 100000).toFixed(1)}L`;
+
+/** Axis tick in thousands, e.g. 25k. */
+export const tickThousand = (v: number): string => `${(v / 1000).toFixed(0)}k`;
+
+/** Axis tick in lakhs with a rupee sign, e.g. ₹3L. */
+export const tickRupeeLakh = (v: number): string => `₹${(v / 100000).toFixed(0)}L`;

@@ -5,7 +5,7 @@ import { dbService } from '@financeos/database';
 import { useDbSyncCallback, useDbVersion } from '../hooks/useDbSync.js';
 import {
   BusinessInvoice, InventoryItem, VendorCustomer,
-  BusinessRegisterEntry, formatRupee, GlobalDateRange
+  BusinessRegisterEntry, formatRupee, GlobalDateRange, calculateGST
 } from '@financeos/shared';
 import {
   Printer, Coins, Eye, Trash2, Edit2,
@@ -249,7 +249,9 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ dateRange, activePro
       .filter(r => r.type === 'Purchase')
       .reduce((sum, r) => sum + r.taxableAmount, 0);
 
-    const txLedger = dbService.getTransactions();
+    // Explicit profile scope (was an unfiltered read relying on the session
+    // profile — equivalent today, but no longer couples to implicit state).
+    const txLedger = dbService.getTransactions(activeProfileId);
     const generalExpenses = txLedger
       .filter(t => t.type === 'Expense' && t.category !== 'Investments' && t.category !== 'Business Purchase')
       .reduce((sum, t) => sum + t.amount, 0);
@@ -258,11 +260,11 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ dateRange, activePro
     const netProfit = grossProfit - generalExpenses;
 
     return { salesRevenue, purchasesCost, grossProfit, generalExpenses, netProfit };
-  }, [register]);
+  }, [register, activeProfileId]);
 
   // Balance Sheet calculations
   const balanceSheet = useMemo(() => {
-    const bankAccounts = dbService.getAccounts();
+    const bankAccounts = dbService.getAccounts(activeProfileId);
     const cashBalance = bankAccounts.reduce((sum, a) => sum + a.balance, 0);
 
     const stockValuation = inventory.reduce((sum, item) => sum + (item.quantity * item.purchasePrice), 0);
@@ -275,7 +277,7 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ dateRange, activePro
     const equityCapital = totalAssets;
 
     return { cashBalance, stockValuation, receivables, totalAssets, equityCapital };
-  }, [invoices, inventory]);
+  }, [invoices, inventory, activeProfileId]);
 
   // Handlers
   const handleAddContact = async (e: React.FormEvent) => {
@@ -427,11 +429,15 @@ export const BusinessView: React.FC<BusinessViewProps> = ({ dateRange, activePro
       const rate = inv.salesPrice;
       const amount = rate * item.quantity;
       const gstRate = inv.gstRate || 18;
-      const tax = amount * (gstRate / 100);
+
+      // Canonical GST engine (shared package): rupee-rounded CGST/SGST halves,
+      // replacing the previous unrounded inline accumulation.
+      const { cgst: itemCgst, sgst: itemSgst, igst: itemIgst } = calculateGST(amount, gstRate, false);
 
       subtotal += amount;
-      cgst += (tax / 2);
-      sgst += (tax / 2);
+      cgst += itemCgst;
+      sgst += itemSgst;
+      igst += itemIgst;
 
       return {
         itemId: inv.id,

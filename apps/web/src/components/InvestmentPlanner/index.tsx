@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SectionHeader, Tabs } from '@financeos/ui';
 import { dbService } from '@financeos/database';
-import { InvestmentPlan, PortfolioCategory, SubInvestment } from '@financeos/shared';
+import { InvestmentPlan, PortfolioCategory, SubInvestment, getLocalMonthKey } from '@financeos/shared';
+import { useDbVersion } from '../../hooks/useDbSync.js';
 import { TopLevelInputs } from './TopLevelInputs.js';
 import { PortfolioDistribution } from './PortfolioDistribution.js';
 import { SubCategoryDistribution } from './SubCategoryDistribution.js';
@@ -15,6 +16,7 @@ interface InvestmentPlannerProps {
 
 export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProfileId }) => {
   const [activeTab, setActiveTab] = useState<'allocator' | 'fire' | 'emi'>('allocator');
+  const dbVersion = useDbVersion();
   const [plan, setPlan] = useState<InvestmentPlan>({
     id: '',
     profileId: activeProfileId,
@@ -78,27 +80,30 @@ export const InvestmentPlanner: React.FC<InvestmentPlannerProps> = ({ activeProf
 
   const totalInvestmentAmount = (plan.salary * plan.investmentPercentage) / 100;
 
-  // Calculate current monthly expense & liquid net worth from DB for FIRE lab
+  // Calculate current monthly expense & liquid net worth from DB for FIRE lab.
+  // Keyed on dbVersion so the FIRE lab reflects saves, cross-tab syncs, and
+  // automation backfills without requiring a profile switch (same pattern as
+  // DashboardView/TaxView).
   const { currentMonthExpenses, currentLiquidNetWorth } = React.useMemo(() => {
     try {
-      const transactions = dbService.getTransactions().filter(t => t.profileId === activeProfileId);
-      const currentMonthStr = new Date().toISOString().substring(0, 7);
+      const transactions = dbService.getTransactions(activeProfileId);
+      const currentMonthStr = getLocalMonthKey();
       const expenses = transactions
         .filter(t => t.type === 'Expense' && t.date.startsWith(currentMonthStr))
         .reduce((sum, t) => sum + t.amount, 0);
 
-      const accounts = dbService.getAccounts().filter(a => a.profileId === activeProfileId);
+      const accounts = dbService.getAccounts(activeProfileId);
       const bankLiquidBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
-      const fdsValue = dbService.getFDs().filter(f => f.profileId === activeProfileId).reduce((sum, f) => sum + f.principalAmount, 0);
-      const mfVal = dbService.getMutualFunds().filter(m => m.profileId === activeProfileId).reduce((sum, m) => sum + (m.currentNav * m.units), 0);
-      const stockVal = dbService.getStocks().filter(s => s.profileId === activeProfileId).reduce((sum, s) => sum + (s.currentPrice * s.quantity), 0);
+      const fdsValue = dbService.getFDs(activeProfileId).reduce((sum, f) => sum + f.principalAmount, 0);
+      const mfVal = dbService.getMutualFunds(activeProfileId).reduce((sum, m) => sum + (m.currentNav * m.units), 0);
+      const stockVal = dbService.getStocks(activeProfileId).reduce((sum, s) => sum + (s.currentPrice * s.quantity), 0);
       const netWorth = bankLiquidBalance + fdsValue + mfVal + stockVal;
 
       return { currentMonthExpenses: expenses, currentLiquidNetWorth: netWorth };
     } catch {
       return { currentMonthExpenses: 0, currentLiquidNetWorth: 0 };
     }
-  }, [activeProfileId]);
+  }, [activeProfileId, dbVersion]);
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-125)', maxWidth: 'var(--layout-max-width, 1536px)', margin: '0 auto', width: '100%' }}>

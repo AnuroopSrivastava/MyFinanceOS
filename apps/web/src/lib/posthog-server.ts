@@ -26,3 +26,15 @@ export function getPostHogClient(): PostHog | null {
   }
   return posthogClient;
 }
+
+// Security telemetry for the unauthenticated auth API. Uses a fixed anonymous
+// distinctId — never raw emails or IPs (pass pre-hashed identifiers instead).
+export function captureSecurityEvent(
+  event: string,
+  properties: Record<string, unknown> = {},
+): Promise<void> {
+  const ph = getPostHogClient();
+  if (!ph) return Promise.resolve();
+  ph.capture({ distinctId: "anonymous_auth_api", event, properties });
+  return ph.flush();
+}

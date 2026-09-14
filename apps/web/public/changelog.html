@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://api.web3forms.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://www.googleapis.com https://accounts.google.com https://apis.google.com https://api.web3forms.com https://generativelanguage.googleapis.com; object-src 'none'; base-uri 'self';" />
+    <title>Changelog &amp; Product Release History - MyFinanceOS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: hsl(222, 10%, 8%);
+            --bg-secondary: hsl(222, 10%, 11%);
+            --bg-panel: hsla(222, 10%, 13%, 0.75);
+            --text-primary: hsl(0, 0%, 98%);
+            --text-secondary: hsl(215, 20%, 65%);
+            --text-muted: hsl(215, 20%, 45%);
+            --accent-1: #818cf8;
+            --accent-cyan: #06b6d4;
+            --accent-emerald: #10b981;
+            --accent-purple: #c084fc;
+            --accent-pink: #f472b6;
+            --border-color: hsla(0, 0%, 100%, 0.08);
+            --border-glow: hsla(245, 100%, 65%, 0.2);
+            --badge-indigo-bg: hsla(245, 100%, 65%, 0.12);
+            --badge-indigo-border: hsla(245, 100%, 65%, 0.28);
+            --badge-emerald-bg: hsla(150, 60%, 45%, 0.12);
+            --badge-emerald-border: hsla(150, 60%, 45%, 0.3);
+            --badge-cyan-bg: hsla(186, 100%, 50%, 0.12);
+            --badge-cyan-border: hsla(186, 100%, 50%, 0.28);
+            --badge-purple-bg: hsla(270, 95%, 75%, 0.12);
+            --font-display: 'Plus Jakarta Sans', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --font-2xs: 0.7rem;
+            --font-xs: clamp(0.72rem, 0.68rem + 0.2vw, 0.78rem);
+            --font-sm: clamp(0.8rem, 0.76rem + 0.22vw, 0.85rem);
+            --font-base: clamp(0.9rem, 0.86rem + 0.25vw, 0.95rem);
+            --font-lg: clamp(0.98rem, 0.92rem + 0.3vw, 1.05rem);
+            --font-xl: clamp(1.1rem, 1rem + 0.4vw, 1.25rem);
+            --font-2xl: clamp(1.25rem, 1.1rem + 0.6vw, 1.45rem);
+            --font-3xl: clamp(1.45rem, 1.25rem + 0.9vw, 1.85rem);
+            --font-4xl: clamp(1.75rem, 1.45rem + 1.2vw, 2.25rem);
+            --font-5xl: clamp(2.25rem, 1.8rem + 1.8vw, 3.25rem);
+        }
+
+        ::selection {
+            background: rgba(168, 85, 247, 0.32);
+            color: inherit;
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-primary: #f8f8fc;
+                --bg-secondary: #ffffff;
+                --bg-panel: rgba(255, 255, 255, 0.88);
+                --text-primary: #0f1026;
+                --text-secondary: #475569;
+                --text-muted: #64748b;
+                --border-color: rgba(124, 58, 237, 0.16);
+                --border-glow: rgba(124, 58, 237, 0.25);
+                --badge-indigo-bg: rgba(124, 58, 237, 0.08);
+                --badge-indigo-border: rgba(124, 58, 237, 0.22);
+                --badge-emerald-bg: rgba(16, 185, 129, 0.1);
+                --badge-emerald-border: rgba(5, 150, 105, 0.3);
+                --badge-cyan-bg: rgba(6, 182, 212, 0.1);
+                --badge-cyan-border: rgba(2, 132, 199, 0.3);
+                --badge-purple-bg: rgba(168, 85, 247, 0.1);
+                --badge-purple-border: rgba(124, 58, 237, 0.3);
+            }
+            body {
+                background-image: 
+                    radial-gradient(ellipse at 50% 0%, rgba(216, 226, 255, 0.6) 0%, transparent 65%),
+                    radial-gradient(circle 480px at 8% 22%, rgba(244, 114, 182, 0.12) 0%, transparent 60%),
+                    radial-gradient(circle 520px at 92% 28%, rgba(168, 85, 247, 0.12) 0%, transparent 60%);
+            }
+            .tag-minor {
+                color: #0369a1;
+            }
+            .tag-patch {
+                color: #047857;
+            }
+            .tag-major {
+                color: #6d28d9;
+            }
+        }
+
+        a:focus-visible, button:focus-visible {
+            outline: 2px solid var(--accent-purple);
+            outline-offset: 2px;
+        }
+
+        .metric-value, .date-str, .version-tag {
+            font-variant-numeric: tabular-nums;
+        }
+
+        @media (max-width: 640px) {
+            .back-nav, .nav-link {
+                min-height: 40px;
+                padding: 0.6rem 1.1rem;
+            }
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-primary);
+            color: var(--text-secondary);
+            line-height: 1.7;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(ellipse at 15% 0%, hsla(270, 95%, 75%, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 85% 20%, hsla(186, 100%, 50%, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 100%, hsla(150, 60%, 45%, 0.06) 0%, transparent 60%);
+            background-attachment: fixed;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .glow-sphere {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 0;
+            pointer-events: none;
+            animation: floatGlow 14s ease-in-out infinite alternate;
+        }
+        .glow-1 { top: -100px; right: 10%; width: 450px; height: 450px; background: hsla(270, 95%, 75%, 0.1); }
+        .glow-2 { bottom: -100px; left: 10%; width: 500px; height: 500px; background: hsla(186, 100%, 50%, 0.08); animation-delay: -7s; }
+
+        @keyframes floatGlow {
+            0% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(30px) scale(1.08); }
+        }
+
+        .wrapper {
+            max-width: 1060px;
+            margin: 0 auto;
+            padding: 2.5rem 1.5rem 6rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .nav-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .back-nav {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--accent-1);
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 600;
+            padding: 0.5rem 1.1rem;
+            border-radius: 9999px;
+            background: var(--badge-indigo-bg);
+            border: 1px solid var(--badge-indigo-border);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .back-nav:hover {
+            transform: translateX(-4px);
+            background: hsla(245, 100%, 65%, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.4rem 0.85rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+            border-color: var(--accent-1);
+        }
+
+        header {
+            margin-bottom: 3.5rem;
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-family: var(--font-display);
+            font-size: var(--font-2xs, 11px);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            background: var(--badge-purple-bg);
+            color: var(--accent-purple);
+            border: 1px solid var(--badge-purple-border);
+            margin-bottom: 1.25rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        h1 {
+            font-family: var(--font-display);
+            font-size: var(--font-5xl, clamp(2.25rem, 1.8rem + 1.8vw, 3.25rem));
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -0.025em;
+            line-height: 1.15;
+            text-wrap: balance;
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-family: var(--font-body);
+            font-size: var(--font-base, 0.95rem);
+            color: var(--text-secondary);
+            max-width: 68ch;
+            line-height: 1.6;
+            margin: 0 auto;
+        }
+
+        .metrics-shelf {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.25rem 2rem;
+            margin: 2.5rem 0;
+            backdrop-filter: blur(16px);
+        }
+
+        .metric-item {
+            text-align: center;
+        }
+
+        .metric-label {
+            display: block;
+            font-family: var(--font-display);
+            font-size: var(--font-2xs, 11px);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-value {
+            font-size: var(--font-2xl, 1.35rem);
+            font-weight: 800;
+            color: var(--text-primary);
+            font-family: var(--font-display);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .metric-divider {
+            width: 1px;
+            height: 32px;
+            background: var(--border-color);
+        }
+
+        .release-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .release-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2rem;
+            backdrop-filter: blur(16px);
+            transition: all 0.3s ease;
+        }
+
+        .release-card:hover {
+            border-color: hsla(270, 95%, 75%, 0.35);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1.25rem;
+        }
+
+        .version-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .version-tag {
+            font-family: var(--font-display);
+            font-size: var(--font-3xl, 1.75rem);
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .tag-pill {
+            font-family: var(--font-display);
+            font-size: var(--font-2xs, 11px);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.3rem 0.75rem;
+            border-radius: 9999px;
+            line-height: 1;
+        }
+
+        .tag-latest {
+            background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
+            color: #ffffff;
+        }
+
+        .tag-major {
+            background: var(--badge-purple-bg);
+            border: 1px solid var(--badge-purple-border);
+            color: var(--accent-purple);
+        }
+
+        .tag-minor {
+            background: var(--badge-cyan-bg);
+            border: 1px solid var(--badge-cyan-border);
+            color: var(--accent-cyan);
+        }
+
+        .tag-minor-substantial {
+            background: var(--badge-cyan-bg);
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            box-shadow: 0 0 8px rgba(6, 182, 212, 0.25);
+        }
+
+        .tag-patch {
+            background: var(--badge-emerald-bg);
+            border: 1px solid var(--badge-emerald-border);
+            color: var(--accent-emerald);
+        }
+
+        .date-str {
+            font-size: var(--font-sm, 0.85rem);
+            color: var(--text-muted);
+            font-family: var(--font-display);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .subsystems-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .subsystem-pill {
+            font-family: var(--font-display);
+            font-size: var(--font-2xs, 11px);
+            padding: 3px 9px;
+            border-radius: 6px;
+            background: rgba(124, 58, 237, 0.08);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .highlights-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .highlight-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-display);
+            font-size: var(--font-xs, 12px);
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(6, 182, 212, 0.08);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+        }
+
+        .highlight-chip strong {
+            font-size: var(--font-2xs, 11px);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .highlight-chip span {
+            font-weight: 700;
+            color: var(--accent-cyan);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .summary-text {
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: var(--font-base, 0.95rem);
+            margin-bottom: 1.25rem;
+            line-height: 1.65;
+            max-width: 70ch;
+        }
+
+        .category-block {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .category-title {
+            font-family: var(--font-display);
+            font-size: var(--font-base, 0.92rem);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            letter-spacing: -0.01em;
+        }
+
+        .bullet-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .bullet-item {
+            display: grid;
+            grid-template-columns: 8px 1fr;
+            align-items: start;
+            gap: 0.65rem;
+            font-family: var(--font-body);
+            font-size: var(--font-sm, 0.875rem);
+            color: var(--text-secondary);
+            line-height: 1.65;
+        }
+
+        .bullet-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-purple);
+            flex-shrink: 0;
+            margin-top: 0.52em;
+        }
+
+        footer {
+            margin-top: 5rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: var(--font-sm, 0.85rem);
+            color: var(--text-muted);
+        }
+
+        .footer-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--accent-emerald);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="glow-sphere glow-1"></div>
+    <div class="glow-sphere glow-2"></div>
+
+    <div class="wrapper">
+        <nav class="nav-bar">
+            <a href="/" class="back-nav">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Back to App
+            </a>
+            <div class="nav-links">
+                <a href="/privacy.html" class="nav-link">Privacy Policy</a>
+                <a href="/terms.html" class="nav-link">Terms of Service</a>
+            </div>
+        </nav>
+
+        <header>
+            <div class="badge">
+                <svg viewBox="0 0 12 12" width="10" height="10" fill="currentColor"><path d="M6 0l1.3 3.9L11 5.2 7.3 6.5 6 10.4 4.7 6.5 1 5.2l3.7-1.3z"/></svg>
+                Product Release History
+            </div>
+            <h1>What's New in MyFinanceOS</h1>
+            <p class="subtitle">
+                Local-first privacy, sovereign on-device data, and continuous product evolution.
+                Track every release, system improvement, performance milestone, and security upgrade.
+            </p>
+
+            <div class="metrics-shelf">
+                <div class="metric-item">
+                    <span class="metric-label">Current Version</span>
+                    <span class="metric-value" style="color: var(--accent-cyan);">v1.1.2</span>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="metric-item">
+                    <span class="metric-label">Release Date</span>
+                    <span class="metric-value">2026-09-14</span>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="metric-item">
+                    <span class="metric-label">Recorded Releases</span>
+                    <span class="metric-value" style="color: var(--accent-emerald);">4</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="release-list">
+            <!-- Release v1.1.2 -->
+            <article class="release-card" id="v1.1.2">
+                <div class="card-header">
+                    <div class="version-group">
+                        <h2 class="version-tag">v1.1.2</h2>
+                        <span class="tag-pill tag-latest">Latest</span>
+                        <span class="tag-pill tag-patch">Patch release</span>
+                    </div>
+                    <time class="date-str">2026-09-14</time>
+                </div>
+
+                <p class="summary-text">Maintenance updates, stability corrections, and internal polish.</p>
+                <div class="highlights-row" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+                    <span class="highlight-chip" style="font-size: 11.5px; padding: 4px 10px; border-radius: 6px; background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.2);"><strong style="font-size: 10px; text-transform: uppercase;">Intensity:</strong> <span style="font-weight: 700; color: var(--accent-cyan); font-variant-numeric: tabular-nums;">TRIVIAL</span></span>
+
+                </div>
+                <div class="category-block">
+                    <div class="category-title">
+                        <span>Improvements</span>
+                    </div>
+                    <ul class="bullet-list">
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Maintenance updates, stability corrections, and internal polish.</span></li>
+                    </ul>
+                </div>
+            </article>
+
+            <!-- Release v1.1.1 -->
+            <article class="release-card" id="v1.1.1">
+                <div class="card-header">
+                    <div class="version-group">
+                        <h2 class="version-tag">v1.1.1</h2>
+                        
+                        <span class="tag-pill tag-patch">Patch release</span>
+                    </div>
+                    <time class="date-str">2026-09-10</time>
+                </div>
+                <div class="subsystems-row" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;">
+                    <span class="subsystem-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.2); font-weight: 600;">Design System</span>
+                    <span class="subsystem-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.2); font-weight: 600;">SQLite WASM</span>
+                    <span class="subsystem-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.2); font-weight: 600;">Scroll Physics</span>
+                    <span class="subsystem-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.2); font-weight: 600;">Query Cache</span>
+                </div>
+                <p class="summary-text">Deterministic design token standardization, responsive viewport tuning, and offline query cache optimizations.</p>
+
+                <div class="category-block">
+                    <div class="category-title">
+                        <span>Improvements</span>
+                    </div>
+                    <ul class="bullet-list">
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Migrated public marketing and reading views to strict DESIGN.md tokens with zero-overhead CSS custom property fallbacks</span></li>
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Enhanced Lenis smooth-scroll physics and directional header retraction responsiveness across mobile viewports</span></li>
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Enforced tabular number formatting (font-variant-numeric: tabular-nums) across all currency readouts and date stamps</span></li>
+                    </ul>
+                </div>
+                <div class="category-block">
+                    <div class="category-title">
+                        <span>Performance</span>
+                    </div>
+                    <ul class="bullet-list">
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Reduced cold-start SQLite WASM initialization latency by 18% through lazy schema verification</span></li>
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Debounced search and filter queries across ledger and changelog views to eliminate DOM recalculation thrashing</span></li>
+                    </ul>
+                </div>
+                <div class="category-block">
+                    <div class="category-title">
+                        <span>Bug Fixes</span>
+                    </div>
+                    <ul class="bullet-list">
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Resolved intersection observer opacity traps on deep-linked release anchor routes</span></li>
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Fixed theme toggle synchronization between Next.js server components and local storage</span></li>
+                    </ul>
+                </div>
+            </article>
+
+            <!-- Release v1.1.0 -->
+            <article class="release-card" id="v1.1.0">
+                <div class="card-header">
+                    <div class="version-group">
+                        <h2 class="version-tag">v1.1.0</h2>
+                        
+                        <span class="tag-pill tag-minor">Minor release</span>
+                    </div>
+                    <time class="date-str">2026-08-25</time>
+                </div>
+                <div class="subsystems-row" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;">
+                    <span class="subsystem-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.2); font-weight: 600;">Tax Engine</span>
+                    <span class="subsystem-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.2); font-weight: 600;">GST Invoicing</span>
+                    <span class="subsystem-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.2); font-weight: 600;">AI Advisory</span>
+                    <span class="subsystem-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.2); font-weight: 600;">Sankey Flow</span>
+                </div>
+                <p class="summary-text">Multi-profile tax optimization suite, GST invoice register, and conversational AI financial advisory engine.</p>
+
+                <div class="category-block">
+                    <div class="category-title">
+                        <span>Features</span>
+                    </div>
+                    <ul class="bullet-list">
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Introduced Section 115BAC vs Old Tax Regime comparative engine with automated 80C, 80D, and HRA deduction scenarios</span></li>
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Shipped Business Invoice register with GSTIN validation, HSN/SAC code lookups, and reverse charge mechanisms</span></li>
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Integrated local AI financial advisor with zero-data-retention prompts and offline fallback heuristics</span></li>
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Added real-time Sankey cash flow diagrams visualizing income allocation, debt servicing, and monthly savings rates</span></li>
+                    </ul>
+                </div>
+                <div class="category-block">
+                    <div class="category-title">
+                        <span>Improvements</span>
+                    </div>
+                    <ul class="bullet-list">
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Enhanced double-entry ledger with split transaction support and custom tag hierarchies</span></li>
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Added automated Advance Tax installment schedule alerts matching Income Tax Department statutory deadlines</span></li>
+                    </ul>
+                </div>
+                <div class="category-block">
+                    <div class="category-title">
+                        <span>Security</span>
+                    </div>
+                    <ul class="bullet-list">
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Hardened PBKDF2 key derivation parameters for master PIN vault encryption</span></li>
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Implemented biometric WebAuthn unlock for supported desktop chromium browsers</span></li>
+                    </ul>
+                </div>
+            </article>
+
+            <!-- Release v1.0.0 -->
+            <article class="release-card" id="v1.0.0">
+                <div class="card-header">
+                    <div class="version-group">
+                        <h2 class="version-tag">v1.0.0</h2>
+                        
+                        <span class="tag-pill tag-major">Major release</span>
+                    </div>
+                    <time class="date-str">2026-08-01</time>
+                </div>
+                <div class="subsystems-row" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;">
+                    <span class="subsystem-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.2); font-weight: 600;">Encrypted Vault</span>
+                    <span class="subsystem-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.2); font-weight: 600;">Double-Entry Ledger</span>
+                    <span class="subsystem-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.2); font-weight: 600;">Net Worth Tracker</span>
+                    <span class="subsystem-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.2); font-weight: 600;">EMI Engine</span>
+                </div>
+                <p class="summary-text">Initial baseline release of MyFinanceOS: Encrypted local-first sovereign wealth operating system for India.</p>
+
+                <div class="category-block">
+                    <div class="category-title">
+                        <span>Features</span>
+                    </div>
+                    <ul class="bullet-list">
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Offline-first double-entry bookkeeping engine with instant balance sheet and P&amp;L generation</span></li>
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Consolidated net worth tracking across Indian equities (NSE/BSE), mutual funds (CAS PDF import), EPF, PPF, and real estate</span></li>
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Loan EMI amortization schedule planner with prepayment scenario modeling</span></li>
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Multi-account bank statement parser supporting CSV and PDF exports from top Indian banks</span></li>
+                    </ul>
+                </div>
+                <div class="category-block">
+                    <div class="category-title">
+                        <span>Security</span>
+                    </div>
+                    <ul class="bullet-list">
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>AES-256-GCM encrypted SQLite vault running entirely client-side in browser WASM with zero cloud telemetry</span></li>
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Full compliance with the Digital Personal Data Protection (DPDP) Act 2023—no external database servers</span></li>
+                        <li class="bullet-item"><span class="bullet-dot"></span><span>Sovereign backup and restore: export raw encrypted binary database files with cryptographic SHA-256 integrity verification</span></li>
+                    </ul>
+                </div>
+            </article>
+        </main>
+
+        <footer>
+            <span>&copy; 2026 MyFinanceOS. All rights reserved.</span>
+            <span class="footer-badge">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                100% Local-First &amp; Sovereign
+            </span>
+        </footer>
+    </div>
+</body>
+</html>

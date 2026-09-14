@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { dbService } from '@financeos/database';
 import { useDbSyncCallback } from '../hooks/useDbSync.js';
 import { setTheme, AppTheme, Button, Modal, ConfirmModal, useConfirmModal, SectionHeader, Badge, StatusBadge, FormField, IconInput, FileDropzone, FormRow, FormActions } from '@financeos/ui';
-import { UserProfile, SystemSettings, createPinHash, downloadBlob, todayStamp } from '@financeos/shared';
+import { UserProfile, SystemSettings, createPinHash, downloadBlob, todayStamp, STORAGE_KEYS } from '@financeos/shared';
 import { ImageCropperModal } from './ImageCropperModal.js';
 import {
   Settings, Users, Download, Upload,
@@ -230,8 +230,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeProfileId, onA
     dbService.purgeLocalDatabase();
     if (typeof window !== 'undefined') {
       try {
-        localStorage.removeItem('financeos_last_synced_at');
-        localStorage.removeItem('financeos-theme');
+        localStorage.removeItem(STORAGE_KEYS.lastSyncedAt);
+        localStorage.removeItem(STORAGE_KEYS.theme);
         const keysToRemove: string[] = [];
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);

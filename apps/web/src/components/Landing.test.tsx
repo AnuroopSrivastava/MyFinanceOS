@@ -17,6 +17,7 @@ import {
   ChangelogSection,
   FivePhasesSection,
   LegalSection,
+  Faq,
 } from './Landing.js';
 
 describe('Emergent Landing Page Component', () => {
@@ -141,6 +142,80 @@ describe('Emergent Landing Page Component', () => {
 
     const { container: legalContainer } = render(<LegalSection />);
     expect(legalContainer.querySelector('.legal-cards-grid')).toBeDefined();
+  });
+
+  it('renders FAQ with all items collapsed by default and toggles on click', () => {
+    render(<Faq />);
+    const firstQuestion = screen.getByTestId('faq-question-0');
+    const firstRow = screen.getByTestId('faq-row-0');
+
+    // Should be collapsed by default
+    expect(firstQuestion.getAttribute('aria-expanded')).toBe('false');
+    expect(firstRow.classList.contains('is-open')).toBe(false);
+
+    // Clicking should expand it
+    fireEvent.click(firstQuestion);
+    expect(firstQuestion.getAttribute('aria-expanded')).toBe('true');
+    expect(firstRow.classList.contains('is-open')).toBe(true);
+
+    // Clicking again should collapse it
+    fireEvent.click(firstQuestion);
+    expect(firstQuestion.getAttribute('aria-expanded')).toBe('false');
+    expect(firstRow.classList.contains('is-open')).toBe(false);
+  });
+
+  it('triggers interactive pay confirmation feedback in WeeklyCard', () => {
+    render(<WeeklyCard />);
+    expect(screen.getByText('14.20K')).toBeDefined();
+    const payBtn = screen.getByTestId('pay-chip');
+    expect(payBtn.textContent).toBe('Pay');
+
+    fireEvent.click(payBtn);
+    expect(payBtn.textContent).toBe('✓ Paid');
+  });
+
+  it('switches interactive architecture pills and renders corresponding domain telemetry in AboutSection', () => {
+    render(<AboutSection />);
+    expect(screen.getByText('Smart Categorization & Cash Flow')).toBeDefined();
+    expect(screen.getByText('Swiggy UPI')).toBeDefined();
+
+    // Switch to Growth
+    fireEvent.click(screen.getByText('Growth'));
+    expect(screen.getByText('Multi-Asset Wealth & FIRE Planning')).toBeDefined();
+    expect(screen.getByText('Target Age 42 Corpus')).toBeDefined();
+
+    // Switch to Tax Planning
+    fireEvent.click(screen.getByText('Tax Planning'));
+    expect(screen.getByText('Old vs New Tax Regime Engine')).toBeDefined();
+    expect(screen.getByText('New Regime (115BAC)')).toBeDefined();
+
+    // Switch to Invoicing
+    fireEvent.click(screen.getByText('Invoicing'));
+    expect(screen.getByText('Professional GST Invoicing')).toBeDefined();
+    expect(screen.getByText('Invoice #INV-2026-0042')).toBeDefined();
+
+    // Switch to Local Vault
+    fireEvent.click(screen.getByText('Local Vault'));
+    expect(screen.getByText('Argon2id Encrypted Document Vault')).toBeDefined();
+    expect(screen.getByText('Encrypted Artifacts')).toBeDefined();
+  });
+
+  it('toggles billing frequency and currency in PricingSection', () => {
+    render(<PricingSection />);
+    const plusCard = screen.getByTestId('pricing-card-plus');
+    expect(plusCard.textContent).toContain('₹499');
+
+    // Toggle to Annual
+    fireEvent.click(screen.getByText('Annual'));
+    expect(plusCard.textContent).toContain('₹399');
+
+    // Toggle to USD
+    fireEvent.click(screen.getByText('USD ($)'));
+    expect(plusCard.textContent).toContain('$6.39');
+
+    // Toggle back to Monthly
+    fireEvent.click(screen.getByText('Monthly'));
+    expect(plusCard.textContent).toContain('$7.99');
   });
 });
 

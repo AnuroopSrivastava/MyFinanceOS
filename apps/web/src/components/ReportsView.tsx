@@ -3,7 +3,8 @@ import { Button, SectionHeader, SummaryMetricGrid } from '@financeos/ui';
 import { motion } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { exportToCSV } from '../utils/exportCsv.js';
-import { formatRupee, calculateNetWorthSummary, calculateFdAccruedValue } from '@financeos/shared';
+import { formatRupee, calculateNetWorthSummary, calculateFdAccruedValue, getLocalMonthKey } from '@financeos/shared';
+import { useDbVersion } from '../hooks/useDbSync.js';
 import {
   FileSpreadsheet, Download, Printer, Sparkles,
   BarChart3, Landmark, TrendingUp, Calendar, ShieldCheck, ChevronRight
@@ -17,9 +18,13 @@ type ReportType = 'Monthly' | 'Annual' | 'Tax' | 'Investment' | 'Business';
 
 export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
   const [selectedReportType, setSelectedReportType] = useState<ReportType>('Monthly');
-  const [selectedPeriod, setSelectedPeriod] = useState(() => new Date().toISOString().substring(0, 7));
+  const [selectedPeriod, setSelectedPeriod] = useState(() => getLocalMonthKey());
   const [isGenerating, setIsGenerating] = useState(false);
   const [reportReady, setReportReady] = useState(true);
+
+  // Re-read on every DB change so reports reflect saves/cross-tab syncs
+  // (same subscription pattern as DashboardView).
+  const dbVersion = useDbVersion();
 
   // Compute live user data metrics from dbService
   const transactions = React.useMemo(() => {
@@ -28,7 +33,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
     } catch {
       return [];
     }
-  }, [profileId]);
+  }, [profileId, dbVersion]);
 
   const accounts = React.useMemo(() => {
     try {
@@ -36,7 +41,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
     } catch {
       return [];
     }
-  }, [profileId]);
+  }, [profileId, dbVersion]);
 
   const stocks = React.useMemo(() => {
     try {
@@ -44,7 +49,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
     } catch {
       return [];
     }
-  }, [profileId]);
+  }, [profileId, dbVersion]);
 
   const mutualfunds = React.useMemo(() => {
     try {
@@ -52,7 +57,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
     } catch {
       return [];
     }
-  }, [profileId]);
+  }, [profileId, dbVersion]);
 
   const gold = React.useMemo(() => {
     try {
@@ -60,7 +65,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
     } catch {
       return [];
     }
-  }, [profileId]);
+  }, [profileId, dbVersion]);
 
   const fds = React.useMemo(() => {
     try {
@@ -68,7 +73,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
     } catch {
       return [];
     }
-  }, [profileId]);
+  }, [profileId, dbVersion]);
 
   const nps = React.useMemo(() => {
     try {
@@ -76,7 +81,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
     } catch {
       return [];
     }
-  }, [profileId]);
+  }, [profileId, dbVersion]);
 
   const pf = React.useMemo(() => {
     try {
@@ -84,13 +89,13 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ profileId }) => {
     } catch {
       return [];
     }
-  }, [profileId]);
+  }, [profileId, dbVersion]);
 
   const netWorthSummary = React.useMemo(() => {
     return calculateNetWorthSummary({
       accounts,
       stocks,
-      mutualfunds,
+      mfs: mutualfunds,
       gold,
       fds,
       nps,

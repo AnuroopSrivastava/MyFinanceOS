@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { motion, useScroll, useTransform, type MotionValue } from "framer-motion";
 import { cx } from "@financeos/ui";
+import { useLenisSectionProgress } from "../../../hooks/useLenisSectionProgress";
 
 export interface GalleryItem {
   src: string;
@@ -101,6 +101,21 @@ export const DEFAULT_GALLERY_ITEMS: GalleryItem[] = [
 
 export const DEFAULT_IMAGES = DEFAULT_GALLERY_ITEMS.map((item) => item.src);
 
+/** Generated responsive variant widths, ascending (smallest sufficient wins). */
+export const PARALLAX_VARIANT_WIDTHS = [480, 800, 1080] as const;
+
+export const PARALLAX_MASTER_WIDTH = 1080;
+
+/**
+ * Map a master parallax image src (…/NN-name.webp) to its resized variant
+ * (…/NN-name-480.webp / …-800.webp). Widths without a generated variant
+ * (i.e. 1080) return the master unchanged.
+ */
+export function parallaxVariantSrc(src: string, width: number): string {
+  if (width === PARALLAX_MASTER_WIDTH) return src;
+  return src.replace(/\.webp$/, `-${width}.webp`);
+}
+
 export interface Skiper30Props {
   images?: string[];
   items?: GalleryItem[];
@@ -110,47 +125,118 @@ export interface Skiper30Props {
   showIndicators?: boolean;
 }
 
+// Variants are generated on disk only for the shipped parallax masters —
+// custom image props fall back to plain src so srcset candidates never 404.
+function srcSetFor(src: string): string | undefined {
+  if (!src.startsWith("/images/parallax/") || !/\.webp$/.test(src)) return undefined;
+  return PARALLAX_VARIANT_WIDTHS.map(
+    (w) => `${parallaxVariantSrc(src, w)} ${w}w`
+  ).join(", ");
+}
+
+// Desktop: 4 columns inside the padded wrapper — padding 2× + 3 gaps = 5 × gap.
+// Mobile: 2 columns — 2 × 12px padding + 1 gap.
+const DESKTOP_TILE_SIZES = "calc((100vw - 5*clamp(16px,2vw,32px))/4)";
+const MOBILE_TILE_SIZES = "calc((100vw - 24px - clamp(12px,2.5vw,20px))/2)";
+
+const DESKTOP_VELOCITY = [2, 3.3, 1.25, 2.2] as const;
+const MOBILE_VELOCITY = [1.6, 2.6] as const;
+
+const DESKTOP_TOP_OFFSETS = ["-45%", "-95%", "-45%", "-75%"] as const;
+const MOBILE_TOP_OFFSETS = ["-20%", "-45%"] as const;
+
 const Skiper30 = ({
   images = DEFAULT_IMAGES,
   items,
   standalone = false,
   className = "",
+  enableLenis = true,
   showIndicators = true,
 }: Skiper30Props) => {
   const gallery = useRef<HTMLDivElement>(null);
-  const [dimension, setDimension] = useState(() => ({
-    width: typeof window !== "undefined" ? window.innerWidth : 1200,
-    height: typeof window !== "undefined" ? window.innerHeight : 900,
-  }));
+  // React state only tracks the layout BREAKPOINT — it flips at most once per
+  // crossing of 768px. Parallax distances live in distancesRef and recompute
+  // on a debounced resize listener without any re-render.
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 768
+  );
 
-  /**
-   * Reference implementation from tutorial:
-   * useScroll tracks the gallery section across ['start end', 'end start']
-   */
-  const { scrollYProgress } = useScroll({
-    target: gallery,
-    offset: ["start end", "end start"],
-  });
+  // 4 desktop column refs / 2 shared by mobile (mobile uses refs[0..1]).
+  const colRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const distancesRef = useRef<{ vh: number; ys: number[] }>({ vh: 0, ys: [] });
 
-  const { height, width } = dimension;
-  const isMobile = width > 0 && width < 768;
+  // Parallax distances depend on viewport height only — recomputed on resize,
+  // never during scroll.
+  const computeDistances = () => {
+    if (typeof window === "undefined") return;
+    const vh = window.innerHeight;
+    const multipliers = isMobileRef.current ? MOBILE_VELOCITY : DESKTOP_VELOCITY;
+    distancesRef.current = {
+      vh,
+      ys: multipliers.map((m) => vh * m),
+    };
+    // Re-apply immediately with fresh distances so a mid-session viewport
+    // height change (e.g. mobile URL bar collapse) doesn't freeze columns.
+    applyRef.current(lastProgressRef.current);
+  };
 
-  // Parallax velocity multipliers
-  const y1 = useTransform(scrollYProgress, [0, 1], [0, height * (isMobile ? 1.6 : 2)]);
-  const y2 = useTransform(scrollYProgress, [0, 1], [0, height * (isMobile ? 2.6 : 3.3)]);
-  const y3 = useTransform(scrollYProgress, [0, 1], [0, height * 1.25]);
-  const y4 = useTransform(scrollYProgress, [0, 1], [0, height * (isMobile ? 1.75 : 2.2)]);
+  const isMobileRef = useRef(isMobile);
+  const lastProgressRef = useRef(0);
+  const applyRef = useRef<(progress: number) => void>(() => {});
 
+  const apply = (progress: number) => {
+    lastProgressRef.current = progress;
+    const { ys } = distancesRef.current;
+    const cols = colRefs.current;
+    const count = isMobileRef.current ? 2 : 4;
+    for (let i = 0; i < count; i++) {
+      const el = cols[i];
+      if (!el || ys.length <= i) continue;
+      // Same motion curve as before: y = progress × distance (0 → vh·multiplier).
+      el.style.transform = `translate3d(0, ${(progress * ys[i]).toFixed(2)}px, 0)`;
+    }
+  };
+  applyRef.current = apply;
+
+  // Parallax driver: the app-wide Lenis singleton measures section geometry
+  // once (mount/resize/load/fonts) and derives progress per tick from cached
+  // metrics — zero DOM reads inside the scroll loop, transforms follow the
+  // engine's lerped scroll exactly like every other landing section.
+  // Anchors {start: 1, end: 0} replicate the previous
+  // `useScroll({ offset: ["start end", "end start"] })` semantics.
+  useLenisSectionProgress(
+    gallery,
+    (progress) => applyRef.current(progress),
+    { start: 1, end: 0 },
+    enableLenis
+  );
+
+  // Breakpoint flip + debounced distance recompute — the only resize listeners
+  // that may re-render are the breakpoint crossings themselves.
   useEffect(() => {
-    const resize = () => {
-      setDimension({ width: window.innerWidth, height: window.innerHeight });
+    const checkBreakpoint = () => {
+      const next = window.innerWidth < 768;
+      if (next !== isMobileRef.current) {
+        isMobileRef.current = next;
+        setIsMobile(next);
+      }
     };
-    window.addEventListener("resize", resize);
-    resize();
+    let debounce: ReturnType<typeof setTimeout> | undefined;
+    const onResize = () => {
+      checkBreakpoint();
+      clearTimeout(debounce);
+      debounce = setTimeout(computeDistances, 120);
+    };
+    checkBreakpoint();
+    computeDistances();
+    window.addEventListener("resize", onResize, { passive: true });
     return () => {
-      window.removeEventListener("resize", resize);
+      window.removeEventListener("resize", onResize);
+      clearTimeout(debounce);
     };
-  }, []);
+    // computeDistances reads isMobileRef (kept current by checkBreakpoint), so
+    // the effect only needs to run once; layout changes re-run it via state.
+  }, [isMobile]);
 
   // Normalized item list
   const resolvedItems = useMemo<GalleryItem[]>(() => {
@@ -196,7 +282,7 @@ const Skiper30 = ({
         overflow: "hidden",
       }}
     >
-      {/* 
+      {/*
         Reference architecture (.galleryWrapper):
         position: relative, top: -12.5vh, height: 200vh
         Gives 25vh vertical margin so translated columns have smooth seamless overlap
@@ -216,15 +302,15 @@ const Skiper30 = ({
       >
         {isMobile ? (
           <>
-            <Column items={mobileCol1} y={y1} topOffset="-20%" />
-            <Column items={mobileCol2} y={y2} topOffset="-45%" />
+            <Column ref={(el) => { colRefs.current[0] = el; }} items={mobileCol1} topOffset="-20%" sizes={MOBILE_TILE_SIZES} />
+            <Column ref={(el) => { colRefs.current[1] = el; }} items={mobileCol2} topOffset="-45%" sizes={MOBILE_TILE_SIZES} />
           </>
         ) : (
           <>
-            <Column items={desktopCol1} y={y1} topOffset="-45%" />
-            <Column items={desktopCol2} y={y2} topOffset="-95%" />
-            <Column items={desktopCol3} y={y3} topOffset="-45%" />
-            <Column items={desktopCol4} y={y4} topOffset="-75%" />
+            <Column ref={(el) => { colRefs.current[0] = el; }} items={desktopCol1} topOffset="-45%" sizes={DESKTOP_TILE_SIZES} />
+            <Column ref={(el) => { colRefs.current[1] = el; }} items={desktopCol2} topOffset="-95%" sizes={DESKTOP_TILE_SIZES} />
+            <Column ref={(el) => { colRefs.current[2] = el; }} items={desktopCol3} topOffset="-45%" sizes={DESKTOP_TILE_SIZES} />
+            <Column ref={(el) => { colRefs.current[3] = el; }} items={desktopCol4} topOffset="-75%" sizes={DESKTOP_TILE_SIZES} />
           </>
         )}
       </div>
@@ -367,13 +453,20 @@ const Skiper30 = ({
 };
 
 type ColumnProps = {
+  ref?: React.Ref<HTMLDivElement>;
   items?: GalleryItem[];
   images?: string[];
   topOffset: string;
-  y: MotionValue<number>;
+  /** CSS sizes expression mirroring the actual tile width math. */
+  sizes: string;
 };
 
-const Column = React.memo(({ items, images, topOffset, y }: ColumnProps) => {
+/**
+ * Plain memoized div column — transforms are written directly to the DOM by
+ * the gallery's single Lenis scroll tick, so the column never re-renders
+ * during scroll or resize-distance recomputes.
+ */
+const Column = React.memo(({ ref, items, images, topOffset, sizes }: ColumnProps) => {
   // Normalization to support either items or legacy images prop
   const cardItems = useMemo<GalleryItem[]>(() => {
     if (items && items.length > 0) return items;
@@ -390,10 +483,10 @@ const Column = React.memo(({ items, images, topOffset, y }: ColumnProps) => {
   }, [items, images]);
 
   return (
-    <motion.div
+    <div
+      ref={ref}
       className="gallery-column relative flex h-full flex-1 flex-col"
       style={{
-        y,
         top: topOffset,
         position: "relative",
         display: "flex",
@@ -421,12 +514,13 @@ const Column = React.memo(({ items, images, topOffset, y }: ColumnProps) => {
         >
           <img
             src={item.src}
+            srcSet={srcSetFor(item.src)}
+            sizes={sizes}
             alt={item.alt}
             width={1080}
             height={1485}
             loading="eager"
             decoding="async"
-            fetchPriority="high"
             className="pointer-events-none h-full w-full object-cover select-none"
             style={{
               width: "100%",
@@ -482,7 +576,7 @@ const Column = React.memo(({ items, images, topOffset, y }: ColumnProps) => {
           </div>
         </div>
       ))}
-    </motion.div>
+    </div>
   );
 });
 Column.displayName = "Column";

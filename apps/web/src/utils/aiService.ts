@@ -1,6 +1,31 @@
-import { BankAccount, Transaction, StockHolding, MutualFundHolding, FixedDeposit, GoldHolding, NPSHolding, ProvidentFundHolding, TDSSummary, TaxViewInputs, formatRupee, calculateNetWorthSummary, calculateFdAccruedValue, calculateFIRECorpus, calculateTaxOldRegime, calculateTaxNewRegime } from '@financeos/shared';
+import { BankAccount, Transaction, StockHolding, MutualFundHolding, FixedDeposit, GoldHolding, NPSHolding, ProvidentFundHolding, TDSSummary, TaxViewInputs, formatRupee, calculateNetWorthSummary, calculateFdAccruedValue, calculateFIRECorpus, calculateTaxOldRegime, calculateTaxNewRegime, TAX_DEDUCTION_LIMITS, AI_ASSUMPTIONS } from '@financeos/shared';
 
 export type AIMode = 'local' | 'cloud';
+
+/**
+ * Extracts the purchase amount named in an affordability query.
+ * Understands "₹40 lakh", "40 lakhs", "1.5 crore", "₹25,00,000" and plain
+ * "500000"-style figures. Returns null when the query names no amount.
+ */
+export function parsePurchaseTarget(query: string): number | null {
+  const q = query.toLowerCase();
+  const croreMatch = q.match(/([\d,.]+)\s*(?:cr|crore)/);
+  if (croreMatch) {
+    const n = parseFloat(croreMatch[1].replace(/,/g, ''));
+    if (Number.isFinite(n) && n > 0) return Math.round(n * 10000000);
+  }
+  const lakhMatch = q.match(/([\d,.]+)\s*(?:l|lac|lakh|lakhs)/);
+  if (lakhMatch) {
+    const n = parseFloat(lakhMatch[1].replace(/,/g, ''));
+    if (Number.isFinite(n) && n > 0) return Math.round(n * 100000);
+  }
+  const rupeeMatch = q.match(/₹\s*([\d,.]+)/);
+  if (rupeeMatch) {
+    const n = parseFloat(rupeeMatch[1].replace(/,/g, ''));
+    if (Number.isFinite(n) && n > 0) return Math.round(n);
+  }
+  return null;
+}
 
 export interface AIContext {
   accounts: BankAccount[];
@@ -83,14 +108,15 @@ export class AIService {
       if (!gross || gross <= 0) {
         return `To compare tax regimes, please enter your gross salary in the **Tax Calculator** view. Once saved, I can compute the exact tax under Old vs New regime for your actual income.`;
       }
-      const stdDeductionNew = 75000;
-      // Old regime standard deduction is ₹50,000 (FY 2023-24), capped at ₹50,000
-      const ded80C = Math.min(context.taxInputs?.ded80C || 0, 150000);
-      const ded80D = Math.min(context.taxInputs?.ded80D || 0, 25000);
-      const dedNps = Math.min(context.taxInputs?.dedNps || 0, 50000);
+      const stdDeductionNew = TAX_DEDUCTION_LIMITS.stdDeductionNew;
+      // Old regime deduction caps — canonical values shared with the Tax view
+      // (previously duplicated here with a diverging ₹25k 80D cap).
+      const ded80C = Math.min(context.taxInputs?.ded80C || 0, TAX_DEDUCTION_LIMITS.ded80C);
+      const ded80D = Math.min(context.taxInputs?.ded80D || 0, TAX_DEDUCTION_LIMITS.ded80D);
+      const dedNps = Math.min(context.taxInputs?.dedNps || 0, TAX_DEDUCTION_LIMITS.dedNps);
       const hraExempt = context.taxInputs?.hraExempt || 0;
-      const homeLoan = Math.min(context.taxInputs?.dedHomeLoan || 0, 200000);
-      const totalOldDeductions = 50000 + ded80C + ded80D + dedNps + hraExempt + homeLoan;
+      const homeLoan = Math.min(context.taxInputs?.dedHomeLoan || 0, TAX_DEDUCTION_LIMITS.dedHomeLoan);
+      const totalOldDeductions = TAX_DEDUCTION_LIMITS.stdDeductionOld + ded80C + ded80D + dedNps + hraExempt + homeLoan;
       const taxableOld = Math.max(0, gross - totalOldDeductions);
       const taxableNew = Math.max(0, gross - stdDeductionNew);
 
@@ -128,9 +154,13 @@ export class AIService {
     if (/can i (?:buy|afford|purchase)/.test(qLower) || /car|house|purchase/.test(qLower)) {
       const bankBalances = accounts.reduce((sum, a) => sum + (a.accountType !== 'Loan' && a.accountType !== 'CreditCard' ? a.balance : 0), 0);
       const liquidNetWorth = bankBalances + mfs.reduce((sum, m) => sum + (m.units * m.currentNav), 0);
-      
-      return `### 🚘 Purchase Affordability Evaluation\n\n- **Liquid Cash & Mutual Funds**: **${formatRupee(liquidNetWorth)}**\n- **Target Purchase**: **₹15,000,000 (15 Lakhs)**\n\n` +
-             (liquidNetWorth >= 1500000 
+
+      // Parse the amount the user actually asked about (₹40 lakh / 1.5 crore / 500000),
+      // falling back to the historical default when the query names none.
+      const target = parsePurchaseTarget(q) ?? AI_ASSUMPTIONS.fallbackPurchaseTarget;
+
+      return `### 🚘 Purchase Affordability Evaluation\n\n- **Liquid Cash & Mutual Funds**: **${formatRupee(liquidNetWorth)}**\n- **Target Purchase**: **${formatRupee(target)}**\n\n` +
+             (liquidNetWorth >= target
                ? `✅ **Affordable**: Your liquid net worth covers the purchase with a safety margin. Recommendation: Maintain an emergency buffer of at least 6 months of expenses.`
                : `⚠️ **Caution**: Your current liquid reserves stand at **${formatRupee(liquidNetWorth)}**. Financing via a car loan with 20% down payment is recommended to preserve liquidity.`);
     }
@@ -138,10 +168,11 @@ export class AIService {
     // 7. Inflation & Future Cash Flow Simulation
     if (/inflation/.test(qLower) || /future cash flow/.test(qLower) || /retire/.test(qLower)) {
       const currentNetWorth = accounts.reduce((sum, a) => sum + (a.accountType !== 'Loan' ? a.balance : 0), 0) + stocks.reduce((sum, s) => sum + (s.quantity * s.currentPrice), 0) + mfs.reduce((sum, m) => sum + (m.units * m.currentNav), 0);
-      const val10Yr = currentNetWorth * Math.pow(1 + 0.11, 10);
-      const val10YrReal = val10Yr / Math.pow(1 + 0.06, 10);
+      const { expectedReturnPct, inflationPct, projectionYears } = AI_ASSUMPTIONS;
+      const val10Yr = currentNetWorth * Math.pow(1 + expectedReturnPct / 100, projectionYears);
+      const val10YrReal = val10Yr / Math.pow(1 + inflationPct / 100, projectionYears);
 
-      return `### 📈 10-Year Wealth Projection (11% ROI vs 6% Inflation)\n\n- **Current Portfolio**: **${formatRupee(currentNetWorth)}**\n- **Projected Value (2036 Nominal)**: **${formatRupee(val10Yr)}**\n- **Real Purchasing Power (Inflation-Adjusted)**: **${formatRupee(val10YrReal)}**\n\n💡 **Financial Copilot Note**: Compounding at 11% p.a. comfortably outpaces the 6% inflation rate!`;
+      return `### 📈 10-Year Wealth Projection (${expectedReturnPct}% ROI vs ${inflationPct}% Inflation)\n\n- **Current Portfolio**: **${formatRupee(currentNetWorth)}**\n- **Projected Value (2036 Nominal)**: **${formatRupee(val10Yr)}**\n- **Real Purchasing Power (Inflation-Adjusted)**: **${formatRupee(val10YrReal)}**\n\n💡 **Financial Copilot Note**: Compounding at ${expectedReturnPct}% p.a. comfortably outpaces the ${inflationPct}% inflation rate!`;
     }
 
     // 8. Missing Nominees
@@ -177,12 +208,12 @@ export class AIService {
         return txDate >= threeMonthsAgo;
       });
       const totalRecentExpense = recentExpenses.reduce((sum: number, t: Transaction) => sum + Math.abs(t.amount), 0);
-      // Fall back to ₹50,000/month default only if no transaction data at all
-      const monthlyExpenses = recentExpenses.length > 0 ? Math.round(totalRecentExpense / 3) : 50000;
-      const targetCorpus = calculateFIRECorpus(monthlyExpenses, 3.5); // 3.5% SWR
+      // Fall back to the shared default only if no transaction data at all
+      const monthlyExpenses = recentExpenses.length > 0 ? Math.round(totalRecentExpense / 3) : AI_ASSUMPTIONS.fallbackMonthlyExpense;
+      const targetCorpus = calculateFIRECorpus(monthlyExpenses, AI_ASSUMPTIONS.swrPct);
       const pct = Math.min(100, Math.round((liquidNetWorth / targetCorpus) * 100));
 
-      return `Your liquid portfolio is **${formatRupee(liquidNetWorth)}** against a target **Standard FIRE Corpus of ${formatRupee(targetCorpus)}** (based on ${formatRupee(monthlyExpenses)}/mo living expenses at 3.5% SWR).\n\n- **FIRE Progress:** **${pct}% achieved** 🎉\n- **Lean FIRE Target:** ${formatRupee(targetCorpus * 0.75)}\n- **Fat FIRE Target:** ${formatRupee(targetCorpus * 1.5)}`;
+      return `Your liquid portfolio is **${formatRupee(liquidNetWorth)}** against a target **Standard FIRE Corpus of ${formatRupee(targetCorpus)}** (based on ${formatRupee(monthlyExpenses)}/mo living expenses at ${AI_ASSUMPTIONS.swrPct}% SWR).\n\n- **FIRE Progress:** **${pct}% achieved** 🎉\n- **Lean FIRE Target:** ${formatRupee(targetCorpus * 0.75)}\n- **Fat FIRE Target:** ${formatRupee(targetCorpus * 1.5)}`;
     }
 
     // 7. Advance Tax Query
@@ -217,15 +248,12 @@ export class AIService {
     }
 
     try {
+      const netWorthSummary = calculateNetWorthSummary(context);
       const summaryContext = {
         totalAccounts: context.accounts.length,
         totalStocks: context.stocks.length,
         totalMutualFunds: context.mfs.length,
-        netWorth: formatRupee(
-          context.accounts.reduce((sum, a) => sum + (a.accountType === 'Loan' ? -a.balance : a.balance), 0) +
-          context.stocks.reduce((sum, s) => sum + (s.quantity * s.currentPrice), 0) +
-          context.fds.reduce((sum, f) => sum + f.principalAmount, 0)
-        )
+        netWorth: formatRupee(netWorthSummary.netWorth)
       };
 
       const prompt = `You are a financial AI assistant for MyFinanceOS India.

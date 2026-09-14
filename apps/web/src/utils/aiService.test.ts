@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { aiService, AIContext } from './aiService.js';
 
 describe('AIService Unit Tests', () => {
@@ -89,5 +89,34 @@ describe('AIService Unit Tests', () => {
     expect(response).toContain('Total Income Earned');
     expect(response).toContain('Total Expenses Spent');
     expect(response).toContain('Monthly Savings Rate');
+  });
+
+  it('should include canonical calculateNetWorthSummary in cloud prompt payload', async () => {
+    aiService.setMode('cloud');
+    aiService.setApiKey('test_gemini_key');
+    let capturedBody = '';
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockImplementation(async (_url: string, options?: RequestInit) => {
+      capturedBody = (options?.body as string) || '';
+      return {
+        ok: true,
+        json: async () => ({
+          candidates: [{ content: { parts: [{ text: 'Cloud AI response' }] } }]
+        })
+      } as unknown as Response;
+    });
+
+    try {
+      await aiService.processQuery('Give me a wealth summary', mockContext);
+      expect(capturedBody).toContain('netWorth');
+      const parsed = JSON.parse(capturedBody);
+      const promptText = parsed.contents[0].parts[0].text;
+      expect(promptText).toContain('Context Data:');
+      // Verify mutual funds and gold are accounted for in netWorth calculation
+      expect(promptText).toContain('totalMutualFunds":1');
+    } finally {
+      globalThis.fetch = originalFetch;
+      aiService.setMode('local');
+    }
   });
 });

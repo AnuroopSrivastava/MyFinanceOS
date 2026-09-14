@@ -11,43 +11,9 @@ import Link from 'next/link';
 import '../styles/emergent-landing.css';
 import { getSavedTheme, setTheme } from '@financeos/ui';
 import { STORAGE_KEYS, CURRENT_VERSION, LATEST_CHANGELOG_ENTRY } from '@financeos/shared';
-import { DEFAULT_IMAGES, Skiper30 } from './ui/skiper-ui/skiper30';
-import { useLenisScroll } from '../hooks/useLenisScroll';
-
-function smoothScrollTo(target: string | number | HTMLElement, offset: number = 0) {
-  if (typeof window === 'undefined') return;
-  try {
-    const isJsdom = typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.includes('jsdom');
-    if (isJsdom) return;
-    if (window.__myfinanceos_lenis__) {
-      if (typeof target === 'number') {
-        window.__myfinanceos_lenis__.scrollTo(target, { offset });
-      } else if (typeof target === 'string') {
-        const el = document.querySelector(target);
-        if (el) {
-          window.__myfinanceos_lenis__.scrollTo(el as HTMLElement, { offset });
-        }
-      } else if (target instanceof HTMLElement) {
-        window.__myfinanceos_lenis__.scrollTo(target, { offset });
-      }
-      return;
-    }
-    if (typeof target === 'number') {
-      window.scrollTo({ top: target, behavior: 'smooth' });
-    } else if (typeof target === 'string') {
-      const el = document.querySelector(target);
-      if (el) {
-        const top = el.getBoundingClientRect().top + window.scrollY + offset;
-        window.scrollTo({ top, behavior: 'smooth' });
-      }
-    } else if (target instanceof HTMLElement) {
-      const top = target.getBoundingClientRect().top + window.scrollY + offset;
-      window.scrollTo({ top, behavior: 'smooth' });
-    }
-  } catch {
-    // Graceful fallback for test environments or legacy browsers
-  }
-}
+import { DEFAULT_IMAGES, Skiper30, PARALLAX_VARIANT_WIDTHS, parallaxVariantSrc } from './ui/skiper-ui/skiper30';
+import { useLenisScroll, smoothScrollTo } from '../hooks/useLenisScroll';
+import { useLenisSectionProgress } from '../hooks/useLenisSectionProgress';
 
 interface LandingProps {
   onUnlock?: () => void;
@@ -70,11 +36,6 @@ function piecewiseMap(progress: number, xs: readonly number[] | number[], ys: re
   return ys[ys.length - 1];
 }
 
-type LenisViewportAnchors = { start: number; end: number };
-
-const SECTION_ANCHORS: LenisViewportAnchors = { start: 1, end: 0 };
-
-/**
 /**
  * Lightweight hero viewport observer.
  * Toggles `body.past-hero` so the site header drops backdrop-filter
@@ -104,64 +65,6 @@ function useHeroScrollObserver() {
       document.body.classList.remove('past-hero');
     };
   }, []);
-}
-
-/**
- * Scroll-linked driver that subscribes to the gallery's reference-counted
- * Lenis singleton (the exact engine behind /finance-gallery and Skiper30)
- * instead of spinning up a separate framer-motion useScroll loop.
- *
- * progress = 0 when the target's start edge crosses `start` fraction of the
- * viewport; progress = 1 when the target's end edge crosses `end` fraction.
- * Layout metrics are cached on mount/resize (offsetTop walk, identical to
- * Skiper30's measure) so no scroll frame ever triggers a forced reflow.
- */
-function useLenisSectionProgress(
-  targetRef: React.RefObject<HTMLElement | null>,
-  apply: (progress: number) => void,
-  anchors: LenisViewportAnchors = SECTION_ANCHORS
-) {
-  const applyRef = useRef(apply);
-  const lastProgressRef = useRef(-1);
-
-  useEffect(() => {
-    applyRef.current = apply;
-  }, [apply]);
-
-  const update = useCallback(() => {
-    const el = targetRef.current;
-    if (!el || typeof window === 'undefined') return;
-    const rect = el.getBoundingClientRect();
-    const vh = window.innerHeight;
-    const span = rect.height + (anchors.start - anchors.end) * vh;
-    if (span <= 0) return;
-    const progress = Math.min(Math.max((anchors.start * vh - rect.top) / span, 0), 1);
-    if (Math.abs(progress - lastProgressRef.current) < 0.0005) return;
-    lastProgressRef.current = progress;
-    applyRef.current(progress);
-  }, [anchors.start, anchors.end, targetRef]);
-
-  useLenisScroll(true, update);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const remeasure = () => {
-      lastProgressRef.current = -1;
-      update();
-    };
-    remeasure();
-    window.addEventListener('resize', remeasure, { passive: true });
-    window.addEventListener('load', remeasure, { passive: true });
-    if (typeof document !== 'undefined' && document.fonts?.ready) {
-      document.fonts.ready.then(remeasure);
-    }
-    const timer = setTimeout(remeasure, 150);
-    return () => {
-      window.removeEventListener('resize', remeasure);
-      window.removeEventListener('load', remeasure);
-      clearTimeout(timer);
-    };
-  }, [update]);
 }
 
 const navItems = ['Home', 'About', 'Features', 'Pricing', 'Blog'];
@@ -419,6 +322,48 @@ export const Header = memo(function Header({ dark, onToggleTheme, onUnlock, auth
   );
 });
 
+function HeroOdometer({
+  target,
+  format,
+  duration = 0.85,
+  delay = 0.2,
+}: {
+  target: number;
+  format: (n: number) => string;
+  duration?: number;
+  delay?: number;
+}) {
+  const ref = useRef<HTMLSpanElement | null>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const el = ref.current;
+    let lastFormatted = '';
+    const timer = setTimeout(() => {
+      const controls = animate(0, target, {
+        duration,
+        ease: easeOutExpo,
+        onUpdate: (latest) => {
+          const formatted = format(latest);
+          if (formatted !== lastFormatted) {
+            lastFormatted = formatted;
+            el.textContent = formatted;
+          }
+        },
+      });
+      return () => controls.stop();
+    }, delay * 1000);
+
+    return () => clearTimeout(timer);
+  }, [target, format, duration, delay]);
+
+  return (
+    <span ref={ref} style={{ fontVariantNumeric: 'tabular-nums' }}>
+      {format(target)}
+    </span>
+  );
+}
+
 export function PhoneMockup() {
   return (
     <motion.div
@@ -434,14 +379,14 @@ export function PhoneMockup() {
           data-testid="phone-screen"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.22 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
         >
           <motion.div
             className="phone-pill"
             data-testid="phone-label"
             initial={{ opacity: 0, y: -10, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
-            transition={{ duration: 0.5, ease: easeOutExpo, delay: 0.28 }}
+            transition={{ duration: 0.5, ease: easeOutExpo, delay: 0.26 }}
           >
             100% OFFLINE &amp; PRIVATE
           </motion.div>
@@ -450,7 +395,7 @@ export function PhoneMockup() {
             aria-hidden="true"
             initial={{ opacity: 0, scale: 0.7, x: '-50%' }}
             animate={{ opacity: 1, scale: 1, x: '-50%' }}
-            transition={{ ...springBouncy, delay: 0.32 }}
+            transition={{ ...springBouncy, delay: 0.3 }}
           >
             <span className="symbol-ring" />
             <span className="symbol-core" />
@@ -469,21 +414,23 @@ export function BalanceCard() {
       data-testid="balance-card"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.7, delay: 0.18 }}
+      transition={{ duration: 0.7, delay: 0.16 }}
     >
       <div className="card-kicker-row">
         <span className="card-kicker">Your Balance</span>
         <span className="card-live-badge">Encrypted</span>
       </div>
       <strong className="balance-amount">
-        <span className="balance-curr">₹</span>18,42,250<span className="balance-cents">.00</span>
+        <span className="balance-curr">₹</span>
+        <HeroOdometer target={1842250} format={(n) => Math.round(n).toLocaleString('en-IN')} delay={0.25} />
+        <span className="balance-cents">.00</span>
       </strong>
       <div className="balance-gain-row">
         <span className="gain">
           <svg className="gain-icon" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path d="M6 9.5V2.5M6 2.5L2.5 6M6 2.5L9.5 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          +18.4%
+          +<HeroOdometer target={18.4} format={(n) => n.toFixed(1)} delay={0.35} duration={0.9} />%
         </span>
         <span className="gain-period">total net worth</span>
       </div>
@@ -492,19 +439,36 @@ export function BalanceCard() {
 }
 
 export function WeeklyCard() {
+  const [paid, setPaid] = useState(false);
+
+  const handlePay = () => {
+    setPaid(true);
+    setTimeout(() => setPaid(false), 1400);
+  };
+
   return (
     <motion.div
       className="weekly-wrap"
       data-testid="weekly-spend-card"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.7, delay: 0.24 }}
+      transition={{ duration: 0.7, delay: 0.2 }}
     >
       <div className="finance-card weekly-card">
         <span className="weekly-amount">
-          <span className="weekly-curr">₹</span>14.20K <span className="weekly-per">/ week</span>
+          <span className="weekly-curr">₹</span>
+          <HeroOdometer target={14.2} format={(n) => `${n.toFixed(2)}K`} delay={0.28} />
+          <span className="weekly-per">/ week</span>
         </span>
-        <span className="pay-chip" data-testid="pay-chip">Pay</span>
+        <motion.button
+          type="button"
+          className={`pay-chip ${paid ? 'is-paid' : ''}`}
+          data-testid="pay-chip"
+          onClick={handlePay}
+          whileTap={{ scale: 0.94 }}
+        >
+          {paid ? '✓ Paid' : 'Pay'}
+        </motion.button>
       </div>
     </motion.div>
   );
@@ -520,7 +484,7 @@ export function ExpenseCard() {
       data-testid="expense-card"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.7, delay: 0.34 }}
+      transition={{ duration: 0.7, delay: 0.3 }}
     >
       <div className="expense-top">
         <div className="expense-title-group">
@@ -537,7 +501,9 @@ export function ExpenseCard() {
       </div>
       <div className="expense-amount-row">
         <strong className="expense-amount">
-          <span className="expense-curr">₹</span>24,850<span className="expense-cents">.00</span>
+          <span className="expense-curr">₹</span>
+          <HeroOdometer target={24850} format={(n) => Math.round(n).toLocaleString('en-IN')} delay={0.38} />
+          <span className="expense-cents">.00</span>
         </strong>
         <span className="expense-trend-pill" title="Down 14.8% vs budget">
           ↓ 14.8%
@@ -563,6 +529,104 @@ export function ExpenseCard() {
         </div>
       </div>
     </motion.div>
+  );
+}
+
+export const partnerLogos: { text: string; mark?: React.ReactNode; strong?: boolean }[] = [
+  {
+    text: '100% Offline-First',
+    strong: true,
+    mark: (
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+        <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 14.5h-2v-2h2v2zm0-4h-2V7h2v5.5z" />
+      </svg>
+    ),
+  },
+  {
+    text: 'AES-256 Encrypted',
+    mark: (
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+        <path d="M12 1.4l2.15 6.45L20.6 10l-6.45 2.15L12 18.6l-2.15-6.45L3.4 10l6.45-2.15z" />
+        <circle cx="12" cy="10" r="2.1" fillOpacity=".45" />
+      </svg>
+    ),
+  },
+  {
+    text: 'Old vs New Tax Regime',
+    mark: (
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="5.5" />
+        <rect x="8.5" y="8.5" width="7" height="7" rx="2.2" fillOpacity=".35" />
+      </svg>
+    ),
+  },
+  {
+    text: 'GST Invoicing Suite',
+    mark: (
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+        <path d="M12 2.3l8.4 4.85v9.7L12 21.7 3.6 16.85v-9.7z" />
+        <path d="M12 7.4l3.9 2.25v4.5L12 16.4 8.1 14.15v-4.5z" fillOpacity=".35" />
+      </svg>
+    ),
+  },
+  {
+    text: 'Multi-Asset Wealth & FIRE',
+    mark: (
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+        <path d="M4 6.6A2.6 2.6 0 016.6 4H16a4 4 0 014 4v9.4A2.6 2.6 0 0117.4 20H8a4 4 0 01-4-4z" />
+      </svg>
+    ),
+  },
+  {
+    text: 'Private Local AI',
+    strong: true,
+    mark: (
+      <svg viewBox="0 0 26 24" width="20" height="18" fill="currentColor" aria-hidden="true">
+        <circle cx="9" cy="12" r="6.2" />
+        <circle cx="17" cy="12" r="6.2" fillOpacity=".5" />
+      </svg>
+    ),
+  },
+];
+
+export function LogoCloud() {
+  return (
+    <div
+      className="logo-cloud"
+      data-testid="logo-cloud"
+      aria-label="Core architecture highlights"
+      role="list"
+    >
+      {partnerLogos.map((logo, index) => (
+        <motion.span
+          className={`logo-cloud-item ${logo.strong ? 'is-strong' : ''}`}
+          key={`${logo.text}-${index}`}
+          role="listitem"
+          initial={{ opacity: 0, y: 14, scale: 0.94 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{
+            type: 'spring',
+            stiffness: 280,
+            damping: 24,
+            delay: 0.50 + index * 0.055,
+          }}
+          whileHover={{
+            y: -2.5,
+            scale: 1.035,
+            transition: { type: 'spring', stiffness: 420, damping: 22 },
+          }}
+          whileTap={{
+            scale: 0.97,
+            transition: { duration: 0.1 },
+          }}
+        >
+          <span className="logo-cloud-mark" aria-hidden="true">
+            {logo.mark}
+          </span>
+          <span className="logo-cloud-text">{logo.text}</span>
+        </motion.span>
+      ))}
+    </div>
   );
 }
 
@@ -608,7 +672,7 @@ export function Hero({ onUnlock, authenticating = false }: { onUnlock?: () => vo
           data-testid="mini-amount-card"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.7, delay: 0.3 }}
+          transition={{ duration: 0.7, delay: 0.24 }}
         >
           <div className="mini-card-top">
             <span className="card-kicker">SIP &amp; Yield</span>
@@ -616,7 +680,9 @@ export function Hero({ onUnlock, authenticating = false }: { onUnlock?: () => vo
           </div>
           <strong className="mini-card-amount">
             <span className="mini-plus">+</span>
-            <span className="mini-curr">₹</span>12,450<span className="mini-cents">.00</span>
+            <span className="mini-curr">₹</span>
+            <HeroOdometer target={12450} format={(n) => Math.round(n).toLocaleString('en-IN')} delay={0.32} />
+            <span className="mini-cents">.00</span>
           </strong>
           <span className="mini-subtext">Monthly portfolio payout</span>
         </motion.div>
@@ -686,86 +752,16 @@ export function Hero({ onUnlock, authenticating = false }: { onUnlock?: () => vo
             {authenticating ? 'Connecting…' : 'Download now'}
           </motion.button>
         </div>
+        <p className="hero-auth-links" data-testid="hero-auth-links">
+          Already set a password?{' '}
+          <Link href="/login">Sign in</Link>
+          <span aria-hidden="true"> · </span>
+          <Link href="/forgot-password">Forgot password</Link>
+        </p>
+        <LogoCloud />
       </section>
       <div className="hero-seam" aria-hidden="true" data-testid="hero-seam" />
     </main>
-  );
-}
-
-export const partnerLogos: { text: string; mark?: React.ReactNode; strong?: boolean }[] = [
-  {
-    text: '100% Offline-First',
-    strong: true,
-    mark: (
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
-        <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 14.5h-2v-2h2v2zm0-4h-2V7h2v5.5z" />
-      </svg>
-    ),
-  },
-  {
-    text: 'AES-256 Encrypted',
-    mark: (
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
-        <path d="M12 1.4l2.15 6.45L20.6 10l-6.45 2.15L12 18.6l-2.15-6.45L3.4 10l6.45-2.15z" />
-        <circle cx="12" cy="10" r="2.1" fillOpacity=".45" />
-      </svg>
-    ),
-  },
-  {
-    text: 'Old vs New Tax Regime',
-    mark: (
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
-        <rect x="3" y="3" width="18" height="18" rx="5.5" />
-        <rect x="8.5" y="8.5" width="7" height="7" rx="2.2" fillOpacity=".35" />
-      </svg>
-    ),
-  },
-  {
-    text: 'GST Invoicing Suite',
-    mark: (
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
-        <path d="M12 2.3l8.4 4.85v9.7L12 21.7 3.6 16.85v-9.7z" />
-        <path d="M12 7.4l3.9 2.25v4.5L12 16.4 8.1 14.15v-4.5z" fillOpacity=".35" />
-      </svg>
-    ),
-  },
-  {
-    text: 'Multi-Asset Wealth & FIRE',
-    mark: (
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
-        <path d="M4 6.6A2.6 2.6 0 016.6 4H16a4 4 0 014 4v9.4A2.6 2.6 0 0117.4 20H8a4 4 0 01-4-4z" />
-      </svg>
-    ),
-  },
-  {
-    text: 'Private Local AI',
-    strong: true,
-    mark: (
-      <svg viewBox="0 0 26 24" width="23" height="20" fill="currentColor" aria-hidden="true">
-        <circle cx="9" cy="12" r="6.2" />
-        <circle cx="17" cy="12" r="6.2" fillOpacity=".5" />
-      </svg>
-    ),
-  },
-];
-
-export function LogoCloud() {
-  return (
-    <div className="logo-cloud" data-testid="logo-cloud" aria-label="Core architecture highlights">
-      {partnerLogos.map((logo, index) => (
-        <motion.span
-          className={`logo-cloud-item ${logo.strong ? 'is-strong' : ''}`}
-          key={`${logo.text}-${index}`}
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.6 }}
-          transition={{ duration: 0.5, ease: easeOutExpo, delay: index * 0.05 }}
-        >
-          {logo.mark}
-          <span>{logo.text}</span>
-        </motion.span>
-      ))}
-    </div>
   );
 }
 
@@ -842,7 +838,14 @@ export function AboutSection() {
             className={`together-pill-btn pill-light ${activePill === 'spending' ? 'is-active' : ''}`}
             onClick={() => setActivePill('spending')}
           >
-            Spending
+            <span className="together-pill-text">Spending</span>
+            {activePill === 'spending' && (
+              <motion.span
+                layoutId="activeAboutPill"
+                className="together-pill-active-bg"
+                transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+              />
+            )}
           </button>
           <span>to confident</span>
           <button
@@ -850,7 +853,14 @@ export function AboutSection() {
             className={`together-pill-btn pill-light ${activePill === 'growth' ? 'is-active' : ''}`}
             onClick={() => setActivePill('growth')}
           >
-            Growth
+            <span className="together-pill-text">Growth</span>
+            {activePill === 'growth' && (
+              <motion.span
+                layoutId="activeAboutPill"
+                className="together-pill-active-bg"
+                transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+              />
+            )}
           </button>
           <span>, our platform unites</span>
           <button
@@ -858,7 +868,14 @@ export function AboutSection() {
             className={`together-pill-btn pill-dark ${activePill === 'tax' ? 'is-active' : ''}`}
             onClick={() => setActivePill('tax')}
           >
-            Tax Planning
+            <span className="together-pill-text">Tax Planning</span>
+            {activePill === 'tax' && (
+              <motion.span
+                layoutId="activeAboutPill"
+                className="together-pill-active-bg"
+                transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+              />
+            )}
           </button>
           <span>,</span>
           <button
@@ -866,7 +883,14 @@ export function AboutSection() {
             className={`together-pill-btn pill-dark ${activePill === 'invoicing' ? 'is-active' : ''}`}
             onClick={() => setActivePill('invoicing')}
           >
-            Invoicing
+            <span className="together-pill-text">Invoicing</span>
+            {activePill === 'invoicing' && (
+              <motion.span
+                layoutId="activeAboutPill"
+                className="together-pill-active-bg"
+                transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+              />
+            )}
           </button>
           <span>, and</span>
           <button
@@ -874,7 +898,14 @@ export function AboutSection() {
             className={`together-pill-btn pill-light ${activePill === 'vault' ? 'is-active' : ''}`}
             onClick={() => setActivePill('vault')}
           >
-            Local Vault
+            <span className="together-pill-text">Local Vault</span>
+            {activePill === 'vault' && (
+              <motion.span
+                layoutId="activeAboutPill"
+                className="together-pill-active-bg"
+                transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+              />
+            )}
           </button>
           <span>in one sovereign OS.</span>
         </div>
@@ -901,16 +932,163 @@ export function AboutSection() {
             </div>
           </div>
           <div className="together-preview-mock">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#6e38e8' }}>● SYSTEM MODULE ACTIVE</span>
-              <span style={{ fontSize: 11, background: 'rgba(110,50,230,0.1)', padding: '2px 8px', borderRadius: 999 }}>Local SQLite WASM</span>
-            </div>
-            <div style={{ padding: '12px 14px', background: 'rgba(110,50,230,0.06)', borderRadius: 12, marginBottom: 10, fontSize: 13 }}>
-              <b>Status:</b> Zero telemetry packets transmitted
-            </div>
-            <div style={{ padding: '12px 14px', background: 'rgba(16,185,129,0.08)', borderRadius: 12, fontSize: 13, color: '#059669' }}>
-              <b>Cryptographic state:</b> AES-256-GCM authenticated
-            </div>
+            {activePill === 'spending' && (
+              <motion.div
+                key="mock-spending"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.35, ease: easeOutExpo }}
+              >
+                <div className="together-mock-header">
+                  <span className="together-mock-status">
+                    <span className="together-pulse-dot" /> DOUBLE-ENTRY STREAM
+                  </span>
+                  <span className="together-mock-badge">Zero Latency</span>
+                </div>
+                <div className="together-mock-item">
+                  <div className="together-mock-line">
+                    <span className="together-mock-tag">Swiggy UPI</span>
+                    <span className="together-mock-amount text-expense">-₹480.00</span>
+                  </div>
+                  <div className="together-mock-sub">Auto-tagged: Food &amp; Dining · Reconciled</div>
+                </div>
+                <div className="together-mock-item is-success">
+                  <div className="together-mock-line">
+                    <span className="together-mock-tag">Zerodha Dividend</span>
+                    <span className="together-mock-amount text-income">+₹1,250.00</span>
+                  </div>
+                  <div className="together-mock-sub">Direct Deposit · Ledger Balanced (Debit = Credit)</div>
+                </div>
+              </motion.div>
+            )}
+
+            {activePill === 'growth' && (
+              <motion.div
+                key="mock-growth"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.35, ease: easeOutExpo }}
+              >
+                <div className="together-mock-header">
+                  <span className="together-mock-status">
+                    <span className="together-pulse-dot" /> COMPOUND WEALTH &amp; FIRE
+                  </span>
+                  <span className="together-mock-badge">Monte Carlo</span>
+                </div>
+                <div className="together-mock-item">
+                  <div className="together-mock-line">
+                    <span className="together-mock-tag">Target Age 42 Corpus</span>
+                    <span className="together-mock-amount text-accent">₹3,50,00,000</span>
+                  </div>
+                  <div className="together-progress-track">
+                    <motion.div
+                      className="together-progress-fill"
+                      initial={{ width: 0 }}
+                      animate={{ width: '64.2%' }}
+                      transition={{ duration: 0.75, ease: easeOutExpo, delay: 0.1 }}
+                    />
+                  </div>
+                  <div className="together-mock-sub">64.2% Funded · ₹2.25 Cr Accumulated</div>
+                </div>
+                <div className="together-mock-item is-success">
+                  <div className="together-mock-line">
+                    <span className="together-mock-tag">Portfolio Alpha</span>
+                    <span className="together-mock-amount text-income">+6.4% vs Nifty 50</span>
+                  </div>
+                  <div className="together-mock-sub">Defensive Beta 0.82 · Rebalanced Monthly</div>
+                </div>
+              </motion.div>
+            )}
+
+            {activePill === 'tax' && (
+              <motion.div
+                key="mock-tax"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.35, ease: easeOutExpo }}
+              >
+                <div className="together-mock-header">
+                  <span className="together-mock-status">
+                    <span className="together-pulse-dot" /> DUAL REGIME ARBITRAGE
+                  </span>
+                  <span className="together-mock-badge">FY 2026-27</span>
+                </div>
+                <div className="together-mock-item">
+                  <div className="together-mock-line">
+                    <span className="together-mock-tag">New Regime (115BAC)</span>
+                    <span className="together-mock-amount text-income">₹1,08,000 Tax</span>
+                  </div>
+                  <div className="together-mock-sub">vs Old Regime ₹1,42,000 · Rebate 87A Applied</div>
+                </div>
+                <div className="together-mock-item is-highlight">
+                  <div className="together-mock-line">
+                    <span className="together-mock-tag">Optimal Strategy</span>
+                    <span className="together-mock-amount text-accent">Save ₹34,000</span>
+                  </div>
+                  <div className="together-mock-sub">80C + 80D + 80CCD(1B) NPS Max Plan Ready</div>
+                </div>
+              </motion.div>
+            )}
+
+            {activePill === 'invoicing' && (
+              <motion.div
+                key="mock-invoicing"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.35, ease: easeOutExpo }}
+              >
+                <div className="together-mock-header">
+                  <span className="together-mock-status">
+                    <span className="together-pulse-dot" /> GST INVOICE READY
+                  </span>
+                  <span className="together-mock-badge">B2B Compliant</span>
+                </div>
+                <div className="together-mock-item">
+                  <div className="together-mock-line">
+                    <span className="together-mock-tag">Invoice #INV-2026-0042</span>
+                    <span className="together-mock-amount text-accent">₹1,45,000.00</span>
+                  </div>
+                  <div className="together-mock-sub">Apex Labs Tech Consulting · 18% IGST ₹26,100</div>
+                </div>
+                <div className="together-mock-item is-success">
+                  <div className="together-mock-line">
+                    <span className="together-mock-tag">Cryptographic Hash</span>
+                    <span className="together-mock-amount text-income">IRN Generated</span>
+                  </div>
+                  <div className="together-mock-sub">E-Invoice QR verified · Ready for 1-Click PDF</div>
+                </div>
+              </motion.div>
+            )}
+
+            {activePill === 'vault' && (
+              <motion.div
+                key="mock-vault"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.35, ease: easeOutExpo }}
+              >
+                <div className="together-mock-header">
+                  <span className="together-mock-status">
+                    <span className="together-pulse-dot" /> ARGON2ID LOCAL VAULT
+                  </span>
+                  <span className="together-mock-badge">100% Offline</span>
+                </div>
+                <div className="together-mock-item">
+                  <div className="together-mock-line">
+                    <span className="together-mock-tag">Encrypted Artifacts</span>
+                    <span className="together-mock-amount text-income">18 Documents</span>
+                  </div>
+                  <div className="together-mock-sub">PAN, Mutual Fund CAS, ITR-V, Property Deed</div>
+                </div>
+                <div className="together-mock-item is-success">
+                  <div className="together-mock-line">
+                    <span className="together-mock-tag">Network Telemetry</span>
+                    <span className="together-mock-amount text-income">0 Bytes Uploaded</span>
+                  </div>
+                  <div className="together-mock-sub">AES-256-GCM cipher authenticated · OPFS Disk</div>
+                </div>
+              </motion.div>
+            )}
           </div>
         </motion.div>
       </div>
@@ -1482,12 +1660,26 @@ export function FinanceGallerySection({
 } = {}) {
   // Pre-decode the gallery screenshots during idle time so the browser never
   // pays the image decode cost mid-scroll when the parallax grid enters the viewport.
+  // Variant-aware: picks the same -480/-800/-1080 candidate the browser's
+  // srcset logic will choose for the current tile width × DPR, so mobile
+  // never warms a 1080px master it will not display.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const warm = () => {
-      for (const src of DEFAULT_IMAGES) {
+      const vw = window.innerWidth;
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      // Same tile-width math the <img sizes> attribute declares:
+      // desktop 4 cols with clamp(16px,2vw,32px) padding+gaps, mobile 2 cols
+      // with 12px padding and clamp(12px,2.5vw,20px) gap.
+      const gap = vw < 768
+        ? Math.min(20, Math.max(12, vw * 0.025))
+        : Math.min(32, Math.max(16, vw * 0.02));
+      const tileWidth = vw < 768 ? (vw - 24 - gap) / 2 : (vw - 5 * gap) / 4;
+      const needed = Math.ceil(tileWidth * dpr);
+      const variant = PARALLAX_VARIANT_WIDTHS.find((w) => w >= needed) ?? 1080;
+      for (const master of DEFAULT_IMAGES) {
         const img = new window.Image();
-        img.src = src;
+        img.src = parallaxVariantSrc(master, variant);
         if (typeof img.decode === 'function') {
           img.decode().catch(() => { /* best-effort warmup */ });
         }
@@ -1538,7 +1730,6 @@ export function Showcase() {
   return (
     <section className="showcase" id="features" data-testid="showcase-section">
       <div className="showcase-bloom" aria-hidden="true" />
-      <LogoCloud />
       <div className="panel-shell" data-testid="panel-shell">
         <div className="panel-stack" aria-hidden="true">
           {[0, 1, 2].map((layer) => (
@@ -1733,14 +1924,30 @@ export function PricingSection({ onUnlock }: { onUnlock?: () => void }) {
               className={`pricing-toggle-btn ${!annual ? 'is-active' : ''}`}
               onClick={() => setAnnual(false)}
             >
-              Monthly
+              <span style={{ position: 'relative', zIndex: 2 }}>Monthly</span>
+              {!annual && (
+                <motion.span
+                  layoutId="pricingCyclePill"
+                  className="pricing-toggle-active-bg"
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                />
+              )}
             </button>
             <button
               type="button"
               className={`pricing-toggle-btn ${annual ? 'is-active' : ''}`}
               onClick={() => setAnnual(true)}
             >
-              Annual <span className="pricing-save-pill">Save 20%</span>
+              <span style={{ position: 'relative', zIndex: 2 }}>
+                Annual <span className="pricing-save-pill">Save 20%</span>
+              </span>
+              {annual && (
+                <motion.span
+                  layoutId="pricingCyclePill"
+                  className="pricing-toggle-active-bg"
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                />
+              )}
             </button>
           </div>
 
@@ -1750,14 +1957,28 @@ export function PricingSection({ onUnlock }: { onUnlock?: () => void }) {
               className={`pricing-toggle-btn ${!isINR ? 'is-active' : ''}`}
               onClick={() => setIsINR(false)}
             >
-              USD ($)
+              <span style={{ position: 'relative', zIndex: 2 }}>USD ($)</span>
+              {!isINR && (
+                <motion.span
+                  layoutId="pricingCurrencyPill"
+                  className="pricing-toggle-active-bg"
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                />
+              )}
             </button>
             <button
               type="button"
               className={`pricing-toggle-btn ${isINR ? 'is-active' : ''}`}
               onClick={() => setIsINR(true)}
             >
-              INR (₹)
+              <span style={{ position: 'relative', zIndex: 2 }}>INR (₹)</span>
+              {isINR && (
+                <motion.span
+                  layoutId="pricingCurrencyPill"
+                  className="pricing-toggle-active-bg"
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                />
+              )}
             </button>
           </div>
         </div>
@@ -1772,7 +1993,15 @@ export function PricingSection({ onUnlock }: { onUnlock?: () => void }) {
               <p>100% Offline with sovereign customized local workspace.</p>
             </div>
             <div className="pricing-price-row">
-              <span className="pricing-amount">{priceFree}</span>
+              <motion.span
+                key={`free-${isINR}`}
+                className="pricing-amount"
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.22, ease: easeOutExpo }}
+              >
+                {priceFree}
+              </motion.span>
               <span className="pricing-cycle">/ forever</span>
             </div>
             <ul className="pricing-features-list">
@@ -1812,8 +2041,16 @@ export function PricingSection({ onUnlock }: { onUnlock?: () => void }) {
               <p>Advanced intelligence for active earners and freelancers.</p>
             </div>
             <div className="pricing-price-row">
-              <span className="pricing-amount">{pricePlus}</span>
-              <span className="pricing-cycle">/ month</span>
+              <motion.span
+                key={`plus-${isINR}-${annual}`}
+                className="pricing-amount"
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.22, ease: easeOutExpo }}
+              >
+                {pricePlus}
+              </motion.span>
+              <span className="pricing-cycle">/ {annual ? 'year' : 'month'}</span>
             </div>
             <ul className="pricing-features-list">
               <li>
@@ -1855,8 +2092,16 @@ export function PricingSection({ onUnlock }: { onUnlock?: () => void }) {
               <p>Full suite for wealth compounding, business &amp; FIRE.</p>
             </div>
             <div className="pricing-price-row">
-              <span className="pricing-amount">{pricePremium}</span>
-              <span className="pricing-cycle">/ month</span>
+              <motion.span
+                key={`premium-${isINR}-${annual}`}
+                className="pricing-amount"
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.22, ease: easeOutExpo }}
+              >
+                {pricePremium}
+              </motion.span>
+              <span className="pricing-cycle">/ {annual ? 'year' : 'month'}</span>
             </div>
             <ul className="pricing-features-list">
               <li>
@@ -2752,7 +2997,7 @@ const FaqRow = memo(function FaqRow({
 });
 
 export function Faq({ onUnlock }: { onUnlock?: () => void }) {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
     <section className="faq-section" id="faqs" data-testid="faq-section" aria-labelledby="faq-heading">
@@ -3165,7 +3410,7 @@ function FooterColumn({ links, offset }: { links: FooterLink[]; offset: number }
   );
 }
 
-export function SiteFooter() {
+export function SiteFooter({ hideChangelogShelf = false }: { hideChangelogShelf?: boolean } = {}) {
   const scrollToTop = useCallback(() => {
     smoothScrollTo(0);
   }, []);
@@ -3244,23 +3489,25 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {/* Release & Changelog Shelf */}
-        <div className="footer-changelog-shelf" data-testid="footer-changelog">
-          <div className="footer-changelog-meta">
-            <div className="footer-version-tag" data-testid="footer-version-tag">
-              <span className="footer-version-dot" aria-hidden="true" />
-              <span>MyFinanceOS v{CURRENT_VERSION}</span>
+        {/* Release & Changelog Shelf (suppressed on /changelog page) */}
+        {!hideChangelogShelf && (
+          <div className="footer-changelog-shelf" data-testid="footer-changelog">
+            <div className="footer-changelog-meta">
+              <div className="footer-version-tag" data-testid="footer-version-tag">
+                <span className="footer-version-dot" aria-hidden="true" />
+                <span>MyFinanceOS v{CURRENT_VERSION}</span>
+              </div>
+              <div className="footer-changelog-summary" data-testid="footer-changelog-summary">
+                <span className="footer-summary-prefix">Latest:</span>
+                <span className="footer-summary-text">{LATEST_CHANGELOG_ENTRY.summary}</span>
+              </div>
             </div>
-            <div className="footer-changelog-summary" data-testid="footer-changelog-summary">
-              <span className="footer-summary-prefix">Latest:</span>
-              <span className="footer-summary-text">{LATEST_CHANGELOG_ENTRY.summary}</span>
-            </div>
+            <Link href="/changelog" className="footer-changelog-link" data-testid="footer-changelog-link">
+              <span>View Changelog</span>
+              <span aria-hidden="true" className="footer-link-arrow">→</span>
+            </Link>
           </div>
-          <Link href="/changelog" className="footer-changelog-link" data-testid="footer-changelog-link">
-            <span>View Changelog</span>
-            <span aria-hidden="true" className="footer-link-arrow">→</span>
-          </Link>
-        </div>
+        )}
 
         {/* Bottom Frosted Pill / Ribbon Shelf */}
         <div className="footer-frosted-shelf">
@@ -3322,13 +3569,15 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock, authenticating }) =>
   useHeroScrollObserver();
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.localStorage) return;
+    if (typeof window === 'undefined') return;
     try {
       const stored = window.localStorage.getItem(STORAGE_KEYS.theme);
       if (stored === 'dark') {
         setDark(true);
       } else if (stored === 'light') {
         setDark(false);
+      } else if (document.documentElement.getAttribute('data-theme') === 'dark' || document.documentElement.classList.contains('dark')) {
+        setDark(true);
       } else {
         const savedTheme = getSavedTheme();
         if (savedTheme === 'dark') {
@@ -3338,7 +3587,35 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock, authenticating }) =>
     } catch {
       // Ignore storage access errors
     }
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEYS.theme && e.newValue) {
+        setDark(e.newValue === 'dark');
+      }
+    };
+    const handleCustomTheme = (e: Event) => {
+      const customEvent = e as CustomEvent<{ sender: string; theme: string }>;
+      if (customEvent.detail?.sender === 'landing') return;
+      try {
+        const current = customEvent.detail?.theme || window.localStorage.getItem(STORAGE_KEYS.theme);
+        if (current) setDark(current === 'dark');
+      } catch {}
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('financeos-theme-change', handleCustomTheme);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('financeos-theme-change', handleCustomTheme);
+    };
   }, []);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      document.documentElement.classList.toggle('dark', dark);
+    }
+  }, [dark]);
 
   const handleToggleTheme = useCallback(() => {
     setDark((prev) => {
@@ -3347,6 +3624,11 @@ export const Landing: React.FC<LandingProps> = ({ onUnlock, authenticating }) =>
         try {
           window.localStorage.setItem(STORAGE_KEYS.theme, next ? 'dark' : 'light');
           setTheme(next ? 'dark' : 'light');
+          window.dispatchEvent(
+            new CustomEvent('financeos-theme-change', {
+              detail: { sender: 'landing', theme: next ? 'dark' : 'light' }
+            })
+          );
         } catch {
           // Ignore storage access errors
         }

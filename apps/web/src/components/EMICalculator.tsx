@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Button, MetricCard, PanelHeader, Slider, Tabs, SummaryMetricGrid, PaginationControls } from '@financeos/ui';
+import { Button, MetricCard, PanelHeader, Slider, Tabs, SummaryMetricGrid, PaginationControls, tickRupeeLakh } from '@financeos/ui';
 import { dbService } from '@financeos/database';
 import { formatRupee, calculateEMI, generateAmortizationSchedule } from '@financeos/shared';
 import { exportToCSV } from '../utils/exportCsv.js';
@@ -310,7 +310,7 @@ export const EMICalculator: React.FC<EMICalculatorProps> = ({ activeProfileId })
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="year" stroke="var(--text-muted)" fontSize={11} />
-                <YAxis stroke="var(--text-muted)" fontSize={11} tickFormatter={(v) => `₹${(v / 100000).toFixed(0)}L`} />
+                <YAxis stroke="var(--text-muted)" fontSize={11} tickFormatter={tickRupeeLakh} />
                 <Tooltip formatter={(v) => formatRupee(Number(v))} />
                 <Area type="monotone" dataKey="balance" stroke="var(--accent-1)" fillOpacity={1} fill="url(#emiBalanceGrad)" name="Remaining Balance" />
               </AreaChart>

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button, CurrencyInput, CircularProgress, Badge, IconButton, EmptyState, PanelHeader, FormField, FormActions, FormRow, ConfirmModal, useConfirmModal, type BadgeVariant } from '@financeos/ui';
 import { dbService } from '@financeos/database';
-import { SavingsGoal, formatRupee } from '@financeos/shared';
+import { SavingsGoal, formatRupee, parseLocalDate } from '@financeos/shared';
 import { Target, Plus, Trash2, Edit2, TrendingUp } from 'lucide-react';
 import { useDbSyncCallback } from '../hooks/useDbSync.js';
 
@@ -22,6 +22,27 @@ const GOAL_COLORS = [
   'var(--warning)',             // Orange
   'var(--error)',               // Crimson
 ];
+
+/** Pure per-goal derived metrics — the single owner of the deadline math. */
+const getGoalMetrics = (g: SavingsGoal) => {
+  const pct = g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0;
+  const remaining = Math.max(0, g.targetAmount - g.currentAmount);
+  // Deadline is a local calendar date; parse as local midnight, not UTC.
+  const daysLeft = g.deadline
+    ? Math.max(0, Math.ceil((parseLocalDate(g.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
+  const monthlyNeeded = daysLeft && daysLeft > 0 ? remaining / (daysLeft / 30) : 0;
+  return { pct, remaining, daysLeft, monthlyNeeded };
+};
+
+const getStatus = (g: SavingsGoal, metrics: ReturnType<typeof getGoalMetrics>): { variant: BadgeVariant; label: string } => {
+  if (metrics.pct >= 100) return { variant: 'success', label: 'Completed' };
+  if (!g.deadline) return { variant: 'cyan', label: 'In Progress' };
+  const overdue = metrics.daysLeft === 0 && metrics.pct < 100;
+  if (overdue) return { variant: 'error', label: 'Overdue' };
+  if (metrics.monthlyNeeded > g.targetAmount * 0.15) return { variant: 'warning', label: 'At Risk' };
+  return { variant: 'success', label: 'On Track' };
+};
 
 export const GoalTracker: React.FC<GoalTrackerProps> = ({ activeProfileId }) => {
   const { modal: confirmModal, openConfirm, closeConfirm } = useConfirmModal();
@@ -86,17 +107,11 @@ export const GoalTracker: React.FC<GoalTrackerProps> = ({ activeProfileId }) => 
     setShowAdd(true);
   };
 
-  const getStatus = (g: SavingsGoal): { variant: BadgeVariant; label: string } => {
-    const pct = g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0;
-    if (pct >= 100) return { variant: 'success', label: 'Completed' };
-    if (!g.deadline) return { variant: 'cyan', label: 'In Progress' };
-    const daysLeft = Math.ceil((new Date(g.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    const remaining = g.targetAmount - g.currentAmount;
-    const monthlyNeeded = daysLeft > 0 ? remaining / (daysLeft / 30) : remaining;
-    if (daysLeft <= 0 && pct < 100) return { variant: 'error', label: 'Overdue' };
-    if (monthlyNeeded > g.targetAmount * 0.15) return { variant: 'warning', label: 'At Risk' };
-    return { variant: 'success', label: 'On Track' };
-  };
+  // Derived per-goal metrics (memoized; recomputed only when goals change)
+  const goalCards = useMemo(() => goals.map(g => {
+    const metrics = getGoalMetrics(g);
+    return { goal: g, metrics, status: getStatus(g, metrics) };
+  }), [goals]);
 
   const formContent = (
     <form onSubmit={editGoal ? handleUpdate : handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-075)', padding: 'var(--spacing-1)', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', boxShadow: 'var(--neo-inset-sm)' }}>
@@ -158,12 +173,8 @@ export const GoalTracker: React.FC<GoalTrackerProps> = ({ activeProfileId }) => 
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 'var(--spacing-075)', marginTop: showAdd ? 'var(--spacing-075)' : 0 }}>
-        {goals.map(g => {
-          const pct = g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0;
-          const status = getStatus(g);
-          const remaining = Math.max(0, g.targetAmount - g.currentAmount);
-          const daysLeft = g.deadline ? Math.max(0, Math.ceil((new Date(g.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null;
-          const monthlyNeeded = daysLeft && daysLeft > 0 ? remaining / (daysLeft / 30) : 0;
+        {goalCards.map(({ goal: g, metrics, status }) => {
+          const { pct, remaining, daysLeft, monthlyNeeded } = metrics;
 
           return (
             <div key={g.id} className="glass-panel" data-interactive-card="off" style={{ padding: 'var(--spacing-1)', position: 'relative', borderColor: `color-mix(in srgb, ${g.color} 20%, transparent)` }}>

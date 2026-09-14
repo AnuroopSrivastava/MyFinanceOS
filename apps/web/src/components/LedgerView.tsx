@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Button, CurrencyInput, Badge, SectionHeader, Modal, ConfirmModal, useConfirmModal, SearchFilterBar, IconButton, PanelHeader, EmptyState, InfoCallout, FileDropzone, FormRow, FormField, FormActions, ActionRow, chartTooltipStyle, chartTooltipItemStyle, useReducedMotion } from '@financeos/ui';
+import { Button, CurrencyInput, Badge, SectionHeader, Modal, ConfirmModal, useConfirmModal, SearchFilterBar, IconButton, PanelHeader, EmptyState, InfoCallout, FileDropzone, FormRow, FormField, FormActions, ActionRow, chartTooltipStyle, chartTooltipItemStyle } from '@financeos/ui';
 import { motion } from 'framer-motion';
 import posthog from 'posthog-js';
 import { dbService } from '@financeos/database';
@@ -22,8 +22,96 @@ interface LedgerViewProps {
   activeProfileId: string;
 }
 
+/**
+ * Ledger journal row. Memoized module-level component so that typing in the
+ * search/filter (which re-filters the list) re-renders only rows whose
+ * content actually changed, instead of re-running the full 500-row
+ * framer-motion subtree per keystroke. Rendering output is byte-identical to
+ * the previous inline implementation.
+ */
+const TransactionRow = React.memo(({
+  tx,
+  idx,
+  accountName,
+  onDelete,
+}: {
+  tx: Transaction;
+  idx: number;
+  accountName: string;
+  onDelete: (id: string) => void;
+}) => {
+  // Transaction Type styling map
+  const typeStyles = {
+    Income: { icon: <ArrowDownLeft size={16} />, color: 'var(--color-inflow)', bg: 'var(--color-inflow-bg)', badge: 'emerald' as const },
+    Expense: { icon: <ArrowUpRight size={16} />, color: 'var(--text-primary)', bg: 'var(--border-strong)', badge: 'rose' as const },
+    Transfer: { icon: <ArrowRightLeft size={16} />, color: 'var(--color-transfer)', bg: 'var(--color-transfer-bg)', badge: 'cyan' as const }
+  };
+
+  const style = typeStyles[tx.type as keyof typeof typeStyles];
+
+  return (
+    <motion.tr
+      key={tx.id}
+      initial={{ opacity: 0, y: 5 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-20px" }}
+      transition={{ delay: Math.min((idx % 10) * 0.03, 0.3) }}
+      style={{ borderBottom: '1px solid var(--border-faint)', transition: 'background-color 0.2s' }}
+      onMouseEnter={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'var(--surface-faint)'}
+      onMouseLeave={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'transparent'}
+    >
+      <td>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
+          <div style={{
+            width: '40px', height: '40px', borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: style.bg, color: style.color
+          }}>
+            {style.icon}
+          </div>
+          <div>
+            <div style={{ fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', fontSize: 'var(--font-base)', color: 'var(--text-primary)', lineHeight: 1.4 }}>{tx.description}</div>
+            <div className="tabular-nums" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)', fontSize: 'var(--font-xs)', color: 'var(--text-muted)', marginTop: 'var(--spacing-02)' }}>
+              <Calendar size={12} />
+              {tx.date}
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <Badge size="sm" icon={<Landmark size={12} />}>{accountName}</Badge>
+      </td>
+      <td>
+        <Badge size="sm">{tx.category}</Badge>
+        {tx.tag && <Badge size="sm" variant="indigo" style={{ marginLeft: 'var(--spacing-05)' }}>{tx.tag}</Badge>}
+      </td>
+      <td className="numeric-cell">
+        <div style={{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--font-lg)', color: tx.type === 'Income' ? 'var(--success)' : 'inherit', fontFamily: 'var(--font-display)' }}>
+          {tx.type === 'Income' ? '+' : tx.type === 'Expense' ? '-' : ''}{formatRupee(tx.amount)}
+        </div>
+        <div style={{ marginTop: 'var(--spacing-02)' }}>
+          <Badge size="sm" variant={style.badge}>{tx.type}</Badge>
+        </div>
+      </td>
+      <td style={{ textAlign: 'center' }}>
+        <div className="action-menu-container" style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+          <IconButton
+            icon={<Trash2 size={16} />}
+            label="Delete transaction"
+            variant="ghost"
+            size="md"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(tx.id);
+            }}
+          />
+        </div>
+      </td>
+    </motion.tr>
+  );
+});
+
 export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRange }) => {
-  const reduceMotion = useReducedMotion();
   // DB States
   const [accounts, setAccounts] = useState<BankAccount[]>(() => dbService.getAccounts().filter(a => a.profileId === activeProfileId));
   const [transactions, setTransactions] = useState<Transaction[]>(() => dbService.getTransactions().filter(t => t.profileId === activeProfileId));
@@ -175,6 +263,13 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
       return matchesSearch && matchesCat && matchesTag;
     });
   }, [transactions, dateRange, searchQuery, selectedCategory, selectedTag]);
+
+  // O(1) account-name lookup for the journal rows (was accounts.find per row per render)
+  const accountsById = useMemo(() => {
+    const map = new Map<string, string>();
+    accounts.forEach(a => map.set(a.id, a.name));
+    return map;
+  }, [accounts]);
 
   // Category analytics for spending donut chart
   const categoryAnalytics = useMemo(() => {
@@ -454,7 +549,8 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
     <>
       <ConfirmModal state={confirmModal} onClose={closeConfirm} />
       <motion.div
-        {...(reduceMotion ? { initial: false, animate: false } : { initial: "hidden", animate: "visible" })}
+        initial="hidden"
+        animate="visible"
         variants={{
           hidden: { opacity: 0 },
           visible: {
@@ -493,7 +589,6 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
               hidden: { opacity: 0, y: 20 },
               visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 80 } }
             }}
-            {...(reduceMotion ? { initial: false, animate: false } : {})}
             style={{ padding: 'var(--spacing-15)' }}
           >
             <PanelHeader
@@ -692,7 +787,6 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                 hidden: { opacity: 0, x: 20 },
                 visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 80 } }
               }}
-              {...(reduceMotion ? { initial: false, animate: false } : {})}
               style={{ padding: 'var(--spacing-15)' }}
             >
               <PanelHeader
@@ -796,7 +890,9 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
         {/* Category Analytics & Top Spends Panel */}
         {categoryAnalytics.data.length > 0 && (
           <motion.div
-            {...(reduceMotion ? { initial: false, animate: false } : { initial: "hidden", whileInView: "visible", viewport: { once: true, margin: "-50px" } })}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
             variants={{
               hidden: { opacity: 0 },
               visible: {
@@ -813,7 +909,6 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                 hidden: { opacity: 0, y: 30 },
                 visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 70 } }
               }}
-              {...(reduceMotion ? { initial: false, animate: false } : {})}
               style={{ padding: 'var(--spacing-15)', backgroundImage: 'var(--neo-convex-grad)', boxShadow: 'var(--neo-raised-md)' }}
             >
               <PanelHeader icon={<PieIcon size={18} />} title="Expense Distribution by Category" />
@@ -834,7 +929,9 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                   {categoryAnalytics.data.slice(0, 5).map((cat, i) => (
                     <motion.div
                       key={i}
-                      {...(reduceMotion ? { initial: false, animate: false } : { initial: { opacity: 0, x: 20 }, whileInView: { opacity: 1, x: 0 }, viewport: { once: true } })}
+                      initial={{ opacity: 0, x: 20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
                       transition={{ delay: i * 0.1 }}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-05)' }}
                     >
@@ -856,7 +953,6 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                 hidden: { opacity: 0, y: 30 },
                 visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 70 } }
               }}
-              {...(reduceMotion ? { initial: false, animate: false } : {})}
               style={{ padding: 'var(--spacing-15)' }}
             >
               <PanelHeader icon={<ArrowUpRight size={18} />} title="Highest Single Spends" />
@@ -864,7 +960,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
                 {topSpends.map((t, idx) => (
                   <motion.div
                     key={t.id}
-                    {...(reduceMotion ? { initial: false, animate: false, whileHover: undefined } : { whileHover: { scale: 1.02 } })}
+                    whileHover={{ scale: 1.02 }}
                     initial={{ opacity: 0, scale: 0.95 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     viewport={{ once: true }}
@@ -885,7 +981,9 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
 
         {/* Main Journal Transactions Table */}
         <motion.div
-          {...(reduceMotion ? { initial: false, animate: false } : { initial: "hidden", whileInView: "visible", viewport: { once: true, margin: "-50px" } })}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
           variants={{
             hidden: { opacity: 0, y: 20 },
             visible: { opacity: 1, y: 0, transition: { type: "tween", duration: 0.4 } }
@@ -966,77 +1064,15 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ activeProfileId, dateRan
               </thead>
               <tbody>
                 {filteredTxs.length > 0 ? (
-                  filteredTxs.slice(0, 500).map((tx, idx) => {
-                    const accName = accounts.find(a => a.id === tx.accountId)?.name || 'External';
-
-                    // Transaction Type styling map
-                    const typeStyles = {
-                      Income: { icon: <ArrowDownLeft size={16} />, color: 'var(--color-inflow)', bg: 'var(--color-inflow-bg)', badge: 'emerald' as const },
-                      Expense: { icon: <ArrowUpRight size={16} />, color: 'var(--text-primary)', bg: 'var(--border-strong)', badge: 'rose' as const },
-                      Transfer: { icon: <ArrowRightLeft size={16} />, color: 'var(--color-transfer)', bg: 'var(--color-transfer-bg)', badge: 'cyan' as const }
-                    };
-
-                    const style = typeStyles[tx.type as keyof typeof typeStyles];
-
-                    return (
-                      <motion.tr
-                        key={tx.id}
-                        {...(reduceMotion ? { initial: false, animate: false } : { initial: { opacity: 0, y: 5 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, margin: "-20px" } })}
-                        transition={{ delay: Math.min((idx % 10) * 0.03, 0.3) }}
-                        style={{ borderBottom: '1px solid var(--border-faint)', transition: 'background-color 0.2s' }}
-                        onMouseEnter={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'var(--surface-faint)'}
-                        onMouseLeave={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
-                            <div style={{
-                              width: '40px', height: '40px', borderRadius: '50%',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              background: style.bg, color: style.color
-                            }}>
-                              {style.icon}
-                            </div>
-                            <div>
-                              <div style={{ fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', fontSize: 'var(--font-base)', color: 'var(--text-primary)', lineHeight: 1.4 }}>{tx.description}</div>
-                              <div className="tabular-nums" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)', fontSize: 'var(--font-xs)', color: 'var(--text-muted)', marginTop: 'var(--spacing-02)' }}>
-                                <Calendar size={12} />
-                                {tx.date}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <Badge size="sm" icon={<Landmark size={12} />}>{accName}</Badge>
-                        </td>
-                        <td>
-                          <Badge size="sm">{tx.category}</Badge>
-                          {tx.tag && <Badge size="sm" variant="indigo" style={{ marginLeft: 'var(--spacing-05)' }}>{tx.tag}</Badge>}
-                        </td>
-                        <td className="numeric-cell">
-                          <div style={{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--font-lg)', color: tx.type === 'Income' ? 'var(--success)' : 'inherit', fontFamily: 'var(--font-display)' }}>
-                            {tx.type === 'Income' ? '+' : tx.type === 'Expense' ? '-' : ''}{formatRupee(tx.amount)}
-                          </div>
-                          <div style={{ marginTop: 'var(--spacing-02)' }}>
-                            <Badge size="sm" variant={style.badge}>{tx.type}</Badge>
-                          </div>
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <div className="action-menu-container" style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
-                            <IconButton
-                              icon={<Trash2 size={16} />}
-                              label="Delete transaction"
-                              variant="ghost"
-                              size="md"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteTx(tx.id);
-                              }}
-                            />
-                          </div>
-                        </td>
-                      </motion.tr>
-                    );
-                  })
+                  filteredTxs.slice(0, 500).map((tx, idx) => (
+                    <TransactionRow
+                      key={tx.id}
+                      tx={tx}
+                      idx={idx}
+                      accountName={accountsById.get(tx.accountId) || 'External'}
+                      onDelete={handleDeleteTx}
+                    />
+                  ))
                 ) : (
                   <tr>
                     <td colSpan={5} style={{ textAlign: 'center', padding: 'var(--spacing-15)' }}>

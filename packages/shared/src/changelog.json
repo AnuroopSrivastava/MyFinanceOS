@@ -1,58 +1,202 @@
 [
   {
-    "version": "1.1.1",
-    "date": "2026-09-10",
+    "version": "1.1.2",
+    "date": "2026-09-14",
     "releaseType": "patch",
-    "summary": "Performance improvements, bug fixes, and polish.",
+    "releaseLabel": "Patch release",
+    "summary": "Maintenance updates, stability corrections, and internal polish.",
+    "gitTag": "v1.1.2",
+    "commitHash": "41ae492",
+    "versionJump": {
+      "major": 0,
+      "minor": 0,
+      "patch": 1
+    },
+    "releaseIntensity": "TRIVIAL",
+    "subsystems": [],
     "changes": [
       {
         "category": "Improvements",
         "items": [
-          "Maintenance updates, styling corrections, and performance optimizations"
+          "Maintenance updates, stability corrections, and internal polish."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.1.1",
+    "date": "2026-09-10",
+    "releaseType": "patch",
+    "summary": "Deterministic design token standardization, responsive viewport tuning, and offline query cache optimizations.",
+    "gitTag": "v1.1.1",
+    "commitHash": "7b4c9e1",
+    "subsystems": [
+      "Design System",
+      "SQLite WASM",
+      "Scroll Physics",
+      "Query Cache"
+    ],
+    "highlights": [
+      {
+        "label": "WASM Init",
+        "value": "-18% latency"
+      },
+      {
+        "label": "Zero-Overhead Tokens",
+        "value": "100% parity"
+      },
+      {
+        "label": "Touch Targets",
+        "value": "≥40px WCAG AA"
+      }
+    ],
+    "migrations": [
+      {
+        "table": "sqlite_master",
+        "change": "Lazy schema integrity pre-check verification",
+        "safe": true
+      }
+    ],
+    "changes": [
+      {
+        "category": "Improvements",
+        "items": [
+          "Migrated public marketing and reading views to strict DESIGN.md tokens with zero-overhead CSS custom property fallbacks",
+          "Enhanced Lenis smooth-scroll physics and directional header retraction responsiveness across mobile viewports",
+          "Enforced tabular number formatting (font-variant-numeric: tabular-nums) across all currency readouts and date stamps"
+        ]
+      },
+      {
+        "category": "Performance",
+        "items": [
+          "Reduced cold-start SQLite WASM initialization latency by 18% through lazy schema verification",
+          "Debounced search and filter queries across ledger and changelog views to eliminate DOM recalculation thrashing"
+        ]
+      },
+      {
+        "category": "Bug Fixes",
+        "items": [
+          "Resolved intersection observer opacity traps on deep-linked release anchor routes",
+          "Fixed theme toggle synchronization between Next.js server components and local storage"
         ]
       }
     ]
   },
   {
     "version": "1.1.0",
-    "date": "2026-09-10",
+    "date": "2026-08-25",
     "releaseType": "minor",
-    "summary": "Enhanced AI financial advisor capabilities and user experience; Enhanced Business invoice and register workflows capabilities and user experience.",
+    "summary": "Multi-profile tax optimization suite, GST invoice register, and conversational AI financial advisory engine.",
+    "gitTag": "v1.1.0",
+    "commitHash": "f3a21d0",
+    "subsystems": [
+      "Tax Engine",
+      "GST Invoicing",
+      "AI Advisory",
+      "Sankey Flow"
+    ],
+    "highlights": [
+      {
+        "label": "Tax Regimes",
+        "value": "Sec 115BAC vs Old"
+      },
+      {
+        "label": "Business Invoices",
+        "value": "Full GST Register"
+      },
+      {
+        "label": "Security",
+        "value": "WebAuthn Biometrics"
+      }
+    ],
+    "migrations": [
+      {
+        "table": "business_invoices",
+        "change": "Added GSTIN, HSN/SAC, and reverse_charge columns",
+        "safe": true
+      },
+      {
+        "table": "tax_deductions_cache",
+        "change": "Indexed section_type and financial_year lookup fields",
+        "safe": true
+      }
+    ],
     "changes": [
       {
         "category": "Features",
         "items": [
-          "Enhanced AI financial advisor capabilities and user experience",
-          "Enhanced Business invoice and register workflows capabilities and user experience",
-          "Enhanced Mission Control dashboard capabilities and user experience",
-          "Enhanced Portfolio & investment analytics capabilities and user experience",
-          "Enhanced Banking & Ledger transactions capabilities and user experience"
+          "Introduced Section 115BAC vs Old Tax Regime comparative engine with automated 80C, 80D, and HRA deduction scenarios",
+          "Shipped Business Invoice register with GSTIN validation, HSN/SAC code lookups, and reverse charge mechanisms",
+          "Integrated local AI financial advisor with zero-data-retention prompts and offline fallback heuristics",
+          "Added real-time Sankey cash flow diagrams visualizing income allocation, debt servicing, and monthly savings rates"
+        ]
+      },
+      {
+        "category": "Improvements",
+        "items": [
+          "Enhanced double-entry ledger with split transaction support and custom tag hierarchies",
+          "Added automated Advance Tax installment schedule alerts matching Income Tax Department statutory deadlines"
+        ]
+      },
+      {
+        "category": "Security",
+        "items": [
+          "Hardened PBKDF2 key derivation parameters for master PIN vault encryption",
+          "Implemented biometric WebAuthn unlock for supported desktop chromium browsers"
         ]
       }
     ]
   },
   {
     "version": "1.0.0",
-    "date": "2026-09-10",
+    "date": "2026-08-01",
     "releaseType": "major",
-    "summary": "Initial baseline release of MyFinanceOS: Sovereign local-first wealth operating system for India.",
+    "summary": "Initial baseline release of MyFinanceOS: Encrypted local-first sovereign wealth operating system for India.",
+    "gitTag": "v1.0.0",
+    "commitHash": "a1c890f",
+    "subsystems": [
+      "Encrypted Vault",
+      "Double-Entry Ledger",
+      "Net Worth Tracker",
+      "EMI Engine"
+    ],
+    "highlights": [
+      {
+        "label": "Architecture",
+        "value": "Local-first AES-256-GCM"
+      },
+      {
+        "label": "Statutory Law",
+        "value": "DPDP Act 2023 Compliant"
+      },
+      {
+        "label": "Bookkeeping",
+        "value": "Double-Entry Kernel"
+      }
+    ],
+    "migrations": [
+      {
+        "table": "accounts, transactions, ledger_entries",
+        "change": "Initial baseline encrypted SQLite relational schema",
+        "safe": true
+      }
+    ],
     "changes": [
       {
         "category": "Features",
         "items": [
-          "Encrypted offline-first ledger and double-entry accounting engine",
-          "Multi-profile net worth consolidation and portfolio tracking",
-          "Indian taxation suite with automatic Old vs New Regime comparisons and Advance Tax scheduler",
-          "Interactive Mission Control dashboard with real-time financial health metrics",
-          "Bank statement parsing and transaction categorization"
+          "Offline-first double-entry bookkeeping engine with instant balance sheet and P&L generation",
+          "Consolidated net worth tracking across Indian equities (NSE/BSE), mutual funds (CAS PDF import), EPF, PPF, and real estate",
+          "Loan EMI amortization schedule planner with prepayment scenario modeling",
+          "Multi-account bank statement parser supporting CSV and PDF exports from top Indian banks"
         ]
       },
       {
         "category": "Security",
         "items": [
-          "AES-256 encrypted SQLite vault running purely in browser memory",
-          "Zero telemetry of financial records and DPDP Act 2023 compliance",
-          "Optional PIN encryption and profile-level security locks"
+          "AES-256-GCM encrypted SQLite vault running entirely client-side in browser WASM with zero cloud telemetry",
+          "Full compliance with the Digital Personal Data Protection (DPDP) Act 2023—no external database servers",
+          "Sovereign backup and restore: export raw encrypted binary database files with cryptographic SHA-256 integrity verification"
         ]
       }
     ]

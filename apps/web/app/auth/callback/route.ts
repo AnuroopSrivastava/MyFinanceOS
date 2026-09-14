@@ -6,10 +6,20 @@ import { getPostHogClient } from '../../../src/lib/posthog-server'
 // The OAuth code-exchange callback runs server-side on the hosted deployment.
 export const dynamic = 'force-dynamic'
 
+// Strict allowlist for the post-login redirect target. This handler is also
+// the landing for Supabase recovery links (?next=/reset-password), so the
+// reflected `next` param must never become an open-redirect vector.
+const ALLOWED_NEXT_PATHS = ['/', '/reset-password', '/settings']
+
+function sanitizeNextPath(value: string | null): string {
+  if (!value) return '/'
+  return ALLOWED_NEXT_PATHS.includes(value) ? value : '/'
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/'
+  const next = sanitizeNextPath(searchParams.get('next'))
 
   if (code) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL

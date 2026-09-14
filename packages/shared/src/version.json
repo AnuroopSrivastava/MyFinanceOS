@@ -1,7 +1,14 @@
 {
-  "version": "1.1.1",
-  "releaseDate": "2026-09-10",
+  "version": "1.1.2",
+  "releaseDate": "2026-09-14",
   "releaseType": "patch",
-  "summary": "Performance improvements, bug fixes, and polish.",
-  "lastReleaseCommit": "bf63e358b8cda8cf6079339a73b49cc363e0c54d"
+  "releaseIntensity": "TRIVIAL",
+  "versionJump": {
+    "major": 0,
+    "minor": 0,
+    "patch": 1
+  },
+  "releaseLabel": "Patch release",
+  "summary": "Maintenance updates, stability corrections, and internal polish.",
+  "lastReleaseCommit": "41ae492dcf83c894b8d2a86c07bbfeb283711283"
 }

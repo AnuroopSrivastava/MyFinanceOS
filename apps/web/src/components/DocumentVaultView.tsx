@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Badge, Button, IconButton, FormField, FormActions, FileDropzone, EmptyState, Modal, SectionHeader, Tabs, InfoCallout, FormRow, IconInput } from '@financeos/ui';
 import { motion } from 'framer-motion';
-import { EncryptedDocument } from '@financeos/shared';
+import { EncryptedDocument, generateSalt } from '@financeos/shared';
 import { dbService } from '@financeos/database';
 import { useDbSyncCallback } from '../hooks/useDbSync.js';
 import {
@@ -60,17 +60,20 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
     e.preventDefault();
     if (!newTitle.trim()) return;
 
+    // Honest metadata record: the vault stores this record (which lives inside
+    // the PIN-encrypted vault blob), not the file's contents. File size is
+    // real when a file was selected; no fabricated size, OCR, or key strings.
     const newDoc: EncryptedDocument = {
-      id: 'doc_' + Math.random().toString(36).substring(2, 8),
+      id: 'doc_' + generateSalt(8),
       profileId,
       title: newTitle,
       category: newCategory,
       uploadDate: new Date().toISOString().split('T')[0],
-      fileSizeFormatted: selectedUploadFile ? `${(selectedUploadFile.size / (1024 * 1024)).toFixed(1)} MB` : `${(Math.random() * 2 + 0.5).toFixed(1)} MB`,
+      fileSizeFormatted: selectedUploadFile ? `${(selectedUploadFile.size / (1024 * 1024)).toFixed(1)} MB` : '—',
       tags: newTags.split(',').map(t => t.trim()).filter(Boolean),
       notes: newNotes,
       isEncrypted: true,
-      ocrSummary: `AI Auto-Indexed Document (${newCategory}). Encrypted using local AES-256 vault.`
+      mimeType: selectedUploadFile?.type || undefined
     };
 
     await dbService.addEncryptedDocument(newDoc);
@@ -80,7 +83,7 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
     setNewNotes('');
     setSelectedUploadFile(null);
     setIsUploading(false);
-    showToast('Document encrypted and stored securely in local vault!');
+    showToast('Record saved to your encrypted vault (metadata only — file contents are not stored).');
   };
 
   const handleDelete = async (id: string) => {
@@ -111,7 +114,7 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
         icon={<Lock />}
         title="Encrypted Document Vault"
         badge={<><ShieldCheck size={12} /> AES-256 Encrypted</>}
-        description="Store PAN, Aadhaar, Property Deeds, Tax returns, and Policy docs with local encryption & AI indexing"
+        description="Store PAN, Aadhaar, Property Deeds, Tax returns, and Policy docs as encrypted records in your local vault"
         action={
           <Button
             variant="primary"
@@ -139,8 +142,9 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
       >
         <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-125)' }}>
           <FileDropzone
-            label="Drop document to encrypt & index, or click to browse"
+            label="Attach document record reference, or click to browse"
             sublabel="Supports PDF, PNG, JPG, JSON, and CSV up to 10MB"
+            accept="application/pdf,image/png,image/jpeg,application/json,text/csv"
             selectedFile={selectedUploadFile}
             onFileSelect={(file) => {
               setSelectedUploadFile(file);
@@ -290,8 +294,9 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
                 />
               </div>
 
-              {/* AI OCR Summary */}
-              {doc.ocrSummary && (
+              {/* Summary preview (legacy records only — the fabricated canned
+                  summary written by old builds is not displayed) */}
+              {doc.ocrSummary && !doc.ocrSummary.startsWith('AI Auto-Indexed Document') && (
                 <div style={{
                   padding: 'var(--spacing-06) var(--spacing-075)',
                   background: 'var(--bg-secondary)',
@@ -411,7 +416,9 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
                 border: '1px solid var(--border-color)',
                 color: 'var(--text-primary)'
               }}>
-                {activeDoc.ocrSummary || 'No AI summary generated yet.'}
+                {activeDoc.ocrSummary && !activeDoc.ocrSummary.startsWith('AI Auto-Indexed Document')
+                  ? activeDoc.ocrSummary
+                  : 'No text preview available for this record.'}
               </div>
             </div>
 
@@ -434,7 +441,7 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({ profileId 
               color: 'var(--badge-emerald-text)'
             }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-04)' }}>
-                <Key size={14} /> Key ID: 0x8F9A...C4B2
+                <Key size={14} /> Record secured inside the PIN-encrypted vault
               </span>
               <span>AES-256 GCM</span>
             </div>

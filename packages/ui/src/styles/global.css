@@ -1420,34 +1420,6 @@ p {
   outline-offset: 2px;
 }
 
-/* Reduced motion utilities */
-@media (prefers-reduced-motion: reduce) {
-  .interactive-card--reveal {
-    animation: none !important;
-    opacity: 1;
-    transform: none;
-  }
-  
-  .glass-panel,
-  .neo-card,
-  .glass-widget,
-  .glass-card {
-    transition: background var(--transition-normal), border-color 200ms ease-out, box-shadow 250ms ease-out;
-  }
-  
-  .neo-card-milled:hover {
-    transform: none;
-  }
-  
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
 /* Light mode soft clay neomorphic adjustments */
 [data-theme='light'] .neo-soft-clay {
   --neo-raised-sm: -3px -3px 8px #ffffff, 3px 3px 8px rgba(166, 175, 195, 0.5), 0 1px 2px rgba(166, 175, 195, 0.2);
@@ -3308,50 +3280,6 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
-/* Motion is the cost, not the content: under reduced motion the entrance is
-   effectively an instant, auto-play-safe, low-cost fade retained for hierarchy. */
-@media (prefers-reduced-motion: reduce) {
-  .interactive-card--reveal {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-  }
-
-  /* Collapse all cosmetic motion to instant transitions */
-  .animate-fade-in,
-  .animate-slide-in,
-  .animate-boot-pulse {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-  }
-
-  .spin {
-    animation: spin 0s linear infinite;
-  }
-
-  .glass-card-floating {
-    animation: none !important;
-  }
-
-  .sankey-animated-path {
-    animation: none !important;
-  }
-
-  .pulse-glow-dot {
-    animation: none !important;
-  }
-
-  .spinning-gear,
-  .spinning-gear-rev {
-    animation: none !important;
-  }
-
-  .glow-border::before {
-    animation: none !important;
-  }
-}
-
 /* Typing indicator: subtle opacity pulse with exponential decay, not bounce. */
 @keyframes typing-pulse {
 
@@ -3384,31 +3312,6 @@ input[type="range"]::-moz-range-thumb {
   .glass-card:not([data-interactive-card='off'])::before,
   [data-interactive-card]:not([data-interactive-card='off'])::before {
     display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-
-  .glass-panel:not([data-interactive-card='off']),
-  .glass-widget:not([data-interactive-card='off']),
-  .glass-card:not([data-interactive-card='off']),
-  [data-interactive-card]:not([data-interactive-card='off']) {
-    transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
-  }
-
-  .glass-panel:not([data-interactive-card='off'])::before,
-  .glass-widget:not([data-interactive-card='off'])::before,
-  .glass-card:not([data-interactive-card='off'])::before,
-  [data-interactive-card]:not([data-interactive-card='off'])::before {
-    display: none;
-  }
-
-  .glass-panel:not([data-interactive-card='off']).is-interactive-card-active,
-  .glass-widget:not([data-interactive-card='off']).is-interactive-card-active,
-  .glass-card:not([data-interactive-card='off']).is-interactive-card-active,
-  [data-interactive-card]:not([data-interactive-card='off']).is-interactive-card-active {
-    box-shadow: var(--shadow-md) !important;
-    will-change: auto;
   }
 }
 
@@ -3471,4 +3374,170 @@ button *,
     font-size: 0.85em;
     color: #6b7280;
   }
+}
+
+/* ==========================================================================
+   RELEASE & CHANGELOG DESIGN TOKENS & COMPONENTS (EXTRACTED DESIGN SYSTEM)
+   ========================================================================== */
+
+:root {
+  /* Release Badge & Legend Semantics */
+  --release-major-ink: var(--accent-purple, #a855f7);
+  --release-major-bg: var(--badge-purple-bg, rgba(168, 85, 247, 0.12));
+  --release-major-border: var(--badge-purple-border, rgba(124, 58, 237, 0.28));
+  --release-major-glow: rgba(168, 85, 247, 0.4);
+
+  --release-minor-ink: var(--accent-cyan, #0284c7);
+  --release-minor-bg: var(--badge-cyan-bg, rgba(6, 182, 212, 0.12));
+  --release-minor-border: var(--badge-cyan-border, rgba(2, 132, 199, 0.28));
+  --release-minor-glow: rgba(2, 132, 199, 0.35);
+
+  --release-patch-ink: var(--accent-emerald, #059669);
+  --release-patch-bg: var(--badge-emerald-bg, rgba(16, 185, 129, 0.12));
+  --release-patch-border: var(--badge-emerald-border, rgba(5, 150, 105, 0.28));
+  --release-patch-glow: rgba(5, 150, 105, 0.35);
+
+  /* Filter Pills */
+  --pill-bg: var(--bg-panel, rgba(255, 255, 255, 0.85));
+  --pill-border: var(--border-color, rgba(124, 58, 237, 0.18));
+  --pill-text: var(--text-secondary, #475569);
+  --pill-active-bg: linear-gradient(135deg, #7c3aed 0%, #c026d3 100%);
+  --pill-active-text: #ffffff;
+  --pill-active-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
+}
+
+.dark, [data-theme='dark'] {
+  --release-minor-ink: var(--accent-cyan, #38bdf8);
+  --release-minor-bg: rgba(6, 182, 212, 0.22);
+  --release-minor-border: rgba(6, 182, 212, 0.45);
+
+  --release-patch-ink: var(--accent-emerald, #34d399);
+  --release-patch-bg: rgba(16, 185, 129, 0.22);
+  --release-patch-border: rgba(16, 185, 129, 0.45);
+
+  --release-major-bg: rgba(168, 85, 247, 0.22);
+  --release-major-border: rgba(168, 85, 247, 0.45);
+  --release-major-ink: #d8b4fe;
+
+  --pill-bg: rgba(255, 255, 255, 0.05);
+  --pill-border: rgba(255, 255, 255, 0.14);
+  --pill-text: #d8d2f6;
+  --pill-active-bg: linear-gradient(135deg, rgba(168, 85, 247, 0.6) 0%, rgba(244, 114, 182, 0.5) 100%);
+  --pill-active-shadow: 0 4px 16px rgba(244, 114, 182, 0.35);
+}
+
+/* Component: ReleaseBadge */
+.release-badge,
+.changelog-release-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: var(--font-display, 'Plus Jakarta Sans', system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(12px);
+  transition: all 0.2s ease;
+}
+
+.release-badge-major,
+.changelog-badge-major {
+  background: var(--release-major-bg);
+  border: 1px solid var(--release-major-border);
+  color: var(--release-major-ink);
+}
+
+.release-badge-minor,
+.changelog-badge-minor {
+  background: var(--release-minor-bg);
+  border: 1px solid var(--release-minor-border);
+  color: var(--release-minor-ink);
+}
+
+/* Larger-than-normal MINOR releases (MINOR +2/+3): accent the minor styling */
+.release-badge-substantial.release-badge-minor,
+.release-badge-substantial.changelog-badge-minor {
+  border-color: var(--release-minor-ink);
+  box-shadow: 0 0 8px var(--release-minor-glow);
+}
+
+.release-badge-patch,
+.changelog-badge-patch {
+  background: var(--release-patch-bg);
+  border: 1px solid var(--release-patch-border);
+  color: var(--release-patch-ink);
+}
+
+/* Legend Dot */
+.release-legend-dot,
+.changelog-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.release-legend-dot-major,
+.changelog-legend-dot-major {
+  background: var(--release-major-ink);
+  box-shadow: 0 0 6px var(--release-major-glow);
+}
+
+.release-legend-dot-minor,
+.changelog-legend-dot-minor {
+  background: var(--release-minor-ink);
+  box-shadow: 0 0 6px var(--release-minor-glow);
+}
+
+.release-legend-dot-patch,
+.changelog-legend-dot-patch {
+  background: var(--release-patch-ink);
+  box-shadow: 0 0 6px var(--release-patch-glow);
+}
+
+/* Component: FilterPillGroup */
+.filter-pill,
+.changelog-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 15px;
+  min-height: 36px;
+  border-radius: 999px;
+  font-family: var(--font-display, 'Plus Jakarta Sans', system-ui, sans-serif);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  border: 1px solid var(--pill-border);
+  background: var(--pill-bg);
+  color: var(--pill-text);
+  touch-action: manipulation;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.filter-pill:hover,
+.changelog-filter-pill:hover {
+  filter: brightness(1.08);
+}
+
+.filter-pill[aria-pressed="true"],
+.changelog-filter-pill[aria-pressed="true"],
+.filter-pill.is-active,
+.changelog-filter-pill.is-active {
+  border: 1px solid transparent;
+  background: var(--pill-active-bg);
+  color: var(--pill-active-text);
+  box-shadow: var(--pill-active-shadow);
+}
+
+.filter-pill-count {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+  margin-left: 4px;
 }

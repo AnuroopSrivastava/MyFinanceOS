@@ -1,6 +1,7 @@
 import { getSupabaseClient } from './supabaseClient.js';
 import { authSession } from '@financeos/auth';
 import { generateSalt, STORAGE_KEYS } from '@financeos/shared';
+import { applyAutomationRules, applyTransactionToBalance, reverseTransactionFromBalance } from './transactionRules.js';
 
 import {
   UserProfile, BankAccount, Transaction, Budget, FixedDeposit,
@@ -101,6 +102,18 @@ class DatabaseService {
   public hasUnsavedChanges = false;
   public lastSaveError: string | null = null;
 
+  /**
+   * Profile-ownership guard — the same boundary addAccount/updateAccount/
+   * deleteAccount have always enforced, now applied to every mutator.
+   * Throws when the caller tries to create a record under another profile,
+   * or mutate a record owned by another profile.
+   */
+  private assertProfileOwnership(recordProfileId: string | undefined, entity: string, action: string): void {
+    if (this.activeProfileId && recordProfileId && recordProfileId !== this.activeProfileId) {
+      throw new Error(`Authentication failed: Cannot ${action} ${entity} for a different profile`);
+    }
+  }
+
   public subscribe(callback: () => void): () => void {
     this.subscribers.push(callback);
     return () => {
@@ -132,7 +145,14 @@ class DatabaseService {
     }
   }
 
+  /**
+   * Sets the profile whose data unscoped getters (`getTransactions()` etc.)
+   * return. Idempotent no-op when unchanged. AuthenticatedApp calls this
+   * during its render body so children observe the fresh session profile in
+   * the same commit — keep that call site if refactoring.
+   */
   public setSessionProfile(profileId: string) {
+    if (this.activeProfileId === profileId) return;
     this.activeProfileId = profileId;
   }
 
@@ -828,45 +848,15 @@ class DatabaseService {
 
   public async addTransaction(tx: Omit<Transaction, 'id'>): Promise<Transaction> {
     if (!this.db) throw new Error('Database is locked');
+    this.assertProfileOwnership(tx.profileId, 'transaction', 'add');
 
-    // Auto-apply active automation rules
-    let category = tx.category;
-    let tag = tx.tag;
-    const rules = (this.db.automationRules || []).filter(r => r.isActive && r.profileId === tx.profileId);
-    for (const r of rules) {
-      if (r.triggerType === 'DescriptionContains' && tx.description.toLowerCase().includes(r.matchPattern.toLowerCase())) {
-        category = r.targetCategory;
-        if (r.targetTag) tag = r.targetTag;
-        break;
-      } else if (r.triggerType === 'AmountOver' && tx.amount >= parseFloat(r.matchPattern)) {
-        category = r.targetCategory;
-        if (r.targetTag) tag = r.targetTag;
-        break;
-      } else if (r.triggerType === 'CategoryMatch' && tx.category.toLowerCase() === r.matchPattern.toLowerCase()) {
-        category = r.targetCategory;
-        if (r.targetTag) tag = r.targetTag;
-        break;
-      }
-    }
+    // Auto-apply active automation rules (single owner: transactionRules.ts)
+    const { category, tag } = applyAutomationRules(tx, this.db.automationRules);
 
     const newTx: Transaction = { ...tx, category, tag, id: 't_' + generateSalt(6) };
     this.db.transactions.push(newTx);
 
-    // Update bank balance
-    const account = this.db.accounts.find(a => a.id === tx.accountId);
-    if (account) {
-      if (tx.type === 'Income') account.balance += tx.amount;
-      else if (tx.type === 'Expense') account.balance -= tx.amount;
-      else if (tx.type === 'Transfer') {
-        account.balance -= tx.amount;
-      }
-    }
-
-    // For transfers to other bank accounts
-    if (tx.type === 'Transfer' && tx.refAccountId) {
-      const refAccount = this.db.accounts.find(a => a.id === tx.refAccountId);
-      if (refAccount) refAccount.balance += tx.amount;
-    }
+    applyTransactionToBalance(this.db.accounts, tx);
 
     await this.save();
     this.notifySubscribers();
@@ -881,49 +871,20 @@ class DatabaseService {
   public async addTransactions(txs: Omit<Transaction, 'id'>[]): Promise<Transaction[]> {
     if (!this.db) throw new Error('Database is locked');
     if (!txs || txs.length === 0) return [];
+    for (const tx of txs) {
+      this.assertProfileOwnership(tx.profileId, 'transaction', 'add');
+    }
 
     const newTxs: Transaction[] = [];
-    const activeRules = (this.db.automationRules || []).filter(r => r.isActive);
 
     for (const tx of txs) {
-      let category = tx.category;
-      let tag = tx.tag;
-      const rules = activeRules.filter(r => r.profileId === tx.profileId);
-      for (const r of rules) {
-        if (r.triggerType === 'DescriptionContains' && tx.description.toLowerCase().includes(r.matchPattern.toLowerCase())) {
-          category = r.targetCategory;
-          if (r.targetTag) tag = r.targetTag;
-          break;
-        } else if (r.triggerType === 'AmountOver' && tx.amount >= parseFloat(r.matchPattern)) {
-          category = r.targetCategory;
-          if (r.targetTag) tag = r.targetTag;
-          break;
-        } else if (r.triggerType === 'CategoryMatch' && tx.category.toLowerCase() === r.matchPattern.toLowerCase()) {
-          category = r.targetCategory;
-          if (r.targetTag) tag = r.targetTag;
-          break;
-        }
-      }
+      const { category, tag } = applyAutomationRules(tx, this.db!.automationRules);
 
       const newTx: Transaction = { ...tx, category, tag, id: 't_' + generateSalt(6) };
       newTxs.push(newTx);
       this.db.transactions.push(newTx);
 
-      // Update bank balance
-      const account = this.db.accounts.find(a => a.id === tx.accountId);
-      if (account) {
-        if (tx.type === 'Income') account.balance += tx.amount;
-        else if (tx.type === 'Expense') account.balance -= tx.amount;
-        else if (tx.type === 'Transfer') {
-          account.balance -= tx.amount;
-        }
-      }
-
-      // For transfers to other bank accounts
-      if (tx.type === 'Transfer' && tx.refAccountId) {
-        const refAccount = this.db.accounts.find(a => a.id === tx.refAccountId);
-        if (refAccount) refAccount.balance += tx.amount;
-      }
+      applyTransactionToBalance(this.db.accounts, tx);
     }
 
     await this.save();
@@ -935,33 +896,16 @@ class DatabaseService {
     if (!this.db) throw new Error('Database is locked');
     const oldTx = this.db.transactions.find(t => t.id === id);
     if (!oldTx) return;
+    this.assertProfileOwnership(oldTx.profileId, 'transaction', 'update');
+    if (updates.profileId !== undefined) this.assertProfileOwnership(updates.profileId, 'transaction', 'update');
 
-    // Rollback old balance
-    const oldAccount = this.db.accounts.find(a => a.id === oldTx.accountId);
-    if (oldAccount) {
-      if (oldTx.type === 'Income') oldAccount.balance -= oldTx.amount;
-      else if (oldTx.type === 'Expense') oldAccount.balance += oldTx.amount;
-      else if (oldTx.type === 'Transfer') oldAccount.balance += oldTx.amount;
-    }
-    if (oldTx.type === 'Transfer' && oldTx.refAccountId) {
-      const refAccount = this.db.accounts.find(a => a.id === oldTx.refAccountId);
-      if (refAccount) refAccount.balance -= oldTx.amount;
-    }
+    // Rollback old balance, then apply the updated one (helpers in transactionRules.ts)
+    reverseTransactionFromBalance(this.db.accounts, oldTx);
 
     const updatedTx: Transaction = { ...oldTx, ...updates };
     this.db.transactions = this.db.transactions.map(t => t.id === id ? updatedTx : t);
 
-    // Apply new balance
-    const newAccount = this.db.accounts.find(a => a.id === updatedTx.accountId);
-    if (newAccount) {
-      if (updatedTx.type === 'Income') newAccount.balance += updatedTx.amount;
-      else if (updatedTx.type === 'Expense') newAccount.balance -= updatedTx.amount;
-      else if (updatedTx.type === 'Transfer') newAccount.balance -= updatedTx.amount;
-    }
-    if (updatedTx.type === 'Transfer' && updatedTx.refAccountId) {
-      const refAccount = this.db.accounts.find(a => a.id === updatedTx.refAccountId);
-      if (refAccount) refAccount.balance += updatedTx.amount;
-    }
+    applyTransactionToBalance(this.db.accounts, updatedTx);
 
     await this.save();
     this.notifySubscribers();
@@ -971,19 +915,8 @@ class DatabaseService {
     if (!this.db) throw new Error('Database is locked');
     const tx = this.db.transactions.find(t => t.id === id);
     if (tx) {
-      // Rollback bank balance
-      const account = this.db.accounts.find(a => a.id === tx.accountId);
-      if (account) {
-        if (tx.type === 'Income') account.balance -= tx.amount;
-        else if (tx.type === 'Expense') account.balance += tx.amount;
-        else if (tx.type === 'Transfer') {
-          account.balance += tx.amount;
-        }
-      }
-      if (tx.type === 'Transfer' && tx.refAccountId) {
-        const refAccount = this.db.accounts.find(a => a.id === tx.refAccountId);
-        if (refAccount) refAccount.balance -= tx.amount;
-      }
+      this.assertProfileOwnership(tx.profileId, 'transaction', 'delete');
+      reverseTransactionFromBalance(this.db.accounts, tx);
       this.db.transactions = this.db.transactions.filter(t => t.id !== id);
       await this.save();
       this.notifySubscribers();
@@ -999,6 +932,7 @@ class DatabaseService {
 
   public async addBudget(budget: Omit<Budget, 'id'>): Promise<Budget> {
     if (!this.db) throw new Error('Database is locked');
+    this.assertProfileOwnership(budget.profileId, 'budget', 'add');
     const newBudget: Budget = { ...budget, id: 'b_' + generateSalt(6) };
     this.db.budgets.push(newBudget);
     await this.save();
@@ -1008,6 +942,8 @@ class DatabaseService {
 
   public async updateBudget(id: string, updates: Partial<Budget>): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.budgets.find(b => b.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'budget', 'update');
     this.db.budgets = this.db.budgets.map(b => b.id === id ? { ...b, ...updates } : b);
     await this.save();
     this.notifySubscribers();
@@ -1015,6 +951,8 @@ class DatabaseService {
 
   public async deleteBudget(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.budgets.find(b => b.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'budget', 'delete');
     this.db.budgets = this.db.budgets.filter(b => b.id !== id);
     await this.save();
     this.notifySubscribers();
@@ -1030,6 +968,7 @@ class DatabaseService {
 
   public async addEncryptedDocument(doc: EncryptedDocument): Promise<EncryptedDocument> {
     if (!this.db) throw new Error('Database is locked');
+    this.assertProfileOwnership(doc.profileId, 'document', 'add');
     if (!this.db.encryptedDocuments) this.db.encryptedDocuments = [];
     this.db.encryptedDocuments.push(doc);
     await this.save();
@@ -1040,6 +979,8 @@ class DatabaseService {
   public async deleteEncryptedDocument(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
     if (this.db.encryptedDocuments) {
+      const existing = this.db.encryptedDocuments.find(d => d.id === id);
+      if (existing) this.assertProfileOwnership(existing.profileId, 'document', 'delete');
       this.db.encryptedDocuments = this.db.encryptedDocuments.filter(d => d.id !== id);
       await this.save();
       this.notifySubscribers();
@@ -1055,6 +996,7 @@ class DatabaseService {
 
   public async addFD(fd: Omit<FixedDeposit, 'id'>): Promise<FixedDeposit> {
     if (!this.db) throw new Error('Database is locked');
+    this.assertProfileOwnership(fd.profileId, 'fixed deposit', 'add');
     const newFD: FixedDeposit = { ...fd, id: 'fd_' + generateSalt(6) };
     this.db.fds.push(newFD);
     await this.save();
@@ -1064,6 +1006,8 @@ class DatabaseService {
 
   public async updateFD(id: string, updates: Partial<FixedDeposit>): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.fds.find(f => f.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'fixed deposit', 'update');
     this.db.fds = this.db.fds.map(f => f.id === id ? { ...f, ...updates } : f);
     await this.save();
     this.notifySubscribers();
@@ -1071,6 +1015,8 @@ class DatabaseService {
 
   public async deleteFD(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.fds.find(f => f.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'fixed deposit', 'delete');
     this.db.fds = this.db.fds.filter(f => f.id !== id);
     await this.save();
     this.notifySubscribers();
@@ -1085,6 +1031,8 @@ class DatabaseService {
 
   public async updateStock(id: string, updates: Partial<StockHolding>): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.stocks.find(s => s.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'stock holding', 'update');
     this.db.stocks = this.db.stocks.map(s => s.id === id ? { ...s, ...updates } : s);
     await this.save();
     this.notifySubscribers();
@@ -1092,6 +1040,7 @@ class DatabaseService {
 
   public async addStock(stock: Omit<StockHolding, 'id'>): Promise<StockHolding> {
     if (!this.db) throw new Error('Database is locked');
+    this.assertProfileOwnership(stock.profileId, 'stock holding', 'add');
     const newStock: StockHolding = { ...stock, id: 'stk_' + generateSalt(6) };
     this.db.stocks.push(newStock);
     await this.save();
@@ -1101,6 +1050,8 @@ class DatabaseService {
 
   public async deleteStock(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.stocks.find(s => s.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'stock holding', 'delete');
     this.db.stocks = this.db.stocks.filter(s => s.id !== id);
     await this.save();
     this.notifySubscribers();
@@ -1115,6 +1066,7 @@ class DatabaseService {
 
   public async addMutualFund(mf: Omit<MutualFundHolding, 'id'>): Promise<MutualFundHolding> {
     if (!this.db) throw new Error('Database is locked');
+    this.assertProfileOwnership(mf.profileId, 'mutual fund holding', 'add');
     const newMF: MutualFundHolding = { ...mf, id: 'mf_' + generateSalt(6) };
     this.db.mutualfunds.push(newMF);
     await this.save();
@@ -1124,6 +1076,8 @@ class DatabaseService {
 
   public async updateMutualFund(id: string, updates: Partial<MutualFundHolding>): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.mutualfunds.find(m => m.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'mutual fund holding', 'update');
     this.db.mutualfunds = this.db.mutualfunds.map(m => m.id === id ? { ...m, ...updates } : m);
     await this.save();
     this.notifySubscribers();
@@ -1131,6 +1085,8 @@ class DatabaseService {
 
   public async deleteMutualFund(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.mutualfunds.find(m => m.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'mutual fund holding', 'delete');
     this.db.mutualfunds = this.db.mutualfunds.filter(m => m.id !== id);
     await this.save();
     this.notifySubscribers();
@@ -1145,6 +1101,7 @@ class DatabaseService {
 
   public async addGold(gold: Omit<GoldHolding, 'id'>): Promise<GoldHolding> {
     if (!this.db) throw new Error('Database is locked');
+    this.assertProfileOwnership(gold.profileId, 'gold holding', 'add');
     const newGold: GoldHolding = { ...gold, id: 'gld_' + generateSalt(6) };
     this.db.gold.push(newGold);
     await this.save();
@@ -1154,6 +1111,8 @@ class DatabaseService {
 
   public async updateGold(id: string, updates: Partial<GoldHolding>): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.gold.find(g => g.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'gold holding', 'update');
     this.db.gold = this.db.gold.map(g => g.id === id ? { ...g, ...updates } : g);
     await this.save();
     this.notifySubscribers();
@@ -1161,6 +1120,8 @@ class DatabaseService {
 
   public async deleteGold(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.gold.find(g => g.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'gold holding', 'delete');
     this.db.gold = this.db.gold.filter(g => g.id !== id);
     await this.save();
     this.notifySubscribers();
@@ -1175,6 +1136,7 @@ class DatabaseService {
 
   public async addNPS(nps: Omit<NPSHolding, 'id'>): Promise<NPSHolding> {
     if (!this.db) throw new Error('Database is locked');
+    this.assertProfileOwnership(nps.profileId, 'NPS holding', 'add');
     const newNPS: NPSHolding = { ...nps, id: 'nps_' + generateSalt(6) };
     this.db.nps.push(newNPS);
     await this.save();
@@ -1184,6 +1146,8 @@ class DatabaseService {
 
   public async updateNPS(id: string, updates: Partial<NPSHolding>): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.nps.find(n => n.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'NPS holding', 'update');
     this.db.nps = this.db.nps.map(n => n.id === id ? { ...n, ...updates } : n);
     await this.save();
     this.notifySubscribers();
@@ -1191,6 +1155,8 @@ class DatabaseService {
 
   public async deleteNPS(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.nps.find(n => n.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'NPS holding', 'delete');
     this.db.nps = this.db.nps.filter(n => n.id !== id);
     await this.save();
     this.notifySubscribers();
@@ -1205,6 +1171,7 @@ class DatabaseService {
 
   public async addPF(pf: Omit<ProvidentFundHolding, 'id'>): Promise<ProvidentFundHolding> {
     if (!this.db) throw new Error('Database is locked');
+    this.assertProfileOwnership(pf.profileId, 'PF holding', 'add');
     const newPF: ProvidentFundHolding = { ...pf, id: 'pf_' + generateSalt(6) };
     this.db.pf.push(newPF);
     await this.save();
@@ -1214,6 +1181,8 @@ class DatabaseService {
 
   public async updatePF(id: string, updates: Partial<ProvidentFundHolding>): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.pf.find(p => p.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'PF holding', 'update');
     this.db.pf = this.db.pf.map(p => p.id === id ? { ...p, ...updates } : p);
     await this.save();
     this.notifySubscribers();
@@ -1221,6 +1190,8 @@ class DatabaseService {
 
   public async deletePF(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.pf.find(p => p.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'PF holding', 'delete');
     this.db.pf = this.db.pf.filter(p => p.id !== id);
     await this.save();
     this.notifySubscribers();
@@ -1235,6 +1206,7 @@ class DatabaseService {
 
   public async addContact(contact: Omit<VendorCustomer, 'id'>): Promise<VendorCustomer> {
     if (!this.db) throw new Error('Database is locked');
+    this.assertProfileOwnership(contact.profileId, 'contact', 'add');
     const newContact: VendorCustomer = { ...contact, id: 'c_' + generateSalt(6) };
     this.db.contacts.push(newContact);
     await this.save();
@@ -1244,6 +1216,8 @@ class DatabaseService {
 
   public async updateContact(id: string, updates: Partial<VendorCustomer>): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.contacts.find(c => c.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'contact', 'update');
     this.db.contacts = this.db.contacts.map(c => c.id === id ? { ...c, ...updates } : c);
     await this.save();
     this.notifySubscribers();
@@ -1251,6 +1225,8 @@ class DatabaseService {
 
   public async deleteContact(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.contacts.find(c => c.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'contact', 'delete');
     this.db.contacts = this.db.contacts.filter(c => c.id !== id);
     await this.save();
     this.notifySubscribers();
@@ -1265,6 +1241,7 @@ class DatabaseService {
 
   public async addInventoryItem(item: Omit<InventoryItem, 'id'>): Promise<InventoryItem> {
     if (!this.db) throw new Error('Database is locked');
+    this.assertProfileOwnership(item.profileId, 'inventory item', 'add');
     const newItem: InventoryItem = { ...item, id: 'i_' + generateSalt(6) };
     this.db.inventory.push(newItem);
     await this.save();
@@ -1274,6 +1251,8 @@ class DatabaseService {
 
   public async updateInventoryItem(id: string, updates: Partial<InventoryItem>): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.inventory.find(i => i.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'inventory item', 'update');
     this.db.inventory = this.db.inventory.map(i => i.id === id ? { ...i, ...updates } : i);
     await this.save();
     this.notifySubscribers();
@@ -1281,6 +1260,8 @@ class DatabaseService {
 
   public async deleteInventoryItem(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.inventory.find(i => i.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'inventory item', 'delete');
     this.db.inventory = this.db.inventory.filter(i => i.id !== id);
     await this.save();
     this.notifySubscribers();
@@ -1307,37 +1288,58 @@ class DatabaseService {
 
   public async addInvoice(invoice: Omit<BusinessInvoice, 'id'>): Promise<BusinessInvoice> {
     if (!this.db) throw new Error('Database is locked');
-    const newInvoice: BusinessInvoice = { ...invoice, id: 'inv_' + generateSalt(6) };
-    this.db.invoices.push(newInvoice);
+    this.assertProfileOwnership(invoice.profileId, 'invoice', 'add');
 
-    // Log to register
-    const reg: Omit<BusinessRegisterEntry, 'id'> = {
-      profileId: invoice.profileId,
-      date: invoice.date,
-      type: 'Sales',
-      refNumber: invoice.invoiceNumber,
-      partyName: invoice.customerName,
-      taxableAmount: invoice.subtotal,
-      cgst: invoice.cgstTotal,
-      sgst: invoice.sgstTotal,
-      igst: invoice.igstTotal,
-      totalAmount: invoice.grandTotal,
-      gstRate: invoice.items[0]?.gstRate || 18
+    // In-memory snapshot for rollback: invoice creation interleaves three
+    // collections (invoices, register, inventory) — a mid-flow failure must
+    // not leave them inconsistent (same pattern as importRawDb).
+    const snapshot = {
+      invoices: [...this.db.invoices],
+      register: [...this.db.register],
+      inventory: this.db.inventory.map(i => ({ ...i })),
     };
-    await this.addRegisterEntry(reg);
 
-    // Deduct inventory items
-    for (const item of invoice.items) {
-      await this.updateInventoryQty(item.itemId, -item.quantity);
+    try {
+      const newInvoice: BusinessInvoice = { ...invoice, id: 'inv_' + generateSalt(6) };
+      this.db.invoices.push(newInvoice);
+
+      // Log to register
+      const reg: Omit<BusinessRegisterEntry, 'id'> = {
+        profileId: invoice.profileId,
+        date: invoice.date,
+        type: 'Sales',
+        refNumber: invoice.invoiceNumber,
+        partyName: invoice.customerName,
+        taxableAmount: invoice.subtotal,
+        cgst: invoice.cgstTotal,
+        sgst: invoice.sgstTotal,
+        igst: invoice.igstTotal,
+        totalAmount: invoice.grandTotal,
+        gstRate: invoice.items[0]?.gstRate || 18
+      };
+      await this.addRegisterEntry(reg);
+
+      // Deduct inventory items
+      for (const item of invoice.items) {
+        await this.updateInventoryQty(item.itemId, -item.quantity);
+      }
+
+      await this.save();
+      this.notifySubscribers();
+      return newInvoice;
+    } catch (e) {
+      // Roll back all three collections to the pre-call snapshot
+      this.db.invoices = snapshot.invoices;
+      this.db.register = snapshot.register;
+      this.db.inventory = snapshot.inventory;
+      throw e;
     }
-
-    await this.save();
-    this.notifySubscribers();
-    return newInvoice;
   }
 
   public async updateInvoiceStatus(id: string, status: 'Draft' | 'Sent' | 'Paid' | 'Overdue'): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
+    const existing = this.db.invoices.find(i => i.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'invoice', 'update');
     this.db.invoices = this.db.invoices.map(i => i.id === id ? { ...i, status } : i);
     await this.save();
     this.notifySubscribers();
@@ -1346,6 +1348,8 @@ class DatabaseService {
   public async deleteInvoice(id: string): Promise<void> {
     if (!this.db) throw new Error('Database is locked');
     const invoice = this.db.invoices.find(i => i.id === id);
+    if (!invoice) return;
+    this.assertProfileOwnership(invoice.profileId, 'invoice', 'delete');
     if (!invoice) return;
 
     // Rollback inventory items
@@ -1372,6 +1376,7 @@ class DatabaseService {
 
   public async addRegisterEntry(entry: Omit<BusinessRegisterEntry, 'id'>): Promise<BusinessRegisterEntry> {
     if (!this.db) throw new Error('DB not initialized');
+    this.assertProfileOwnership(entry.profileId, 'register entry', 'add');
     const newEntry: BusinessRegisterEntry = { ...entry, id: 'reg_' + generateSalt(6) };
     this.db.register.push(newEntry);
     await this.save();
@@ -1381,6 +1386,8 @@ class DatabaseService {
 
   public async updateRegisterEntry(id: string, updates: Partial<BusinessRegisterEntry>): Promise<void> {
     if (!this.db) throw new Error('DB not initialized');
+    const existing = this.db.register.find(r => r.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'register entry', 'update');
     this.db.register = this.db.register.map(r => r.id === id ? { ...r, ...updates } : r);
     await this.save();
     this.notifySubscribers();
@@ -1388,6 +1395,8 @@ class DatabaseService {
 
   public async deleteRegisterEntry(id: string): Promise<void> {
     if (!this.db) throw new Error('DB not initialized');
+    const existing = this.db.register.find(r => r.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'register entry', 'delete');
     this.db.register = this.db.register.filter(r => r.id !== id);
     await this.save();
     this.notifySubscribers();
@@ -1404,6 +1413,7 @@ class DatabaseService {
   public async addTDSRecord(record: Omit<TDSSummary, 'id'>): Promise<TDSSummary> {
     if (!this.db) throw new Error('DB not initialized');
     if (!this.db.tdsRecords) this.db.tdsRecords = [];
+    this.assertProfileOwnership(record.profileId, 'TDS record', 'add');
     const newRecord: TDSSummary = { ...record, id: 'tds_' + generateSalt(6) };
     this.db.tdsRecords.push(newRecord);
     await this.save();
@@ -1414,6 +1424,8 @@ class DatabaseService {
   public async updateTDSRecord(id: string, updates: Partial<TDSSummary>): Promise<void> {
     if (!this.db) throw new Error('DB not initialized');
     if (!this.db.tdsRecords) this.db.tdsRecords = [];
+    const existing = this.db.tdsRecords.find(r => r.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'TDS record', 'update');
     this.db.tdsRecords = this.db.tdsRecords.map(r => r.id === id ? { ...r, ...updates } : r);
     await this.save();
     this.notifySubscribers();
@@ -1422,6 +1434,8 @@ class DatabaseService {
   public async deleteTDSRecord(id: string): Promise<void> {
     if (!this.db) throw new Error('DB not initialized');
     if (!this.db.tdsRecords) return;
+    const existing = this.db.tdsRecords.find(r => r.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'TDS record', 'delete');
     this.db.tdsRecords = this.db.tdsRecords.filter(r => r.id !== id);
     await this.save();
     this.notifySubscribers();
@@ -1513,6 +1527,7 @@ class DatabaseService {
     const db = this.db;
     if (!db) throw new Error('Database is locked');
     if (!db.recurringTransactions) db.recurringTransactions = [];
+    this.assertProfileOwnership(rt.profileId, 'recurring transaction', 'add');
     const newRt: RecurringTransaction = { ...rt, id: 'rt_' + generateSalt(6) };
     db.recurringTransactions.push(newRt);
     await this.save();
@@ -1527,6 +1542,8 @@ class DatabaseService {
     const db = this.db;
     if (!db) throw new Error('Database is locked');
     if (!db.recurringTransactions) db.recurringTransactions = [];
+    const existing = db.recurringTransactions.find(r => r.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'recurring transaction', 'delete');
     db.recurringTransactions = db.recurringTransactions.filter(r => r.id !== id);
     await this.save();
     this.notifySubscribers();
@@ -1577,6 +1594,7 @@ class DatabaseService {
     const db = this.db;
     if (!db) throw new Error('Database is locked');
     if (!db.goals) db.goals = [];
+    this.assertProfileOwnership(goal.profileId, 'savings goal', 'add');
     const newGoal: SavingsGoal = { ...goal, id: 'goal_' + generateSalt(6), createdAt: new Date().toISOString() };
     db.goals.push(newGoal);
     this.logAction('GOAL_ADD', `Added savings goal: ${goal.name}`);
@@ -1589,6 +1607,8 @@ class DatabaseService {
     const db = this.db;
     if (!db) throw new Error('Database is locked');
     if (!db.goals) db.goals = [];
+    const existing = db.goals.find(g => g.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'savings goal', 'update');
     db.goals = db.goals.map(g => g.id === id ? { ...g, ...updates } : g);
     await this.save();
     this.notifySubscribers();
@@ -1598,6 +1618,8 @@ class DatabaseService {
     const db = this.db;
     if (!db) throw new Error('Database is locked');
     if (!db.goals) return;
+    const existing = db.goals.find(g => g.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'savings goal', 'delete');
     db.goals = db.goals.filter(g => g.id !== id);
     this.logAction('GOAL_DELETE', `Deleted savings goal ID: ${id}`);
     await this.save();
@@ -1617,6 +1639,7 @@ class DatabaseService {
     const db = this.db;
     if (!db) throw new Error('Database is locked');
     if (!db.automationRules) db.automationRules = [];
+    this.assertProfileOwnership(rule.profileId, 'automation rule', 'add');
     const newRule: AutomationRule = { ...rule, id: 'rule_' + generateSalt(6) };
     db.automationRules.push(newRule);
     this.logAction('AUTOMATION_RULE_ADD', `Added automation rule: ${rule.name}`);
@@ -1629,6 +1652,8 @@ class DatabaseService {
     const db = this.db;
     if (!db) throw new Error('Database is locked');
     if (!db.automationRules) db.automationRules = [];
+    const existing = db.automationRules.find(r => r.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'automation rule', 'update');
     db.automationRules = db.automationRules.map(r => r.id === id ? { ...r, ...updates } : r);
     await this.save();
     this.notifySubscribers();
@@ -1638,6 +1663,8 @@ class DatabaseService {
     const db = this.db;
     if (!db) throw new Error('Database is locked');
     if (!db.automationRules) return;
+    const existing = db.automationRules.find(r => r.id === id);
+    if (existing) this.assertProfileOwnership(existing.profileId, 'automation rule', 'delete');
     db.automationRules = db.automationRules.filter(r => r.id !== id);
     this.logAction('AUTOMATION_RULE_DELETE', `Deleted automation rule ID: ${id}`);
     await this.save();

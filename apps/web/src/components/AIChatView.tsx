@@ -6,11 +6,10 @@ import { Send, Sparkles, User, ShieldCheck, Cloud, Settings, Compass, Trash2 } f
 import { aiService, AIMode } from '../utils/aiService.js';
 import posthog from 'posthog-js';
 
-interface ChatMessage {
-  id: string;
-  sender: 'user' | 'assistant';
-  text: string;
-}
+import { AIChatMessage } from '@financeos/shared';
+
+/** Alias kept local for readability; the persisted shape is the shared type. */
+type ChatMessage = AIChatMessage;
 
 interface AIChatViewProps {
   activeProfileId: string;

@@ -9,6 +9,21 @@ export const todayStamp = (date: Date = new Date()): string =>
   date.toISOString().split('T')[0];
 
 /**
+ * Parses a `YYYY-MM-DD` string as local midnight. The default
+ * `new Date('YYYY-MM-DD')` treats it as UTC, which shifts the instant by the
+ * timezone offset and disagrees with locally rendered calendar dates — use
+ * this whenever a stored date-only field is compared against local "now"
+ * (deadlines, month bucketing).
+ */
+export const parseLocalDate = (dateStr: string): Date => {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
+    return new Date(dateStr); // fall back to native parsing for non-ISO shapes
+  }
+  return new Date(y, m - 1, d);
+};
+
+/**
  * Triggers a browser download for a Blob with the given filename.
  * No-op in non-browser environments (SSR, workers, tests).
  */

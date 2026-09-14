@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { dbService } from '@financeos/database';
 import { useDbVersion } from '../hooks/useDbSync.js';
-import { formatRupee, GlobalDateRange, filterByDateRange, calculateNetWorthSummary } from '@financeos/shared';
+import { formatRupee, GlobalDateRange, filterByDateRange, calculateNetWorthSummary, getLocalMonthKey } from '@financeos/shared';
 import {
   TrendingUp, TrendingDown, Landmark, PieChart as PieIcon,
   Calendar, Users, AlertTriangle, Lightbulb, Wallet, ShieldCheck, CreditCard
@@ -11,6 +11,7 @@ import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell
 } from 'recharts';
+import { tickLakh, tickThousand } from '@financeos/ui';
 import { GoalTracker } from './GoalTracker.js';
 
 interface DashboardViewProps {
@@ -18,18 +19,57 @@ interface DashboardViewProps {
   dateRange: GlobalDateRange;
 }
 
+/** Health Score SVG arc (module scope so it stops remounting on every parent render). */
+const HealthGauge: React.FC<{ score: number }> = ({ score }) => {
+  const size = 100;
+  const cx = size / 2, cy = size / 2;
+  const radius = 40;
+  const startAngle = -210;
+  const endAngle = 30;
+  const totalAngle = endAngle - startAngle; // 240 degrees
+  const progressAngle = startAngle + (score / 100) * totalAngle;
+
+  const polarToCart = (angleDeg: number, r: number) => ({
+    x: cx + r * Math.cos((angleDeg * Math.PI) / 180),
+    y: cy + r * Math.sin((angleDeg * Math.PI) / 180)
+  });
+
+  const bgStart = polarToCart(startAngle, radius);
+  const bgEnd = polarToCart(endAngle, radius);
+  const progEnd = polarToCart(progressAngle, radius);
+
+  const scoreFill = score >= 70 ? 'var(--success)' : score >= 40 ? 'var(--warning)' : 'var(--error)';
+  const label = score >= 70 ? 'Excellent' : score >= 40 ? 'Fair' : 'Needs Work';
+
+  return (
+    <svg width={size} height={size * 0.7} viewBox={`0 0 ${size} ${size * 0.75}`}>
+      {/* Background arc */}
+      <path d={`M ${bgStart.x} ${bgStart.y} A ${radius} ${radius} 0 1 1 ${bgEnd.x} ${bgEnd.y}`}
+        fill="none" stroke="rgba(150,150,150,0.15)" strokeWidth="6" strokeLinecap="round" />
+      {/* Progress arc */}
+      {score > 0 && (
+        <path d={`M ${bgStart.x} ${bgStart.y} A ${radius} ${radius} 0 ${(score / 100) * totalAngle > 180 ? 1 : 0} 1 ${progEnd.x} ${progEnd.y}`}
+          fill="none" stroke={scoreFill} strokeWidth="6" strokeLinecap="round"
+          style={{ transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }} />
+      )}
+      <text x={cx} y={cy - 4} textAnchor="middle" fill="var(--text-primary)" fontSize="18" fontWeight="700">{score}</text>
+      <text x={cx} y={cy + 12} textAnchor="middle" fill={scoreFill} fontSize="8" fontWeight="600">{label}</text>
+    </svg>
+  );
+};
+
 export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, dateRange }) => {
   const dbVersion = useDbVersion();
   // Fetch dynamic database states
-  const accounts = useMemo(() => dbService.getAccounts().filter(a => a.profileId === activeProfileId), [activeProfileId, dbVersion]);
-  const rawTransactions = useMemo(() => dbService.getTransactions().filter(t => t.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const accounts = useMemo(() => dbService.getAccounts(activeProfileId), [activeProfileId, dbVersion]);
+  const rawTransactions = useMemo(() => dbService.getTransactions(activeProfileId), [activeProfileId, dbVersion]);
   const transactions = useMemo(() => filterByDateRange(rawTransactions, dateRange, t => t.date), [rawTransactions, dateRange]);
-  const stocks = useMemo(() => dbService.getStocks().filter(s => s.profileId === activeProfileId), [activeProfileId, dbVersion]);
-  const mfs = useMemo(() => dbService.getMutualFunds().filter(m => m.profileId === activeProfileId), [activeProfileId, dbVersion]);
-  const fds = useMemo(() => dbService.getFDs().filter(f => f.profileId === activeProfileId), [activeProfileId, dbVersion]);
-  const gold = useMemo(() => dbService.getGold().filter(g => g.profileId === activeProfileId), [activeProfileId, dbVersion]);
-  const nps = useMemo(() => dbService.getNPS().filter(n => n.profileId === activeProfileId), [activeProfileId, dbVersion]);
-  const pf = useMemo(() => dbService.getPF().filter(p => p.profileId === activeProfileId), [activeProfileId, dbVersion]);
+  const stocks = useMemo(() => dbService.getStocks(activeProfileId), [activeProfileId, dbVersion]);
+  const mfs = useMemo(() => dbService.getMutualFunds(activeProfileId), [activeProfileId, dbVersion]);
+  const fds = useMemo(() => dbService.getFDs(activeProfileId), [activeProfileId, dbVersion]);
+  const gold = useMemo(() => dbService.getGold(activeProfileId), [activeProfileId, dbVersion]);
+  const nps = useMemo(() => dbService.getNPS(activeProfileId), [activeProfileId, dbVersion]);
+  const pf = useMemo(() => dbService.getPF(activeProfileId), [activeProfileId, dbVersion]);
   const profiles = useMemo(() => dbService.getProfiles(), [dbVersion]);
 
   // Compute Aggregates via canonical shared aggregator
@@ -57,8 +97,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
   }, [accounts, stocks, mfs, gold, nps, pf, fds]);
 
   // Budgets & Spending Alerts
-  const budgets = useMemo(() => dbService.getBudgets().filter(b => b.profileId === activeProfileId), [activeProfileId, dbVersion]);
-  const currentMonthStr = useMemo(() => new Date().toISOString().substring(0, 7), []);
+  const budgets = useMemo(() => dbService.getBudgets(activeProfileId), [activeProfileId, dbVersion]);
+  // Local month key so bucketing agrees with the locally rendered month label
+  // (a UTC key can disagree with the label by up to 5.5h near month boundaries)
+  const currentMonthStr = useMemo(() => getLocalMonthKey(), []);
   const currentMonthName = useMemo(() => new Date().toLocaleString('en-IN', { month: 'short' }).toUpperCase(), []);
   const budgetAlerts = useMemo(() => {
     // Optimization: Build a category-to-spent map in a single pass O(T) instead of O(B * T)
@@ -406,45 +448,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
 
   const [showHealthBreakdown, setShowHealthBreakdown] = useState(false);
 
-  // Health Score SVG arc
-  const HealthGauge: React.FC<{ score: number }> = ({ score }) => {
-    const size = 100;
-    const cx = size / 2, cy = size / 2;
-    const radius = 40;
-    const startAngle = -210;
-    const endAngle = 30;
-    const totalAngle = endAngle - startAngle; // 240 degrees
-    const progressAngle = startAngle + (score / 100) * totalAngle;
-
-    const polarToCart = (angleDeg: number, r: number) => ({
-      x: cx + r * Math.cos((angleDeg * Math.PI) / 180),
-      y: cy + r * Math.sin((angleDeg * Math.PI) / 180)
-    });
-
-    const bgStart = polarToCart(startAngle, radius);
-    const bgEnd = polarToCart(endAngle, radius);
-    const progEnd = polarToCart(progressAngle, radius);
-
-    const scoreFill = score >= 70 ? 'var(--success)' : score >= 40 ? 'var(--warning)' : 'var(--error)';
-    const label = score >= 70 ? 'Excellent' : score >= 40 ? 'Fair' : 'Needs Work';
-
-    return (
-      <svg width={size} height={size * 0.7} viewBox={`0 0 ${size} ${size * 0.75}`}>
-        {/* Background arc */}
-        <path d={`M ${bgStart.x} ${bgStart.y} A ${radius} ${radius} 0 1 1 ${bgEnd.x} ${bgEnd.y}`}
-          fill="none" stroke="rgba(150,150,150,0.15)" strokeWidth="6" strokeLinecap="round" />
-        {/* Progress arc */}
-        {score > 0 && (
-          <path d={`M ${bgStart.x} ${bgStart.y} A ${radius} ${radius} 0 ${(score / 100) * totalAngle > 180 ? 1 : 0} 1 ${progEnd.x} ${progEnd.y}`}
-            fill="none" stroke={scoreFill} strokeWidth="6" strokeLinecap="round"
-            style={{ transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }} />
-        )}
-        <text x={cx} y={cy - 4} textAnchor="middle" fill="var(--text-primary)" fontSize="18" fontWeight="700">{score}</text>
-        <text x={cx} y={cy + 12} textAnchor="middle" fill={scoreFill} fontSize="8" fontWeight="600">{label}</text>
-      </svg>
-    );
-  };
-
   return (
     <motion.div
       initial="hidden"
@@ -691,7 +694,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="month" stroke="var(--text-muted)" fontSize={11} tickLine={false} />
-                <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} tickFormatter={(v) => `${(v / 100000).toFixed(1)}L`} />
+                <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} tickFormatter={tickLakh} />
                 <Tooltip
                   formatter={(value: any) => [formatRupee(value), 'Net Worth']}
                   contentStyle={{
@@ -726,7 +729,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ activeProfileId, d
             <ResponsiveContainer width="100%" height={240} debounce={50}>
               <BarChart data={cashflowData}>
                 <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} />
-                <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} tickFormatter={tickThousand} />
                 <Tooltip
                   formatter={(value: any) => formatRupee(value)}
                   contentStyle={{
