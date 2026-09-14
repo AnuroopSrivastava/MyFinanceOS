@@ -322,6 +322,22 @@ export const Header = memo(function Header({ dark, onToggleTheme, onUnlock, auth
   );
 });
 
+/**
+ * Groups an integer with the Indian digit convention (last three digits, then
+ * pairs) without Intl. `toLocaleString('en-IN')` needs full ICU, so a Node
+ * runtime with small-icu and a browser produce different strings for the same
+ * number — a hydration mismatch. This helper is deterministic across both.
+ */
+function formatIndianNumber(value: number): string {
+  const rounded = Math.round(value);
+  const sign = rounded < 0 ? '-' : '';
+  const digits = Math.abs(rounded).toString();
+  if (digits.length <= 3) return sign + digits;
+  const last3 = digits.slice(-3);
+  const rest = digits.slice(0, -3);
+  return sign + rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + last3;
+}
+
 function HeroOdometer({
   target,
   format,
@@ -422,7 +438,7 @@ export function BalanceCard() {
       </div>
       <strong className="balance-amount">
         <span className="balance-curr">₹</span>
-        <HeroOdometer target={1842250} format={(n) => Math.round(n).toLocaleString('en-IN')} delay={0.25} />
+        <HeroOdometer target={1842250} format={formatIndianNumber} delay={0.25} />
         <span className="balance-cents">.00</span>
       </strong>
       <div className="balance-gain-row">
@@ -502,7 +518,7 @@ export function ExpenseCard() {
       <div className="expense-amount-row">
         <strong className="expense-amount">
           <span className="expense-curr">₹</span>
-          <HeroOdometer target={24850} format={(n) => Math.round(n).toLocaleString('en-IN')} delay={0.38} />
+          <HeroOdometer target={24850} format={formatIndianNumber} delay={0.38} />
           <span className="expense-cents">.00</span>
         </strong>
         <span className="expense-trend-pill" title="Down 14.8% vs budget">
@@ -681,7 +697,7 @@ export function Hero({ onUnlock, authenticating = false }: { onUnlock?: () => vo
           <strong className="mini-card-amount">
             <span className="mini-plus">+</span>
             <span className="mini-curr">₹</span>
-            <HeroOdometer target={12450} format={(n) => Math.round(n).toLocaleString('en-IN')} delay={0.32} />
+            <HeroOdometer target={12450} format={formatIndianNumber} delay={0.32} />
             <span className="mini-cents">.00</span>
           </strong>
           <span className="mini-subtext">Monthly portfolio payout</span>
@@ -3415,6 +3431,16 @@ export function SiteFooter({ hideChangelogShelf = false }: { hideChangelogShelf?
     smoothScrollTo(0);
   }, []);
 
+  // First paint reads the checked-in release date so server and client render an
+  // identical year (no hydration mismatch); an effect then corrects it to the
+  // viewer's current year after mount.
+  const [copyrightYear, setCopyrightYear] = useState(() =>
+    new Date(LATEST_CHANGELOG_ENTRY.date).getUTCFullYear()
+  );
+  useEffect(() => {
+    setCopyrightYear(new Date().getFullYear());
+  }, []);
+
   return (
     <div className="footer-shell" data-testid="footer-shell">
       <footer className="site-footer" data-testid="site-footer">
@@ -3513,7 +3539,7 @@ export function SiteFooter({ hideChangelogShelf = false }: { hideChangelogShelf?
         <div className="footer-frosted-shelf">
           <div className="footer-shelf-content">
             <p className="footer-shelf-copyright">
-              © MyFinanceOS {new Date().getFullYear()}. All rights reserved.
+              © MyFinanceOS {copyrightYear}. All rights reserved.
             </p>
             <div className="footer-shelf-credit" data-testid="footer-credit">
               <span className="footer-shelf-pill">
